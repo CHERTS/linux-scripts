@@ -4,9 +4,14 @@
 #
 # Author: Matty < matty91 at gmail dot com >
 # 
-# Current Version: 2.0
+# Current Version: 2.1
 #
 # Revision History:
+#  Version 2.1
+#   Bug fix for .mobi and .us — Jim McNamara
+#   Added a variable for the location of tr, and made all calls to cut and tr use the variable
+#   instead of the command without path
+#
 #  Version 2.0
 #   Bug fix for .org, .biz, info, and .ca -- Cameron and Jim 
 #
@@ -127,7 +132,9 @@ AWK="/usr/bin/awk"
 WHOIS="/usr/bin/whois"
 DATE="/bin/date"
 CUT="/usr/bin/cut"
+TR="/usr/bin/tr"
 MAIL="/bin/mail"
+
 # Place to stash temporary files
 WHOIS_TMP="/var/tmp/whois.$$"
 
@@ -210,7 +217,7 @@ date_diff()
 ##################################################################
 tolower() 
 {
-     LOWER=`echo ${1} | tr [A-Z] [a-z]`
+     LOWER=`echo ${1} | ${TR} [A-Z] [a-z]`
      echo $LOWER
 }
 
@@ -226,10 +233,10 @@ check_domain_status()
     sleep 3
     # Save the domain since set will trip up the ordering
     DOMAIN=${1}
-    TLDTYPE="`echo ${DOMAIN} | cut -d '.' -f3 | tr '[A-Z]' '[a-z]'`" 
+    TLDTYPE="`echo ${DOMAIN} | ${CUT} -d '.' -f3 | tr '[A-Z]' '[a-z]'`" 
     if [ "${TLDTYPE}"  == "" ];
     then
-	    TLDTYPE="`echo ${DOMAIN} | cut -d '.' -f2 | tr '[A-Z]' '[a-z]'`" 
+	    TLDTYPE="`echo ${DOMAIN} | ${CUT} -d '.' -f2 | tr '[A-Z]' '[a-z]'`" 
     fi
 
     # Invoke whois to find the domain registrar and expiration date
@@ -287,6 +294,12 @@ check_domain_status()
     elif [ "${TLDTYPE}" == "ca" ];
     then
 	REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Registrar:/ && $0 != ""  { getline; REGISTRAR=substr($0,24,17) } END { print REGISTRAR }'`
+    elif [ "${TLDTYPE}" == "mobi" ];
+    then
+        REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F : '/Updated by Registrar:/ && $2 != "" { REGISTRAR=substr($2,1,17) } END { print REGISTRAR }'`
+    elif [ "${TLDTYPE}" == "us" ];
+    then
+        REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F : '/Updated by Registrar:/ && $2 != "" { REGISTRAR=substr($2,20,17) } END { print REGISTRAR }'`
     fi
 
     # If the Registrar is NULL, then we didn't get any data
@@ -302,8 +315,8 @@ check_domain_status()
     if [ "${TLDTYPE}" == "in" -o "${TLDTYPE}" == "info" -o "${TLDTYPE}" == "org" ];
     then
 	    tdomdate=`cat ${WHOIS_TMP} | ${AWK} '/Expiry Date:/ { print $4 }'`
-            tyear=`echo ${tdomdate} | cut -d'-' -f1`
-            tmon=`echo ${tdomdate} | cut -d'-' -f2`
+            tyear=`echo ${tdomdate} | ${CUT} -d'-' -f1`
+            tmon=`echo ${tdomdate} | ${CUT} -d'-' -f2`
 	       case ${tmon} in
 	             1|01) tmonth=jan ;;
 	             2|02) tmonth=feb ;;
@@ -319,19 +332,19 @@ check_domain_status()
 	             12) tmonth=dec ;;
                	      *) tmonth=0 ;;
 		esac
-            tday=`echo ${tdomdate} | cut -d'-' -f3 |cut -d'T' -f1`
+            tday=`echo ${tdomdate} | ${CUT} -d'-' -f3 |cut -d'T' -f1`
 	    DOMAINDATE=`echo $tday-$tmonth-$tyear`
     elif [ "${TLDTYPE}" == "biz" ]; # for .biz domain
     then
-            DOMAINDATE=`cat ${WHOIS_TMP} | awk '/Domain Expiration Date:/ { print $6"-"$5"-"$9 }'`
+            DOMAINDATE=`cat ${WHOIS_TMP} | ${AWK} '/Domain Expiration Date:/ { print $6"-"$5"-"$9 }'`
     elif [ "${TLDTYPE}" == "uk" ]; # for .uk domain
     then
-            DOMAINDATE=`cat ${WHOIS_TMP} | awk '/Renewal date:/ || /Expiry date:/ { print $3 }'`
+            DOMAINDATE=`cat ${WHOIS_TMP} | ${AWK} '/Renewal date:/ || /Expiry date:/ { print $3 }'`
     elif [ "${TLDTYPE}" == "jp" ]; # for .jp 2010/04/30
     then
-	    tdomdate=`cat ${WHOIS_TMP} | awk '/Expires on/ { print $3 }'`
-            tyear=`echo ${tdomdate} | cut -d'/' -f1`
-            tmon=`echo ${tdomdate} | cut -d'/' -f2`
+	    tdomdate=`cat ${WHOIS_TMP} | ${AWK} '/Expires on/ { print $3 }'`
+            tyear=`echo ${tdomdate} | ${CUT} -d'/' -f1`
+            tmon=`echo ${tdomdate} | ${CUT} -d'/' -f2`
 	       case ${tmon} in
 	             1|01) tmonth=jan ;;
 	             2|02) tmonth=feb ;;
@@ -347,13 +360,13 @@ check_domain_status()
 	             12) tmonth=dec ;;
                	      *) tmonth=0 ;;
 		esac
-            tday=`echo ${tdomdate} | cut -d'/' -f3`
+            tday=`echo ${tdomdate} | ${CUT} -d'/' -f3`
 	    DOMAINDATE=`echo $tday-$tmonth-$tyear`
     elif [ "${TLDTYPE}" == "ca" ]; # for .ca 2010/04/30
     then
-	    tdomdate=`cat ${WHOIS_TMP} | awk '/Expiry date/ { print $3 }'`
-            tyear=`echo ${tdomdate} | cut -d'/' -f1`
-            tmon=`echo ${tdomdate} | cut -d'/' -f2`
+	    tdomdate=`cat ${WHOIS_TMP} | ${AWK} '/Expiry date/ { print $3 }'`
+            tyear=`echo ${tdomdate} | ${CUT} -d'/' -f1`
+            tmon=`echo ${tdomdate} | ${CUT} -d'/' -f2`
 	       case ${tmon} in
 	             1|01) tmonth=jan ;;
 	             2|02) tmonth=feb ;;
@@ -369,8 +382,24 @@ check_domain_status()
 	             12) tmonth=dec ;;
                	      *) tmonth=0 ;;
 		esac
-            tday=`echo ${tdomdate} | cut -d'/' -f3`
+            tday=`echo ${tdomdate} | ${CUT} -d'/' -f3`
 	    DOMAINDATE=`echo $tday-$tmonth-$tyear`
+    elif [ "${TLDTYPE}" == "mobi" ]; # for .mobi 2014/08/11
+    then
+	    tdomdate=`cat ${WHOIS_TMP} | ${AWK} '/Expiration Date:/ { print $2 }' | ${CUT} -d ':' -f2`
+	    tyear=`echo ${tdomdate} | ${CUT} -d'-' -f3`
+	    tmon=`echo ${tdomdate} |${CUT} -d'-' -f2`
+	    tmonth=`tolower ${tmon}`
+	    tday=`echo ${tdomdate} | ${CUT} -d'-' -f1`
+	    DOMAINDATE=`echo "${tday}-${tmonth}-${tyear}"`
+    elif [ "${TLDTYPE}" == "us" ]; # for .us 2014/08/11
+    then
+	    tdomdate=`cat ${WHOIS_TMP} | ${AWK} '/Expiration Date:/' |${CUT} -d ' ' -f26-`
+	    tyear=`echo ${tdomdate} | ${CUT} -d' ' -f5`
+	    tmon=`echo ${tdomdate} |${CUT} -d' ' -f1`
+	    tmonth=`tolower ${tmon}`
+	    tday=`echo ${tdomdate} | ${CUT} -d' ' -f2`
+	    DOMAINDATE=`echo "${tday}-${tmonth}-${tyear}"`
     else # .com, .edu, .net and may work with others	 
 	    DOMAINDATE=`cat ${WHOIS_TMP} | ${AWK} '/Expiration/ { print $NF }'`	
     fi
