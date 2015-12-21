@@ -15,7 +15,7 @@ set -o errexit  #aka "set -e": exit if any line returns non-true value
 set -o nounset  #aka "set -u": exit upon finding an uninitialised variable
 
 test -e /usr/local/share/domains || exit 0
-test -x /usr/local/bin/domain-check || exit 0
+test -x /usr/local/bin/domain-check.pl || exit 0
 
 
-/usr/local/bin/domain-check -e=rick@linuxmafia.com  -x=90 -F=/usr/local/share/domains
+/usr/local/bin/domain-check.pl -e=rick@linuxmafia.com  -x=90 -F=/usr/local/share/domains
