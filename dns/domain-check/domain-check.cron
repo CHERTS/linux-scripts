@@ -1,0 +1,21 @@
+#! /bin/sh
+
+# domain-check	Cron script to check domain expirations.
+#
+#		This is a pitifully primitive cron script to invoke domain-check
+#		by Ben Okopnik ( ben@linuxgazette.net ) against lists
+#		of domains in /usr/local/share.  A better replacement
+#		would notify a list of appropriate persons for each
+#		domain, rather than just Rick Moen.
+#
+#		Written by Rick Moen (rick@linuxmafia.com)
+#		$Id: cron.weekly,v 1.01 2007/07/02 21:03:05 rick
+
+set -o errexit  #aka "set -e": exit if any line returns non-true value
+set -o nounset  #aka "set -u": exit upon finding an uninitialised variable
+
+test -e /usr/local/share/domains || exit 0
+test -x /usr/local/bin/domain-check || exit 0
+
+
+/usr/local/bin/domain-check -e=rick@linuxmafia.com  -x=90 -F=/usr/local/share/domains
