@@ -4,9 +4,13 @@
 #
 # Author: Matty < matty91 at gmail dot com >
 # 
-# Current Version: 2.1
+# Current Version: 2.2
 #
 # Revision History:
+#
+#  Version 2.2
+#   Bug fix that adds support for .ru and .su domains — Jim McNamara
+#
 #  Version 2.1
 #   Bug fix for .mobi and .us — Jim McNamara
 #   Added a variable for the location of tr, and made all calls to cut and tr use the variable
@@ -133,7 +137,7 @@ WHOIS="/usr/bin/whois"
 DATE="/bin/date"
 CUT="/usr/bin/cut"
 TR="/usr/bin/tr"
-MAIL="/bin/mail"
+MAIL="/usr/bin/mail"
 
 # Place to stash temporary files
 WHOIS_TMP="/var/tmp/whois.$$"
@@ -269,6 +273,9 @@ check_domain_status()
     elif [ "${TLDTYPE}"  == "com" -o "${TLDTYPE}"  == "net" -o "${TLDTYPE}"  == "edu" ];
     then
 	${WHOIS} -h ${WHOIS_SERVER} "=${1}" > ${WHOIS_TMP}
+    elif [ "${TLDTYPE}" == "ru" -o "${TLDTYPE}" == "su" ]; # Russia and Soviet Union added 20141113
+    then
+        ${WHOIS} -h "whois.ripn.net" "${1}" > ${WHOIS_TMP}
     else
 	${WHOIS} "${1}" > ${WHOIS_TMP}
     fi
@@ -300,6 +307,9 @@ check_domain_status()
     elif [ "${TLDTYPE}" == "us" ];
     then
         REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F : '/Updated by Registrar:/ && $2 != "" { REGISTRAR=substr($2,20,17) } END { print REGISTRAR }'`
+    elif [ "${TLDTYPE}" == "ru" -o "${TLDTYPE}" == "su" ]; # added 20141113
+    then
+	REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/registrar:/ && $2 != "" { REGISTRAR=substr($2,6,17) } END { print REGISTRAR }'`
     fi
 
     # If the Registrar is NULL, then we didn't get any data
@@ -327,7 +337,7 @@ check_domain_status()
 	             7|07) tmonth=jul ;;
 	             8|08) tmonth=aug ;;
 	             9|09) tmonth=sep ;;
-	             10)tmonth=oct ;;
+	             10) tmonth=oct ;;
 	             11) tmonth=nov ;;
 	             12) tmonth=dec ;;
                	      *) tmonth=0 ;;
@@ -355,7 +365,7 @@ check_domain_status()
 	             7|07) tmonth=jul ;;
 	             8|08) tmonth=aug ;;
 	             9|09) tmonth=sep ;;
-	             10)tmonth=oct ;;
+	             10) tmonth=oct ;;
 	             11) tmonth=nov ;;
 	             12) tmonth=dec ;;
                	      *) tmonth=0 ;;
@@ -377,7 +387,7 @@ check_domain_status()
 	             7|07) tmonth=jul ;;
 	             8|08) tmonth=aug ;;
 	             9|09) tmonth=sep ;;
-	             10)tmonth=oct ;;
+	             10) tmonth=oct ;;
 	             11) tmonth=nov ;;
 	             12) tmonth=dec ;;
                	      *) tmonth=0 ;;
@@ -400,6 +410,28 @@ check_domain_status()
 	    tmonth=`tolower ${tmon}`
 	    tday=`echo ${tdomdate} | ${CUT} -d' ' -f2`
 	    DOMAINDATE=`echo "${tday}-${tmonth}-${tyear}"`
+    elif [ "${TLDTYPE}" == "ru" -o "${TLDTYPE}" == "su" ]; # for .ru and .su 2014/11/13
+    then
+           tdomdate=`cat ${WHOIS_TMP} | ${AWK} '/paid-till:/ { print $2 }'`
+           tyear=`echo ${tdomdate} | ${CUT} -d'.' -f1`
+           tmon=`echo ${tdomdate} |${CUT} -d'.' -f2`
+	       case ${tmon} in
+	             1|01) tmonth=jan ;;
+	             2|02) tmonth=feb ;;
+	             3|03) tmonth=mar ;;
+	             4|04) tmonth=apr ;;
+	             5|05) tmonth=may ;;
+	             6|06) tmonth=jun ;;
+	             7|07) tmonth=jul ;;
+	             8|08) tmonth=aug ;;
+	             9|09) tmonth=sep ;;
+	             10) tmonth=oct ;;
+	             11) tmonth=nov ;;
+	             12) tmonth=dec ;;
+	             *) tmonth=0 ;;
+	       esac
+           tday=`echo ${tdomdate} | ${CUT} -d'.' -f3`
+           DOMAINDATE=`echo "${tday}-${tmonth}-${tyear}"`
     else # .com, .edu, .net and may work with others	 
 	    DOMAINDATE=`cat ${WHOIS_TMP} | ${AWK} '/Expiration/ { print $NF }'`	
     fi
