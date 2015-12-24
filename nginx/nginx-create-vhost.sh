@@ -129,6 +129,20 @@ EOF
 
 }
 
+nginx_reload ()
+{
+	echo -n "Nginx configtest... "
+	/etc/init.d/nginx configtest > /dev/null
+	if [ $? -gt 0 ]; then
+	    echo "Error"
+	    exit 1;
+	else
+	    echo "Done"
+	    echo "Reload nginx..."
+	    /etc/init.d/nginx reload
+	fi
+}
+
 create_nginx_vhost ()
 {
 	SITENAME=${1}
@@ -172,6 +186,22 @@ create_nginx_vhost ()
 	chown root:root ${SITEDIR}/log
 	echo "Done"
 
+	if [ ! -f "/etc/nginx/common/server.conf" ]
+	then
+	  echo "Error: File /etc/nginx/common/server.conf not exist, please, create manual."
+	  exit 1;
+	fi
+	if [ ! -f "/etc/nginx/common/rewrites.conf" ]
+	then
+	  echo "Error: File /etc/nginx/common/rewrites.conf not exist, please, create manual."
+	  exit 1;
+	fi
+	if [ ! -f "/etc/nginx/common/php.conf" ]
+	then
+	  echo "Error: File /etc/nginx/common/php.conf not exist, please, create manual."
+	  exit 1;
+	fi
+
 	echo -n "Create nginx config file ${USERLOGINNAME}.conf... "
 
 cat <<EOF> ${NGINX_VHOST_DIR}/${SITENAME}.conf
@@ -196,18 +226,19 @@ EOF
 
 	if [ -f "${NGINX_VHOST_DIR}/${SITENAME}.conf" ]
 	then
-	  echo "Done"
-	  echo -n "Activate nginx config file... "
-	  ln -s ${NGINX_VHOST_DIR}/${SITENAME}.vhost ${NGINX_VHOST_SITE_ENABLED_DIR}/100-${SITENAME}.vhost
-	  linktest=`readlink ${NGINX_VHOST_SITE_ENABLED_DIR}/100-${SITENAME}.vhost`
-	  if [ -n ${linktest} ]
-	  then
-	    echo "Done"
-	  else
-	    echo "Error, link ${NGINX_VHOST_SITE_ENABLED_DIR}/100-${SITENAME}.vhost not exist"
-	  fi
+		echo "Done"
+		echo -n "Activate nginx config file... "
+		ln -s ${NGINX_VHOST_DIR}/${SITENAME}.vhost ${NGINX_VHOST_SITE_ENABLED_DIR}/100-${SITENAME}.vhost
+		linktest=`readlink ${NGINX_VHOST_SITE_ENABLED_DIR}/100-${SITENAME}.vhost`
+		if [ -n ${linktest} ]
+		then
+			echo "Done"
+			nginx_reload
+		else
+			echo "Error, link ${NGINX_VHOST_SITE_ENABLED_DIR}/100-${SITENAME}.vhost not exist"
+		fi
 	else
-	  echo "Error, file ${NGINX_VHOST_DIR}/${SITENAME}.vhost not exist"
+		echo "Error, file ${NGINX_VHOST_DIR}/${SITENAME}.vhost not exist"
 	fi
 }
 
@@ -263,23 +294,11 @@ EOF
 
 	if [ -f "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf" ]
 	then
-	  echo "Done"
+		echo "Done"
+		echo "Reload php5-fpm..."
+		${PHP_FPM_RUN_SCRIPT} reload
 	else
-	  echo "Error"
-	fi
-}
-
-nginx_reload ()
-{
-	echo -n "Nginx configtest... "
-	/etc/init.d/nginx configtest > /dev/null
-	if [ $? -gt 0 ]; then
-	    echo "Error"
-	    exit 1;
-	else
-	    echo "Done"
-	    echo "Reload nginx..."
-	    /etc/init.d/nginx reload
+		echo "Error"
 	fi
 }
 
@@ -335,9 +354,6 @@ then
 	create_linux_user_and_group "${USERLOGINNAME}" "${GROUPNAME}"
         create_nginx_vhost "${SITENAME}" "${SITEDIR}" "${USERLOGINNAME}" "${GROUPNAME}"
         create_phpfpm_conf "${SITEDIR}" "${USERLOGINNAME}" "${GROUPNAME}"
-	nginx_reload
-	echo "Reload php5-fpm..."
-	${PHP_FPM_RUN_SCRIPT} reload
 else
         usage
         exit 1;
