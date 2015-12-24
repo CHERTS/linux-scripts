@@ -24,7 +24,7 @@ log - log files nginx and php-fpm <br>
 
 3. Set permissions for the folder, and the owner /var/www/domain.com<br>
 
-4. Create a configuration file for nginx in a folder of a specified variable NGINX_VHOST_DIR, default is /etc/nginx/sites-available
+4. Create a configuration file for nginx in a folder of a specified variable NGINX_VHOST_DIR, default is /etc/nginx/sites-available<br>
    It creates a symbolic link to the file in an indication of variable NGINX_VHOST_SITE_ENABLED_DIR way, the default is /etc/nginx/sites-enabled<br>
 
 5. Create a configuration file pool for php-fpm, a file is created on the instructions of variable PHP_FPM_POOL_DIR way, the default is /etc/php5/fpm/pool.d<br>
@@ -37,4 +37,4 @@ Example of deleting site: ./nginx-remove-vhost.sh -s "/var/www/domain.com" -d "d
 
 nginx-remove-vhost.sh script removes everything that creates nginx-create-vhost.sh, site directory, user and group, hosts file for nginx and pool file for php-fpm.<br>
 
-Author: Mikhail Grigoryev <sleuthhound at gmail dot com>
+Author: Mikhail Grigoryev <sleuthhound@gmail.com>

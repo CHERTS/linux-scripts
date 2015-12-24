@@ -8,7 +8,7 @@
 
 В директории common представлены минимально необходимые файлы конфигурации для работы php на создаваемых скриптами площадках.<br>
 
-Скрипты nginx-create-vhost.sh и nginx-remove-vhost.sh предназначены для быстрого создания хостинговой площадки с использованием php-fpm<br>
+Скрипты nginx-create-vhost.sh и nginx-remove-vhost.sh предназначены для быстрого создания хостинговой площадки.<br>
 
 Пример создания площадки: ./nginx-create-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1<br>
 
@@ -24,7 +24,7 @@ log - папка для хранения лог-файлов nginx и php-fpm<br
 
 3. Для папки /var/www/domain.com назначает необходимые права и владельца из п.1<br>
 
-4. Создает файл конфигурации для nginx в папке указаной в переменной NGINX_VHOST_DIR, по-умолчанию это /etc/nginx/sites-available
+4. Создает файл конфигурации для nginx в папке указаной в переменной NGINX_VHOST_DIR, по-умолчанию это /etc/nginx/sites-available<br>
    Создает симлинк для этого файла в по указаному в переменной NGINX_VHOST_SITE_ENABLED_DIR пути, по-умолчанию это /etc/nginx/sites-enabled<br>
 
 5. Создает файл конфигурации пула для php-fpm, файл создается по указаному в переменной PHP_FPM_POOL_DIR пути, по-умолчанию это /etc/php5/fpm/pool.d<br>
