@@ -89,9 +89,9 @@ delete_nginx_vhost ()
 		echo "Error, link ${NGINX_VHOST_SITE_ENABLED_DIR}/100-${SITENAME}.vhost not exist"
 	fi
 	echo -n "Delete nginx config file ${USERLOGINNAME}.conf... "
-	if [ -f ${NGINX_VHOST_DIR}/${SITENAME}.conf ]; then
+	if [ -f "${NGINX_VHOST_DIR}/${SITENAME}.conf" ]; then
 		rm -f ${NGINX_VHOST_DIR}/${SITENAME}.conf
-		if [ ! -f ${NGINX_VHOST_DIR}/${SITENAME}.conf ]; then
+		if [ ! -f "${NGINX_VHOST_DIR}/${SITENAME}.conf" ]; then
 			echo "Done"
 			nginx_reload
 		else
@@ -120,11 +120,11 @@ delete_phpfpm_conf ()
 	  exit 1;
 	fi
 
-	if [ -f ${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf ]
+	if [ -f "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf" ]
 	then
 		echo -n "Delete php5-fpm config file ${USERLOGINNAME}.conf... "
 		rm -f ${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf
-		if [ ! -f ${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf ]; then
+		if [ ! -f "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf" ]; then
 			echo "Done"
 			echo "Reload php5-fpm..."
 			${PHP_FPM_RUN_SCRIPT} reload

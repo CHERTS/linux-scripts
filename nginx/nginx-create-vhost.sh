@@ -76,6 +76,59 @@ create_linux_user_and_group ()
 	fi
 }
 
+create_simple_index_page ()
+{
+	SITEDIR=${1}
+	SITENAME=${2}
+
+	echo -n "Create ${SITEDIR}/web/index.html... "
+
+cat <<EOF> ${SITEDIR}/web/index.html
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN" "http://www.w3.org/TR/html4/frameset.dtd">
+<html>
+<head>
+<meta name='author' content='Administrator'>
+<meta name='description' content='${SITENAME}'>
+<meta name="robots" content="all">
+<meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>${SITENAME}</title>
+</head>
+<body>
+${SITENAME}
+</body>
+</html>
+EOF
+
+	if [ -f "${SITEDIR}/web/index.html" ]
+	then
+	  echo "Done"
+	else
+	  echo "Error"
+	fi
+
+}
+
+create_robots_file ()
+{
+	SITEDIR=${1}
+
+	echo -n "Create ${SITEDIR}/web/robots.txt... "
+
+cat <<EOF> ${SITEDIR}/web/robots.txt
+User-agent: *
+Disallow: /
+EOF
+
+	if [ -f "${SITEDIR}/web/robots.txt" ]
+	then
+	  echo "Done"
+	else
+	  echo "Error"
+	fi
+
+}
+
 create_nginx_vhost ()
 {
 	SITENAME=${1}
@@ -102,9 +155,11 @@ create_nginx_vhost ()
 	mkdir -p ${SITEDIR}/{web,log,private,tmp}
 	if [ -d ${SITEDIR}/web ]
 	then
-	  echo "Done"
+		echo "Done"
+		create_simple_index_page "${SITEDIR}" "${SITENAME}"
+		create_robots_file "${SITEDIR}"
 	else
-	  echo "Error"
+		echo "Error"
 	fi
 
 	echo -n "Set permition to directory... "
@@ -139,7 +194,7 @@ server {
 }
 EOF
 
-	if [ -f ${NGINX_VHOST_DIR}/${SITENAME}.conf ]
+	if [ -f "${NGINX_VHOST_DIR}/${SITENAME}.conf" ]
 	then
 	  echo "Done"
 	  echo -n "Activate nginx config file... "
@@ -206,7 +261,7 @@ php_admin_flag[cgi.fix_pathinfo] = off
 php_admin_value[error_log] = ${SITEDIR}/log/php-error.log
 EOF
 
-	if [ -f ${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf ]
+	if [ -f "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf" ]
 	then
 	  echo "Done"
 	else
