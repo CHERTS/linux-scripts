@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Program: View more information about the domain <view-domain-info.sh>
 #
