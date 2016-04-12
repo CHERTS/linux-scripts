@@ -4,9 +4,12 @@
 #
 # Author: Matty < matty91 at gmail dot com >
 # 
-# Current Version: 2.4
+# Current Version: 2.5
 #
 # Revision History:
+#
+#  Version 2.5
+#   Bug fix for .me -- Mikhail Grigorev <sleuthound@gmail.com>
 #
 #  Version 2.4
 #   Bug fix for .com, .net, .us, .org, .in -- Mikhail Grigorev <sleuthound@gmail.com>
@@ -292,6 +295,9 @@ check_domain_status()
     if [ "${TLDTYPE}" == "uk" ]; # for .uk domain
     then
 	REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Registrar:/ && $0 != ""  { getline; REGISTRAR=substr($0,2,17) } END { print REGISTRAR }'`
+    elif [ "${TLDTYPE}" == "me" ];
+    then
+	REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Registrar:/ && $2 != ""  { REGISTRAR=substr($2,2,23) } END { print REGISTRAR }'`
     elif [ "${TLDTYPE}" == "jp" ];
     then
         REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} '/Registrant/ && $2 != ""  { REGISTRAR=substr($2,1,17) } END { print REGISTRAR }'`
@@ -423,7 +429,26 @@ check_domain_status()
 	    DOMAINDATE=`echo "${tday}-${tmonth}-${tyear}"`
     elif [ "${TLDTYPE}" == "me" ]; # for .me domain
     then
-            DOMAINDATE=`cat ${WHOIS_TMP} | awk '/Domain Expiration Date:/ { print $3 }' | cut -d ":" -f 2`
+	tdomdate=`cat ${WHOIS_TMP} | ${AWK} '/Registry Expiry Date:/ { print $4 }'`
+	tyear=`echo ${tdomdate} | cut -d "-" -f 1`
+	tmon=`echo ${tdomdate} | cut -d "-" -f 2`
+               case ${tmon} in
+                     1|01) tmonth=jan ;;
+                     2|02) tmonth=feb ;;
+                     3|03) tmonth=mar ;;
+                     4|04) tmonth=apr ;;
+                     5|05) tmonth=may ;;
+                     6|06) tmonth=jun ;;
+                     7|07) tmonth=jul ;;
+                     8|08) tmonth=aug ;;
+                     9|09) tmonth=sep ;;
+                     10) tmonth=oct ;;
+                     11) tmonth=nov ;;
+                     12) tmonth=dec ;;
+                     *) tmonth=0 ;;
+               esac
+	tday=`echo ${tdomdate} | cut -d "-" -f 3 | cut -d "T" -f 1`
+	DOMAINDATE=`echo "${tday}-${tmonth}-${tyear}"`
     elif [ "${TLDTYPE}" == "ru" -o "${TLDTYPE}" == "su" ]; # for .ru and .su 2014/11/13
     then
            tdomdate=`cat ${WHOIS_TMP} | ${AWK} '/paid-till:/ { print $2 }'`
@@ -493,8 +518,8 @@ print_heading()
 {
         if [ "${QUIET}" != "TRUE" ]
         then
-                printf "\n%-35s %-17s %-8s %-11s %-5s\n" "Domain" "Registrar" "Status" "Expires" "Days Left"
-                echo "----------------------------------- ----------------- -------- ----------- ---------"
+                printf "\n%-35s %-46s %-8s %-11s %-5s\n" "Domain" "Registrar" "Status" "Expires" "Days Left"
+                echo "----------------------------------- ---------------------------------------------- -------- ----------- ---------"
         fi
 }
 
@@ -512,7 +537,7 @@ prints()
     if [ "${QUIET}" != "TRUE" ]
     then
             MIN_DATE=$(echo $3 | ${AWK} '{ print $1, $2, $4 }')
-            printf "%-35s %-17s %-8s %-11s %-5s\n" "$1" "$5" "$2" "$MIN_DATE" "$4"
+            printf "%-35s %-46s %-8s %-11s %-5s\n" "$1" "$5" "$2" "$MIN_DATE" "$4"
     fi
 }
 
