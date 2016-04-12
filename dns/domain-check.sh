@@ -4,18 +4,21 @@
 #
 # Author: Matty < matty91 at gmail dot com >
 # 
-# Current Version: 2.3
+# Current Version: 2.4
 #
 # Revision History:
 #
+#  Version 2.4
+#   Bug fix for .com, .net, .us, .org, .in -- Mikhail Grigorev <sleuthound@gmail.com>
+#
 #  Version 2.3
-#   Bug fix for .info — Mikhail Grigorev <sleuthound@gmail.com>
+#   Bug fix for .info -- Mikhail Grigorev <sleuthound@gmail.com>
 #
 #  Version 2.2
-#   Bug fix that adds support for .ru and .su domains — Jim McNamara
+#   Bug fix that adds support for .ru and .su domains -- Jim McNamara
 #
 #  Version 2.1
-#   Bug fix for .mobi and .us — Jim McNamara
+#   Bug fix for .mobi and .us -- Jim McNamara
 #   Added a variable for the location of tr, and made all calls to cut and tr use the variable
 #   instead of the command without path
 #
@@ -52,7 +55,7 @@
 #  Version 1.0
 #    Initial Release
 #
-# Last Updated: 28-Feb-2014
+# Last Updated: 13-Apr-2016
 #
 # Purpose:
 #  domain-check checks to see if a domain has expired. domain-check
@@ -284,7 +287,7 @@ check_domain_status()
     fi
 
     # Parse out the expiration date and registrar -- uses the last registrar it finds
-    REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Registrar/ && $2 != ""  { REGISTRAR=substr($2,2,17) } END { print REGISTRAR }'`
+    REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Registrar:/ && $2 != ""  { REGISTRAR=substr($2,2,17) } END { print REGISTRAR }'`
 
     if [ "${TLDTYPE}" == "uk" ]; # for .uk domain
     then
@@ -292,12 +295,15 @@ check_domain_status()
     elif [ "${TLDTYPE}" == "jp" ];
     then
         REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} '/Registrant/ && $2 != ""  { REGISTRAR=substr($2,1,17) } END { print REGISTRAR }'`
+    elif [ "${TLDTYPE}" == "in" ];
+    then
+        REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Sponsoring Registrar:/ && $2 != ""  { REGISTRAR=substr($2,1,47) } END { print REGISTRAR }'`
     elif [ "${TLDTYPE}" == "org" ];
     then
-        REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} '/Registrar:/ && $2 != ""  { REGISTRAR=substr($2,11,17) } END { print REGISTRAR }'`
+        REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Sponsoring Registrar:/ && $2 != ""  { REGISTRAR=substr($2,2,17) } END { print REGISTRAR }'`
     elif [ "${TLDTYPE}" == "info" ];
     then
-        REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Registrar:/ && $2 != ""  { REGISTRAR=substr($2,2,30) } END { print REGISTRAR }'`
+        REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Registrar:/ && $2 != ""  { REGISTRAR=substr($2,2,17) } END { print REGISTRAR }'`
     elif [ "${TLDTYPE}" == "biz" ];
     then
         REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Registrar:/ && $2 != ""  { REGISTRAR=substr($2,20,17) } END { print REGISTRAR }'`
@@ -309,7 +315,7 @@ check_domain_status()
         REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Updated by Registrar:/ && $2 != "" { REGISTRAR=substr($2,1,17) } END { print REGISTRAR }'`
     elif [ "${TLDTYPE}" == "us" ];
     then
-        REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Updated by Registrar:/ && $2 != "" { REGISTRAR=substr($2,20,17) } END { print REGISTRAR }'`
+	REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Sponsoring Registrar:/ && $2 != ""  { REGISTRAR=substr($2,25,17) } END { print REGISTRAR }'`
     elif [ "${TLDTYPE}" == "ru" -o "${TLDTYPE}" == "su" ]; # added 20141113
     then
 	REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/registrar:/ && $2 != "" { REGISTRAR=substr($2,6,17) } END { print REGISTRAR }'`
@@ -324,8 +330,10 @@ check_domain_status()
 
     # The whois Expiration data should resemble the following: "Expiration Date: 09-may-2008"
 
-    # for .in, .info, .org domains
-    if [ "${TLDTYPE}" == "in" -o "${TLDTYPE}" == "info" -o "${TLDTYPE}" == "org" ];
+    if [ "${TLDTYPE}" == "in" ];
+    then
+	DOMAINDATE=`cat ${WHOIS_TMP} | ${AWK} '/Expiration Date:/ { print $2 }' | ${CUT} -d ':' -f2`
+    elif [ "${TLDTYPE}" == "info" -o "${TLDTYPE}" == "org" ];
     then
 	    tdomdate=`cat ${WHOIS_TMP} | ${AWK} '/Expiry Date:/ { print $4 }'`
             tyear=`echo ${tdomdate} | ${CUT} -d'-' -f1`
@@ -413,6 +421,9 @@ check_domain_status()
 	    tmonth=`tolower ${tmon}`
 	    tday=`echo ${tdomdate} | ${CUT} -d' ' -f2`
 	    DOMAINDATE=`echo "${tday}-${tmonth}-${tyear}"`
+    elif [ "${TLDTYPE}" == "me" ]; # for .me domain
+    then
+            DOMAINDATE=`cat ${WHOIS_TMP} | awk '/Domain Expiration Date:/ { print $3 }' | cut -d ":" -f 2`
     elif [ "${TLDTYPE}" == "ru" -o "${TLDTYPE}" == "su" ]; # for .ru and .su 2014/11/13
     then
            tdomdate=`cat ${WHOIS_TMP} | ${AWK} '/paid-till:/ { print $2 }'`
