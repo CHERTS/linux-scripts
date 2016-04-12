@@ -4,9 +4,12 @@
 #
 # Author: Matty < matty91 at gmail dot com >
 # 
-# Current Version: 2.2
+# Current Version: 2.3
 #
 # Revision History:
+#
+#  Version 2.3
+#   Bug fix for .mobi — Mikhail Grigorev <sleuthound@gmail.com>
 #
 #  Version 2.2
 #   Bug fix that adds support for .ru and .su domains — Jim McNamara
@@ -294,7 +297,7 @@ check_domain_status()
         REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} '/Registrar:/ && $2 != ""  { REGISTRAR=substr($2,11,17) } END { print REGISTRAR }'`
     elif [ "${TLDTYPE}" == "info" ];
     then
-        REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} '/Registrar:/ && $2 != ""  { REGISTRAR=substr($2,11,17) } END { print REGISTRAR }'`
+        REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Registrar:/ && $2 != ""  { REGISTRAR=substr($2,2,30) } END { print REGISTRAR }'`
     elif [ "${TLDTYPE}" == "biz" ];
     then
         REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Registrar:/ && $2 != ""  { REGISTRAR=substr($2,20,17) } END { print REGISTRAR }'`
@@ -303,10 +306,10 @@ check_domain_status()
 	REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Registrar:/ && $0 != ""  { getline; REGISTRAR=substr($0,24,17) } END { print REGISTRAR }'`
     elif [ "${TLDTYPE}" == "mobi" ];
     then
-        REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F : '/Updated by Registrar:/ && $2 != "" { REGISTRAR=substr($2,1,17) } END { print REGISTRAR }'`
+        REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Updated by Registrar:/ && $2 != "" { REGISTRAR=substr($2,1,17) } END { print REGISTRAR }'`
     elif [ "${TLDTYPE}" == "us" ];
     then
-        REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F : '/Updated by Registrar:/ && $2 != "" { REGISTRAR=substr($2,20,17) } END { print REGISTRAR }'`
+        REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Updated by Registrar:/ && $2 != "" { REGISTRAR=substr($2,20,17) } END { print REGISTRAR }'`
     elif [ "${TLDTYPE}" == "ru" -o "${TLDTYPE}" == "su" ]; # added 20141113
     then
 	REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/registrar:/ && $2 != "" { REGISTRAR=substr($2,6,17) } END { print REGISTRAR }'`
