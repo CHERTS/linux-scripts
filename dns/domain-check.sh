@@ -9,7 +9,7 @@
 # Revision History:
 #
 #  Version 2.3
-#   Bug fix for .mobi — Mikhail Grigorev <sleuthound@gmail.com>
+#   Bug fix for .info — Mikhail Grigorev <sleuthound@gmail.com>
 #
 #  Version 2.2
 #   Bug fix that adds support for .ru and .su domains — Jim McNamara
