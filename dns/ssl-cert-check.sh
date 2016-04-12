@@ -206,6 +206,15 @@
 # Examples:
 #   Please refer to the following site for documentation and examples:
 #   http://prefetch.net/articles/checkcertificate.html
+#   or
+#   ./ssl-cert-check.sh -s github.com -p 443
+#   or
+#   ./ssl-cert-check.sh -c starssl-ca.pem
+#   or
+#   cat ssldomains
+#   gmail.google.com 443 
+#   github.com 443
+#   ./ssl-cert-check.sh -a -f ssldomains -q -x 60 -e admin@mydomain.com
 
 PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/ssl/bin:/usr/sfw/bin
 export PATH
