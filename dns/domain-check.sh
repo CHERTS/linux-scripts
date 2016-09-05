@@ -126,7 +126,8 @@
 #  $ domain-check -a -f domains -q -x 60 -e admin@prefetch.net  
 #
 
-PATH=/bin:/usr/bin:/usr/local/bin:/usr/local/ssl/bin:/usr/sfw/bin ; export PATH
+PATH=/bin:/usr/bin:/usr/local/bin:/usr/local/ssl/bin:/usr/sfw/bin
+export PATH
 
 # Who to page when an expired domain is detected (cmdline: -e)
 ADMIN="sysadmin@mydomain.com"
@@ -322,11 +323,9 @@ check_domain_status()
     elif [ "${TLDTYPE}" == "mobi" ];
     then
         REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Updated by Registrar:/ && $2 != "" { REGISTRAR=substr($2,1,17) } END { print REGISTRAR }'`
-#	echo "REGISTRAR" $REGISTRAR
 	if [ "${REGISTRAR}" = "" ]
 	then
         	REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Sponsoring Registrar:/ && $2 != "" { REGISTRAR=substr($2,1,17) } END { print REGISTRAR }'`
-		echo "REGISTRAR" $REGISTRAR
 	fi
     elif [ "${TLDTYPE}" == "us" ];
     then
@@ -422,12 +421,11 @@ check_domain_status()
 	    DOMAINDATE=`echo $tday-$tmonth-$tyear`
     elif [ "${TLDTYPE}" == "mobi" ]; # for .mobi 2014/08/11
     then
-	    tdomdate=`cat ${WHOIS_TMP} | ${AWK} '/Expiration Date:/ { print $2 }' | ${CUT} -d ':' -f2`
 	    if [ "${tdomdate}" = "" ]
 	    then
 		tdomdate=`cat ${WHOIS_TMP} | ${AWK} '/Registry Expiry Date:/ { print $4 }'`
-		tyear=`echo ${tdomdate} | cut -d "-" -f 1`
-        	tmon=`echo ${tdomdate} | cut -d "-" -f 2`
+		tyear=`echo ${tdomdate} | ${CUT} -d "-" -f 1`
+        	tmon=`echo ${tdomdate} | ${CUT} -d "-" -f 2`
                	  case ${tmon} in
                      1|01) tmonth=jan ;;
                      2|02) tmonth=feb ;;
@@ -443,14 +441,15 @@ check_domain_status()
                      12) tmonth=dec ;;
                      *) tmonth=0 ;;
                  esac
-        	tday=`echo ${tdomdate} | cut -d "-" -f 3 | cut -d "T" -f 1`
+        	tday=`echo ${tdomdate} | ${CUT} -d "-" -f 3 | cut -d "T" -f 1`
         	DOMAINDATE=`echo "${tday}-${tmonth}-${tyear}"`
 	    else
-	        tyear=`echo ${tdomdate} | ${CUT} -d'-' -f3`
-	    	tmon=`echo ${tdomdate} |${CUT} -d'-' -f2`
-	    	tmonth=`tolower ${tmon}`
-	    	tday=`echo ${tdomdate} | ${CUT} -d'-' -f1`
-	    	DOMAINDATE=`echo "${tday}-${tmonth}-${tyear}"`
+		    tdomdate=`cat ${WHOIS_TMP} | ${AWK} '/Expiration Date:/ { print $2 }' | ${CUT} -d ':' -f2`
+		    tyear=`echo ${tdomdate} | ${CUT} -d'-' -f3`
+		    tmon=`echo ${tdomdate} | ${CUT} -d'-' -f2`
+		    tmonth=`tolower ${tmon}`
+		    tday=`echo ${tdomdate} | ${CUT} -d'-' -f1`
+		    DOMAINDATE=`echo "${tday}-${tmonth}-${tyear}"`
 	    fi
     elif [ "${TLDTYPE}" == "us" ]; # for .us 2014/08/11
     then
@@ -505,7 +504,7 @@ check_domain_status()
            tday=`echo ${tdomdate} | ${CUT} -d'.' -f3`
            DOMAINDATE=`echo "${tday}-${tmonth}-${tyear}"`
     else # .com, .edu, .net and may work with others	 
-	    DOMAINDATE=`cat ${WHOIS_TMP} | ${AWK} '/Expiration/ { print $NF }'`
+	    DOMAINDATE=`cat ${WHOIS_TMP} | ${AWK} '/Expiration/ { print $NF }'`	
     fi
 
     #echo $DOMAINDATE # debug 
@@ -527,7 +526,7 @@ check_domain_status()
                 | ${MAIL} -s "Domain ${DOMAIN} has expired!" ${ADMIN}
            fi
 
-           prints ${DOMAIN} "Expired" "${DOMAINDATE}" "${DOMAINDIFF}" ${REGISTRAR}
+           prints "${DOMAIN}" "Expired" "${DOMAINDATE}" "${DOMAINDIFF}" ${REGISTRAR}
 
     elif [ ${DOMAINDIFF} -lt ${WARNDAYS} ]
     then
@@ -536,10 +535,9 @@ check_domain_status()
                     echo "The domain ${DOMAIN} will expire on ${DOMAINDATE}" \
                     | ${MAIL} -s "Domain ${DOMAIN} will expire in ${WARNDAYS}-days or less" ${ADMIN}
             fi
-            prints ${DOMAIN} "Expiring" "${DOMAINDATE}" "${DOMAINDIFF}" "${REGISTRAR}"
+            prints "${DOMAIN}" "Expiring" "${DOMAINDATE}" "${DOMAINDIFF}" "${REGISTRAR}"
      else
-            prints "${DOMAIN}" "Valid" "${DOMAINDATE}" "${DOMAINDIFF}" "${REGISTRAR}"
-            # Sometimes REGISTRAR does not print -- echo "${DOMAIN}" "Valid" "${DOMAINDATE}" "${DOMAINDIFF}" "${REGISTRAR}"
+            prints "${DOMAIN}" "Valid" "${DOMAINDATE}"  "${DOMAINDIFF}" "${REGISTRAR}"
      fi
 }
 
@@ -668,3 +666,4 @@ rm -f ${WHOIS_TMP}
 
 ### Exit with a success indicator
 exit 0
+
