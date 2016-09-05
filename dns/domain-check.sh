@@ -4,9 +4,12 @@
 #
 # Author: Matty < matty91 at gmail dot com >
 # 
-# Current Version: 2.7
+# Current Version: 2.8
 #
 # Revision History:
+#
+#  Version 2.8
+#   Use 'which' to autodetect awk, whois, date and other utils -- Mikhail Grigorev <sleuthound@gmail.com>
 #
 #  Version 2.7
 #   Bug fix for .md and .co -- Bill Bell <billnbell@gmail.com>
@@ -148,12 +151,12 @@ ALARM="FALSE"
 WHOIS_SERVER="whois.internic.org"
 
 # Location of system binaries
-AWK="/usr/bin/awk"
-WHOIS="/usr/bin/whois"
-DATE="/bin/date"
-CUT="/usr/bin/cut"
-TR="/usr/bin/tr"
-MAIL="/usr/bin/mail"
+AWK=`which awk`
+WHOIS=`which whois`
+DATE=`which date`
+CUT=`which cut`
+TR=`which tr`
+MAIL=`which mail`
 
 # Place to stash temporary files
 WHOIS_TMP="/var/tmp/whois.$$"
