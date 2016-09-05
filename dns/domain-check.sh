@@ -4,7 +4,7 @@
 #
 # Author: Matty < matty91 at gmail dot com >
 # 
-# Current Version: 2.6
+# Current Version: 2.7
 #
 # Revision History:
 #
