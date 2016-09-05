@@ -8,8 +8,11 @@
 #
 # Revision History:
 #
+#  Version 2.7
+#   Bug fix for .md and .co -- Bill Bell <billnbell@gmail.com>
+#
 #  Version 2.6
-#   Bug fix for .mobi -- Bill Bell <bbillnbell@gmail.com>
+#   Bug fix for .mobi -- Bill Bell <billnbell@gmail.com>
 #
 #  Version 2.5
 #   Bug fix for .me -- Mikhail Grigorev <sleuthound@gmail.com>
@@ -265,6 +268,12 @@ check_domain_status()
     elif [ "${TLDTYPE}"  == "in" ]; # India
     then
         ${WHOIS} -h "whois.registry.in" "${1}" > ${WHOIS_TMP}
+    elif [ "${TLDTYPE}"  == "co" ];
+    then
+        ${WHOIS} -h "whois.nic.co" "${1}" > ${WHOIS_TMP}
+    elif [ "${TLDTYPE}"  == "md" ];
+    then
+        ${WHOIS} -h "whois.nic.md" "${1}" > ${WHOIS_TMP}
     elif [ "${TLDTYPE}"  == "uk" ]; # United Kingdom  
     then
         ${WHOIS} -h "whois.nic.uk" "${1}" > ${WHOIS_TMP}
@@ -275,6 +284,9 @@ check_domain_status()
     elif [ "${TLDTYPE}"  == "info" ];
     then
         ${WHOIS} -h "whois.afilias.info" "${1}" > ${WHOIS_TMP}
+    elif [ "${TLDTYPE}"  == "tv" ];
+    then
+        ${WHOIS} -h "tvwhois.verisign-grs.com" "${1}" > ${WHOIS_TMP}
     elif [ "${TLDTYPE}"  == "jp" ]; # Japan
     then
         ${WHOIS} -h "whois.jprs.jp" "${1}" > ${WHOIS_TMP}
@@ -308,13 +320,16 @@ check_domain_status()
     elif [ "${TLDTYPE}" == "in" ];
     then
         REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Sponsoring Registrar:/ && $2 != ""  { REGISTRAR=substr($2,1,47) } END { print REGISTRAR }'`
+    elif [ "${TLDTYPE}" == "md" ];
+    then
+        REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Registrant:/ && $2 != ""  { REGISTRAR=substr($2,1,47) } END { print REGISTRAR }'`
     elif [ "${TLDTYPE}" == "org" ];
     then
         REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Sponsoring Registrar:/ && $2 != ""  { REGISTRAR=substr($2,2,17) } END { print REGISTRAR }'`
     elif [ "${TLDTYPE}" == "info" ];
     then
         REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Registrar:/ && $2 != ""  { REGISTRAR=substr($2,2,17) } END { print REGISTRAR }'`
-    elif [ "${TLDTYPE}" == "biz" ];
+    elif [ "${TLDTYPE}" == "biz" -o "${TLDTYPE}" == "co" ];
     then
         REGISTRAR=`cat ${WHOIS_TMP} | ${AWK} -F: '/Registrar:/ && $2 != ""  { REGISTRAR=substr($2,20,17) } END { print REGISTRAR }'`
     elif [ "${TLDTYPE}" == "ca" ];
@@ -367,11 +382,33 @@ check_domain_status()
 	             12) tmonth=dec ;;
                	      *) tmonth=0 ;;
 		esac
-            tday=`echo ${tdomdate} | ${CUT} -d'-' -f3 |cut -d'T' -f1`
+            tday=`echo ${tdomdate} | ${CUT} -d'-' -f3 | ${CUT} -d'T' -f1`
 	    DOMAINDATE=`echo $tday-$tmonth-$tyear`
-    elif [ "${TLDTYPE}" == "biz" ]; # for .biz domain
+    elif [ "${TLDTYPE}" == "biz" -o "${TLDTYPE}" == "co" ]; # for .biz and .co domain
     then
             DOMAINDATE=`cat ${WHOIS_TMP} | ${AWK} '/Domain Expiration Date:/ { print $6"-"$5"-"$9 }'`
+    elif [ "${TLDTYPE}" == "md" ]; # for .md domain
+    then
+            tdomdate=`cat ${WHOIS_TMP} | ${AWK} '/Expiration date:/ { print $3 }'`
+            tyear=`echo ${tdomdate} | ${CUT} -d'-' -f1`
+            tmon=`echo ${tdomdate} | ${CUT} -d'-' -f2`
+	       case ${tmon} in
+	             1|01) tmonth=jan ;;
+	             2|02) tmonth=feb ;;
+	             3|03) tmonth=mar ;;
+	             4|04) tmonth=apr ;;
+	             5|05) tmonth=may ;;
+	             6|06) tmonth=jun ;;
+	             7|07) tmonth=jul ;;
+	             8|08) tmonth=aug ;;
+	             9|09) tmonth=sep ;;
+	             10) tmonth=oct ;;
+	             11) tmonth=nov ;;
+	             12) tmonth=dec ;;
+              	      *) tmonth=0 ;;
+		esac
+            tday=`echo ${tdomdate} | ${CUT} -d'-' -f3`
+	    DOMAINDATE=`echo $tday-$tmonth-$tyear`
     elif [ "${TLDTYPE}" == "uk" ]; # for .uk domain
     then
             DOMAINDATE=`cat ${WHOIS_TMP} | ${AWK} '/Renewal date:/ || /Expiry date:/ { print $3 }'`
@@ -419,7 +456,7 @@ check_domain_status()
 		esac
             tday=`echo ${tdomdate} | ${CUT} -d'/' -f3`
 	    DOMAINDATE=`echo $tday-$tmonth-$tyear`
-    elif [ "${TLDTYPE}" == "mobi" ]; # for .mobi 2014/08/11
+    elif [ "${TLDTYPE}" == "mobi" -o "${TLDTYPE}" == "tv" ]; # for .mobi and .tv
     then
 	    if [ "${tdomdate}" = "" ]
 	    then
@@ -441,15 +478,14 @@ check_domain_status()
                      12) tmonth=dec ;;
                      *) tmonth=0 ;;
                  esac
-        	tday=`echo ${tdomdate} | ${CUT} -d "-" -f 3 | cut -d "T" -f 1`
+        	tday=`echo ${tdomdate} | ${CUT} -d "-" -f 3 | ${CUT} -d "T" -f 1`
         	DOMAINDATE=`echo "${tday}-${tmonth}-${tyear}"`
 	    else
-		    tdomdate=`cat ${WHOIS_TMP} | ${AWK} '/Expiration Date:/ { print $2 }' | ${CUT} -d ':' -f2`
-		    tyear=`echo ${tdomdate} | ${CUT} -d'-' -f3`
-		    tmon=`echo ${tdomdate} | ${CUT} -d'-' -f2`
-		    tmonth=`tolower ${tmon}`
-		    tday=`echo ${tdomdate} | ${CUT} -d'-' -f1`
-		    DOMAINDATE=`echo "${tday}-${tmonth}-${tyear}"`
+	        tyear=`echo ${tdomdate} | ${CUT} -d'-' -f3`
+	    	tmon=`echo ${tdomdate} |${CUT} -d'-' -f2`
+	    	tmonth=`tolower ${tmon}`
+	    	tday=`echo ${tdomdate} | ${CUT} -d'-' -f1`
+	    	DOMAINDATE=`echo "${tday}-${tmonth}-${tyear}"`
 	    fi
     elif [ "${TLDTYPE}" == "us" ]; # for .us 2014/08/11
     then
@@ -462,8 +498,8 @@ check_domain_status()
     elif [ "${TLDTYPE}" == "me" ]; # for .me domain
     then
 	tdomdate=`cat ${WHOIS_TMP} | ${AWK} '/Registry Expiry Date:/ { print $4 }'`
-	tyear=`echo ${tdomdate} | cut -d "-" -f 1`
-	tmon=`echo ${tdomdate} | cut -d "-" -f 2`
+	tyear=`echo ${tdomdate} | ${CUT} -d "-" -f 1`
+	tmon=`echo ${tdomdate} | ${CUT} -d "-" -f 2`
                case ${tmon} in
                      1|01) tmonth=jan ;;
                      2|02) tmonth=feb ;;
@@ -479,7 +515,7 @@ check_domain_status()
                      12) tmonth=dec ;;
                      *) tmonth=0 ;;
                esac
-	tday=`echo ${tdomdate} | cut -d "-" -f 3 | cut -d "T" -f 1`
+	tday=`echo ${tdomdate} | ${CUT} -d "-" -f 3 | ${CUT} -d "T" -f 1`
 	DOMAINDATE=`echo "${tday}-${tmonth}-${tyear}"`
     elif [ "${TLDTYPE}" == "ru" -o "${TLDTYPE}" == "su" ]; # for .ru and .su 2014/11/13
     then
@@ -526,7 +562,7 @@ check_domain_status()
                 | ${MAIL} -s "Domain ${DOMAIN} has expired!" ${ADMIN}
            fi
 
-           prints "${DOMAIN}" "Expired" "${DOMAINDATE}" "${DOMAINDIFF}" ${REGISTRAR}
+           prints "${DOMAIN}" "Expired" "${DOMAINDATE}" "${DOMAINDIFF}" "${REGISTRAR}"
 
     elif [ ${DOMAINDIFF} -lt ${WARNDAYS} ]
     then
