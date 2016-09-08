@@ -39,7 +39,7 @@
 #  or
 #  $ ./mysql-stat.sh --user root --password XXXXXXX
 #
-#  MySQL database stats v1.0.0
+#  Simple MySQL database server statistics v1.0.0
 #  Written by Mikhail Grigorev (sleuthhound@gmail.com, http://www.programs74.ru)
 #  +------------------------------------------+--------------------+
 #  |                                   Uptime |       226h:30m:38s |
