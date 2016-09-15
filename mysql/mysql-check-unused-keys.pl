@@ -14,7 +14,7 @@ use Getopt::Long;
 use English qw(-no_match_vars);
 use DBI;
 
-my $VERSION = '0.0.4';
+my $VERSION = '0.0.6';
 my %OPTIONS;
 $OPTIONS{'summary'} = 1;
 
@@ -393,7 +393,7 @@ Devananda Van Der Veen (deva@percona.com)
 
 =head1 VERSION
 
-This manual page documents 0.0.4 of check-unused-keys
+This manual page documents 0.0.6 of check-unused-keys
 
 =cut
 
