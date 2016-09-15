@@ -4,6 +4,7 @@
 # check-unused-keys - Perl Script to check unused indexes
 # 
 # @author Ryan Lowe <ryan.a.lowe@percona.com>
+# @author Devananda Van Der Veen <deva@percona.com>
 ################################################################################
 
 use strict;
