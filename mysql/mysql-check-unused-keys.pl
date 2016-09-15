@@ -186,7 +186,9 @@ if ($OPTIONS{'ignoreuniq'}) {
 ';
 }
 
-print $query."\n" if ($OPTIONS{'verbose'} gt 1);
+if ($OPTIONS{'verbose'}) {
+    print $query."\n"
+}
 
 $sth = $dbh->prepare($query);
 $sth->execute();
