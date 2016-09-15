@@ -186,12 +186,6 @@ if ($OPTIONS{'ignoreuniq'}) {
 ';
 }
 
-#if ($OPTIONS{'ignoreunusedtbl'}) {
-#    $query .= '    AND `t`.`ROWS_READ` > 0 AND `t`.`ROWS_READ` IS NOT NULL
-#';
-#}
-
-
 print $query."\n" if ($OPTIONS{'verbose'} gt 1);
 
 $sth = $dbh->prepare($query);
