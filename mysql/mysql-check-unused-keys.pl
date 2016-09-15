@@ -108,7 +108,7 @@ if ( $@ ) {
 
 # Check to make sure userstats is actually enabled:)
 
-my $sanity_query = 'SHOW GLOBAL VARIABLES LIKE "userstat_running"';
+my $sanity_query = 'SHOW GLOBAL VARIABLES LIKE "userstat"';
 my $sth = $dbh->prepare($sanity_query);
 $sth->execute();
 
