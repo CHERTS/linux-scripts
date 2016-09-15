@@ -4,7 +4,6 @@
 # check-unused-keys - Perl Script to check unused indexes
 # 
 # @author Ryan Lowe <ryan.a.lowe@percona.com>
-# @author Devananda Van Der Veen <deva@percona.com>
 ################################################################################
 
 use strict;
@@ -14,7 +13,7 @@ use Getopt::Long;
 use English qw(-no_match_vars);
 use DBI;
 
-my $VERSION = '0.0.4';
+my $VERSION = '0.0.5';
 my %OPTIONS;
 $OPTIONS{'summary'} = 1;
 
@@ -26,26 +25,26 @@ $OPTIONS{'summary'} = 1;
 my $gop=new Getopt::Long::Parser;
 $gop->configure('no_ignore_case','bundling');
 if (!$gop->getoptions(
-    'create-alter!'        => \$OPTIONS{'createalter'   },
-    'databases|d=s'        => \$OPTIONS{'database'      },
-    'flush-tables!'        => \$OPTIONS{'flush'         },
-    'help|h'               => \$OPTIONS{'help'          },
-    'hostname|H=s'         => \$OPTIONS{'host'          },
-    'ignore-databases=s'   => \$OPTIONS{'ignoredb'      },
-    'ignore-indexes=s'     => \$OPTIONS{'ignoreidx'     },
-    'ignore-primary-key!'  => \$OPTIONS{'ignorepk'      },   
-    'ignore-tables=s'      => \$OPTIONS{'ignoretbl'     },
-    'ignore-unique-index!' => \$OPTIONS{'ignoreuniq'    },
+    'create-alter!'        => \$OPTIONS{'createalter'},
+    'databases|d=s'        => \$OPTIONS{'database' },
+    'flush-tables!'        => \$OPTIONS{'flush'    },
+    'help|h'               => \$OPTIONS{'help'     },
+    'hostname|H=s'         => \$OPTIONS{'host'     },
+    'ignore-databases=s'   => \$OPTIONS{'ignoredb' },
+    'ignore-indexes=s'     => \$OPTIONS{'ignoreidx'},
+    'ignore-primary-key!'  => \$OPTIONS{'ignorepk'},   
+    'ignore-tables=s'      => \$OPTIONS{'ignoretbl'},
+    'ignore-unique-index!' => \$OPTIONS{'ignoreuniq'},
     'print-unused-tables!' => \$OPTIONS{'printunusedtbl'},
-    'options-file=s'       => \$OPTIONS{'def'           },
-    'password|p=s'         => \$OPTIONS{'password'      },
-    'port=i'               => \$OPTIONS{'port'          },
-    'socket|s=s'           => \$OPTIONS{'socket'        },
-    'summary!'             => \$OPTIONS{'summary'       },
-    'tables|t=s'           => \$OPTIONS{'tables'        },
-    'username|u=s'         => \$OPTIONS{'user'          },
-    'verbose|v+'           => \$OPTIONS{'verbose'       },
-    'version|V'            => \$OPTIONS{'version'       } ) ) {
+    'options-file=s'       => \$OPTIONS{'def'      },
+    'password|p=s'         => \$OPTIONS{'password' },
+    'port=i'               => \$OPTIONS{'port'     },
+    'socket|s=s'           => \$OPTIONS{'socket'   },
+    'summary!'             => \$OPTIONS{'summary'  },
+    'tables|t=s'           => \$OPTIONS{'tables'   },
+    'username|u=s'         => \$OPTIONS{'user'     },
+    'verbose|v+'           => \$OPTIONS{'verbose'  },
+    'version|V'            => \$OPTIONS{'version'  } ) ) {
 
     pod2usage(2);
 }
@@ -125,33 +124,28 @@ if ($OPTIONS{'flush'}) {
 
 my $query = '
 SELECT DISTINCT `s`.`TABLE_SCHEMA`, `s`.`TABLE_NAME`, `s`.`INDEX_NAME`,
-      `s`.`NON_UNIQUE`, `s`.`INDEX_NAME`, `i`.`ROWS_READ` AS IDX_READ
+      `s`.`NON_UNIQUE`, `s`.`INDEX_NAME`, `t`.`ROWS_READ` AS TBL_READ, `i`.`ROWS_READ` AS IDX_READ
   FROM `information_schema`.`statistics` AS `s` 
   LEFT JOIN `information_schema`.`index_statistics` AS `i`
     ON (`s`.`TABLE_SCHEMA` = `i`.`TABLE_SCHEMA` AND 
         `s`.`TABLE_NAME`   = `i`.`TABLE_NAME` AND
         `s`.`INDEX_NAME`   = `i`.`INDEX_NAME`)
+  LEFT JOIN `information_schema`.`table_statistics` AS `t`
+    ON (`s`.`TABLE_SCHEMA` = `t`.`TABLE_SCHEMA` AND 
+        `s`.`TABLE_NAME`   = `t`.`TABLE_NAME`)
   WHERE `i`.`TABLE_SCHEMA` IS NULL
 ';
-
-my $table_append;
 
 if ($OPTIONS{'database'}) {
     my @dbs = split(',', $OPTIONS{'database'});
     $query .= '    AND `s`.`TABLE_SCHEMA` IN ("'.join('","',@dbs).'")
 ';
-    $table_append .= '    AND `s`.`TABLE_SCHEMA` IN ("'.join('","',@dbs).'")
-';
- 
 }
 
 if ($OPTIONS{'ignoredb'}) {
     my @dbs = split(',', $OPTIONS{'ignoredb'});
     $query .= '    AND `s`.`TABLE_SCHEMA` NOT IN ("'.join('","',@dbs).'")
 ';
-    $table_append .= '    AND `s`.`TABLE_SCHEMA` NOT IN ("'.join('","',@dbs).'")
-';
-
 }
 
 if ($OPTIONS{'ignoretbl'}) {
@@ -159,8 +153,6 @@ if ($OPTIONS{'ignoretbl'}) {
     foreach (@tbls) {
         my @a = split(/\./, $_); 
         $query .= '    AND (`s`.`TABLE_SCHEMA` != "'.$a[0].'" AND `s`.`TABLE_NAME` != "'.$a[1].'")
-';
-        $table_append .= '    AND `s`.`TABLE_SCHEMA` NOT IN ("'.join('","',@dbs).'")
 ';
     } 
 }
@@ -180,8 +172,6 @@ if ($OPTIONS{'tables'}) {
         my @a = split(/\./, $_);
         $query .= '    AND (`s`.`TABLE_SCHEMA` = "'.$a[0].'" AND `s`.`TABLE_NAME` = "'.$a[1].'")
 ';
-        $table_append .= '    AND (`s`.`TABLE_SCHEMA` = "'.$a[0].'" AND `s`.`TABLE_NAME` = "'.$a[1].'")
-';
     }
 }
 
@@ -195,37 +185,24 @@ if ($OPTIONS{'ignoreuniq'}) {
 ';
 }
 
+#if ($OPTIONS{'ignoreunusedtbl'}) {
+#    $query .= '    AND `t`.`ROWS_READ` > 0 AND `t`.`ROWS_READ` IS NOT NULL
+#';
+#}
+
+
 print $query."\n" if ($OPTIONS{'verbose'} gt 1);
 
 $sth = $dbh->prepare($query);
 $sth->execute();
-
-# Prepare a list of the unused tables
-my %unused_tables;
-if ($OPTIONS{'printunusedtbl'}) {
-    my $unused_tables_query = '
-SELECT DISTINCT `s`.`TABLE_SCHEMA`, `s`.`TABLE_TAME`
-  FROM `INFORMATION_SCHEMA`.`TABLES` AS `s`
-  LEFT JOIN `INFORMATION_SCHEMA`.`TABLE_STATISTICS` AS `t` ON (`s`.`TABLE_SCHEMA` = `t`.`TABLE_SCHEMA` AND `s`.`TABLE_NAME` = `t`.`TABLE_NAME`)
-  WHERE `t`.`TABLE_SCHEMA` IS NULL
-';
-    $unused_tables_query .= $table_append;
-
-    $tsth = $dbh->prepare($unused_tables_query);
-    $tsth->execute();
-
-    while (my $row = tsth->fetchrow_hashref()) {
-        $unused_options{$row{'TABLE_SCHEMA'}} = $row{'TABLE_NAME'}; 
-    }     
-}
 
 my $n_indexes = 0;
 my $n_tbls = 0;
 my $ignored_tbls = {};
 my %alters;
 
+## loop through all returned rows
 while (my $row = $sth->fetchrow_hashref()) {
-
     my $tbl = '`'.$row->{'TABLE_SCHEMA'}.'`.`'.$row->{'TABLE_NAME'}.'`';
 
     ## if this table was never read from
@@ -372,7 +349,7 @@ Devananda Van Der Veen (deva@percona.com)
 
 =head1 VERSION
 
-This manual page documents 0.0.4 of check-unused-keys
+This manual page documents 0.0.5 of check-unused-keys
 
 =cut
 
