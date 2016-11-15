@@ -4,17 +4,23 @@
 
 Здесь представлен набор простых скриптов для автоматизированного создания простых хостинговы прощадок на nginx + php-fpm<br>
 
-Файл nginx.conf содержит базовые настройки для системы Debian 8.x и nginx 1.8.x/1.9.x<br>
+Файл nginx.conf содержит базовые настройки для системы Debian 8.x и nginx 1.10.x/1.11.x<br>
 
 В директории common представлены минимально необходимые файлы конфигурации для работы php на создаваемых скриптами площадках.<br>
 
+В файлах template/*.template содержаться шаблоны для создания площадок.<br>
+nginx_virtual_host.template - шаблон создания хоста для nginx<br>
+php_fpm.conf.template - шаблон создания пуля для php-fpm<br>
+index.html.template - шаблон создания файла index.html<br>
+robots.txt.template - шаблон создания файла robots.txt<br>
+
 Скрипты nginx-create-vhost.sh и nginx-remove-vhost.sh предназначены для быстрого создания хостинговой площадки.<br>
 
-Пример создания площадки: ./nginx-create-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1<br>
+Пример создания площадки: ./nginx-create-vhost.sh -d "domain.com"<br>
 
 Скрипт выполняет следующие действия:<br>
 
-1. Создает указанных в параметрах -u и -g linux пользователя и группу, добавляет пользователя в созданную группу.<br>
+1. Создает linux пользователя и группу на основе настроек из settings.conf, добавляет пользователя в созданную группу.<br>
 
 2. Создает папку /var/www/domain.com и подпапки:<br>
 web - для размещения файлов сайта<br>
@@ -33,7 +39,7 @@ log - папка для хранения лог-файлов nginx и php-fpm<br
 
 7. Проверяет конфигурацию nginx и перезапускает его, перезапускает php-fpm<br>
 
-Пример удаления плошадки: ./nginx-remove-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1<br>
+Пример удаления плошадки: ./nginx-remove-vhost.sh -d "domain.com" -u web1 -g client1<br>
 
 Скрипт nginx-remove-vhost.sh удаляет все, что создает nginx-create-vhost.sh, а именно: директорию сайта, пользователя и группу, файл хоста для nginx и файл пула для php-fpm.<br>
 

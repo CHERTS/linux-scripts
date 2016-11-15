@@ -1,182 +1,214 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Program: Added nginx + php5-fpm vhosts <nginx-create-vhost.sh>
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.0
+# Current Version: 1.1
 # 
+# Example: ./nginx-create-vhost.sh -d "domain.com"
+# or
+# Example: ./nginx-create-vhost.sh -s "/var/www/domain.com" -d "domain.com"
+# or
 # Example: ./nginx-create-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1
 #
 # Revision History:
+#
+#  Version 1.1
+#    Added template function
 #
 #  Version 1.0
 #    Initial Release
 #
 
-SERVERIP="10.0.0.1"
+DEFAULT_SERVERIP="10.0.0.2"
+NGINX_USER=www-data
+NGINX_DIR=/etc/nginx
 NGINX_VHOST_DIR=/etc/nginx/sites-available
 NGINX_VHOST_SITE_ENABLED_DIR=/etc/nginx/sites-enabled
+NGINX_COMMON_DIR=/etc/nginx/common
+NGINX_COMMON_SERVER_CONFFILE=server.conf
+NGINX_COMMON_REWRITES_CONFFILE=rewrites.conf
+NGINX_COMMON_PHP_CONFFILE=php.conf
 PHP_FPM_POOL_DIR=/etc/php5/fpm/pool.d
 PHP_FPM_SOCK_DIR=/var/lib/php5-fpm
 PHP_FPM_RUN_SCRIPT=/etc/init.d/php5-fpm
 DEFAULT_SITE_DIR=/var/www
+DEFAULT_TEMPLATE_DIR=/etc/nginx/template
+CUR_DIR=`pwd`
+
+RED='\033[0;31m'        # RED
+GREEN='\033[0;32m'      # GREEN
+BLUE='\033[0;34m'       # BLUE
+CYAN='\033[0;36m'	# CYAN
+YELLOW='\033[0;33m'     # YELLOW
+NORMAL='\033[0m'        # Default color
 
 user_in_group()
 {
-    groups $1 | grep $2>/dev/null 2>&1
+    groups ${1} | grep $2>/dev/null 2>&1
 }
 
 create_linux_user_and_group ()
 {
-	USERLOGINNAME=${1}
-	GROUPNAME=${2}
+	local USERLOGINNAME=${1}
+	local GROUPNAME=${2}
 
-	echo -n "Adding new user ${USERLOGINNAME}... "
+	echo -en "${GREEN}Adding new user ${USERLOGINNAME}...\t\t\t\t\t"
 	ret=false
 	getent passwd ${USERLOGINNAME} >/dev/null 2>&1 && ret=true
 	if $ret; then
-	    echo "Error, user ${USERLOGINNAME} already exists"
+	    echo -e "${RED}Error, user ${USERLOGINNAME} already exists${NORMAL}"
 	    exit 1;
 	fi
 	useradd -d ${SITEDIR} -s /bin/false ${USERLOGINNAME}
 	ret=false
 	getent passwd ${USERLOGINNAME} >/dev/null 2>&1 && ret=true
 	if $ret; then
-	    echo "Done"
+	    echo -e "Done${NORMAL}"
+	    NEXTWEBUSER_NUM=`cat ${NGINX_DIR}/settings.conf | grep NEXTWEBUSER | cut -d "=" -f 2 | sed s/[^0-9]//g`
+	    NEXTWEBUSER_NAME=`cat ${NGINX_DIR}/settings.conf | grep NEXTWEBUSER | cut -d "=" -f 2 | sed s/[^a-zA-Z]//g`
+	    let "NEXTWEBUSER_NUM_INC=${NEXTWEBUSER_NUM}+1"
+	    sed -i "s@${USERLOGINNAME}@${NEXTWEBUSER_NAME}${NEXTWEBUSER_NUM_INC}@g" ${NGINX_DIR}/settings.conf
 	else
-	    echo "Error, the user ${USERLOGINNAME} does not exist"
+	    echo -e "${RED}Error, the user ${USERLOGINNAME} does not exist${NORMAL}"
 	    exit 1;
 	fi
 
-	echo -n "Adding new group ${GROUPNAME}... "
+	echo -en "${GREEN}Adding new group ${GROUPNAME}...\t\t\t\t"
 	ret=false
 	getent group ${GROUPNAME} >/dev/null 2>&1 && ret=true
 	if $ret; then
-	    echo "Error, group ${GROUPNAME} already exists"
-	    exit 1;
-	fi
-	addgroup ${GROUPNAME} >/dev/null 2>&1
-	ret=false
-	getent group ${GROUPNAME} >/dev/null 2>&1 && ret=true
-	if $ret; then
-	    echo "Done"
+	    echo -e "${CYAN}Warning, group ${GROUPNAME} already exists${NORMAL}"
 	else
-	    echo "Error, the group ${GROUPNAME} does not exist"
-	    exit 1;
+		addgroup ${GROUPNAME} >/dev/null 2>&1
+		ret=false
+		getent group ${GROUPNAME} >/dev/null 2>&1 && ret=true
+		if $ret; then
+		    echo -e "Done${NORMAL}"
+		    NEXTWEBGROUP_NUM=`cat ${NGINX_DIR}/settings.conf | grep NEXTWEBGROUP | cut -d "=" -f 2 | sed s/[^0-9]//g`
+		    NEXTWEBGROUP_NAME=`cat ${NGINX_DIR}/settings.conf | grep NEXTWEBGROUP | cut -d "=" -f 2 | sed s/[^a-zA-Z]//g`
+		    let "NEXTWEBGROUP_NUM_INC=${NEXTWEBGROUP_NUM}+1"
+		    sed -i "s@${GROUPNAME}@${NEXTWEBGROUP_NAME}${NEXTWEBGROUP_NUM_INC}@g" ${NGINX_DIR}/settings.conf
+		else
+		    echo -e "${RED}Error, the group ${GROUPNAME} does not exist${NORMAL}"
+		    exit 1;
+		fi
 	fi
 
-	echo -n "Adding user ${USERLOGINNAME} to group ${GROUPNAME}... "
+	echo -en "${GREEN}Adding user ${USERLOGINNAME} to group ${GROUPNAME}...\t\t\t"
 	usermod -a -G ${GROUPNAME} ${USERLOGINNAME} >/dev/null 2>&1
-	if user_in_group ${USERLOGINNAME} ${GROUPNAME}; then
-		echo "Done"
+	if user_in_group "${USERLOGINNAME}" "${GROUPNAME}"; then
+		echo -e "Done${NORMAL}"
 	else
-		echo "Error: User ${USERLOGINNAME} not adding in group ${GROUPNAME}"
+		echo -e "${RED}Error: User ${USERLOGINNAME} not adding in group ${GROUPNAME}${NORMAL}"
 		exit 1;
 	fi
+
+	echo -en "${GREEN}Adding user ${NGINX_USER} to group ${GROUPNAME}...\t\t"
+	usermod -a -G ${GROUPNAME} ${NGINX_USER} >/dev/null 2>&1
+	if user_in_group "${NGINX_USER}" "${GROUPNAME}"; then
+		echo -e "Done${NORMAL}"
+	else
+		echo -e "${RED}Error: User ${NGINX_USER} not adding in group ${GROUPNAME}${NORMAL}"
+		exit 1;
+	fi
+
 }
 
 create_simple_index_page ()
 {
-	SITEDIR=${1}
-	SITENAME=${2}
+	local SITEDIR=${1}
+	local SITENAME=${2}
 
-	echo -n "Create ${SITEDIR}/web/index.html... "
-
-cat <<EOF> ${SITEDIR}/web/index.html
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN" "http://www.w3.org/TR/html4/frameset.dtd">
-<html>
-<head>
-<meta name='author' content='Administrator'>
-<meta name='description' content='${SITENAME}'>
-<meta name="robots" content="all">
-<meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<title>${SITENAME}</title>
-</head>
-<body>
-${SITENAME}
-</body>
-</html>
-EOF
-
-	if [ -f "${SITEDIR}/web/index.html" ]
+	echo -en "${GREEN}Create ${SITEDIR}/web/index.html...\t"
+	cp -- "${DEFAULT_TEMPLATE_DIR}/index.html.template" "${SITEDIR}/web/index.html"
+	if [ -e "${SITEDIR}/web/index.html" ]
 	then
-	  echo "Done"
+	  sed -i "s@!SITENAME!@${SITENAME}@g" ${SITEDIR}/web/index.html
+	  echo -e "Done${NORMAL}"
 	else
-	  echo "Error"
+	  echo -e "${RED}Error${NORMAL}"
 	fi
 
 }
 
 create_robots_file ()
 {
-	SITEDIR=${1}
+	local SITEDIR=${1}
 
-	echo -n "Create ${SITEDIR}/web/robots.txt... "
-
-cat <<EOF> ${SITEDIR}/web/robots.txt
-User-agent: *
-Disallow: /
-EOF
-
-	if [ -f "${SITEDIR}/web/robots.txt" ]
+	echo -en "${GREEN}Create ${SITEDIR}/web/robots.txt...\t"
+	cp -- "${DEFAULT_TEMPLATE_DIR}/robots.txt.template" "${SITEDIR}/web/robots.txt"
+	if [ -e "${SITEDIR}/web/robots.txt" ]
 	then
-	  echo "Done"
+	  echo -e "Done${NORMAL}"
 	else
-	  echo "Error"
+	  echo -e "${RED}Error${NORMAL}"
 	fi
 
 }
 
 nginx_reload ()
 {
-	echo -n "Nginx configtest... "
-	/etc/init.d/nginx configtest > /dev/null
-	if [ $? -gt 0 ]; then
-	    echo "Error"
-	    exit 1;
-	else
-	    echo "Done"
-	    echo "Reload nginx..."
-	    /etc/init.d/nginx reload
-	fi
+        echo -en "${GREEN}Nginx configtest...\t\t\t\t\t"
+        /etc/init.d/nginx configtest > /tmp/nginx_configtest 2>&1
+        NGX_CONFIG_TEST_RESULT=`cat /tmp/nginx_configtest | grep successful`
+        if [ -z "${NGX_CONFIG_TEST_RESULT}" ]; then
+            rm /tmp/nginx_configtest
+            echo -e "${RED}Error${NORMAL}"
+            exit 1;
+        else
+            rm /tmp/nginx_configtest
+            echo -e "Done${NORMAL}"
+            echo -en "${GREEN}Reload nginx...\t\t\t\t\t\t"
+            /etc/init.d/nginx reload >/dev/null 2>&1
+            echo -e "Done${NORMAL}"
+        fi
 }
 
 create_nginx_vhost ()
 {
-	SITENAME=${1}
-	SITEDIR=${2}
-	USERLOGINNAME=${3}
-	GROUPNAME=${4}
+	local SITENAME=${1}
+	local SITEDIR=${2}
+	local USERLOGINNAME=${3}
+	local GROUPNAME=${4}
 
-	if [ ! -d ${NGINX_VHOST_DIR} ]
+	if [ ! -d "${NGINX_VHOST_DIR}" ]
 	then
-	  echo "Error: Directory ${NGINX_VHOST_DIR} not exist, please, create manual."
-	  exit 1;
+	  echo -e "${CYAN}Warning: Directory ${NGINX_VHOST_DIR} not exist.${NORMAL}"
+	  echo -en "${GREEN}Create a nginx vhost directory ${NGINX_VHOST_DIR}...\t"
+	  mkdir -p "${NGINX_VHOST_DIR}"
+	  if [ -d "${NGINX_VHOST_DIR}" ]; then
+	    echo -e "Done${NORMAL}"
+	  else
+	    echo -e "${RED}Error${NORMAL}"
+	  fi
 	fi
 
-	echo -n "Create home directory... "
-	mkdir -p ${SITEDIR}
-	if [ -d ${SITEDIR} ]
+	echo -en "${GREEN}Create a home directory...\t\t\t\t"
+	mkdir -p "${SITEDIR}"
+	if [ -d "${SITEDIR}" ]
 	then
-	  echo "Done"
+	  echo -e "Done${NORMAL}"
 	else
-	  echo "Error"
+	  echo -e "${RED}Error${NORMAL}"
 	fi
 
-	echo -n "Create web,log,tmp,private directory... "
-	mkdir -p ${SITEDIR}/{web,log,private,tmp}
-	if [ -d ${SITEDIR}/web ]
+	echo -en "${GREEN}Create web,log,tmp,private directory...\t\t\t"
+	mkdir -p "${SITEDIR}/web"
+	mkdir -p "${SITEDIR}/log"
+	mkdir -p "${SITEDIR}/private"
+	mkdir -p "${SITEDIR}/tmp"
+	if [ -d "${SITEDIR}/web" ]
 	then
-		echo "Done"
+		echo -e "Done${NORMAL}"
 		create_simple_index_page "${SITEDIR}" "${SITENAME}"
 		create_robots_file "${SITEDIR}"
 	else
-		echo "Error"
+		echo -e "${RED}Error${NORMAL}"
 	fi
 
-	echo -n "Set permition to directory... "
+	echo -en "${GREEN}Set permition to directory...\t\t\t\t"
 	chmod -R 755 ${SITEDIR}
 	chmod -R 770 ${SITEDIR}/tmp
 	chmod -R 755 ${SITEDIR}/web
@@ -184,121 +216,79 @@ create_nginx_vhost ()
 	chown -R ${USERLOGINNAME}:${GROUPNAME} ${SITEDIR}/*
 	chown root:root ${SITEDIR}
 	chown root:root ${SITEDIR}/log
-	echo "Done"
+	echo -e "Done${NORMAL}"
 
-	if [ ! -f "/etc/nginx/common/server.conf" ]
+	echo -en "${GREEN}Create nginx config file ${SITENAME}.vhost...\t"
+	cp -- "${DEFAULT_TEMPLATE_DIR}/nginx_virtual_host.template" "${NGINX_VHOST_DIR}/${SITENAME}.vhost"
+	if [ -e "${NGINX_VHOST_DIR}/${SITENAME}.vhost" ]
 	then
-	  echo "Error: File /etc/nginx/common/server.conf not exist, please, create manual."
-	  exit 1;
-	fi
-	if [ ! -f "/etc/nginx/common/rewrites.conf" ]
-	then
-	  echo "Error: File /etc/nginx/common/rewrites.conf not exist, please, create manual."
-	  exit 1;
-	fi
-	if [ ! -f "/etc/nginx/common/php.conf" ]
-	then
-	  echo "Error: File /etc/nginx/common/php.conf not exist, please, create manual."
-	  exit 1;
-	fi
-
-	echo -n "Create nginx config file ${USERLOGINNAME}.conf... "
-
-cat <<EOF> ${NGINX_VHOST_DIR}/${SITENAME}.conf
-server {
-        listen ${SERVERIP}:80;
-        server_name ${SITENAME} www.${SITENAME};
-        root ${SITEDIR}/web;
-
-        include /etc/nginx/common/server.conf;
-        include /etc/nginx/common/rewrites.conf;
-
-        index index.php index.html index.htm;
-
-        error_log ${SITEDIR}/log/error.log;
-        access_log ${SITEDIR}/log/access.log main;
-
-        set $fastcgipass unix:${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock;
-
-        include /etc/nginx/common/php.conf;
-}
-EOF
-
-	if [ -f "${NGINX_VHOST_DIR}/${SITENAME}.conf" ]
-	then
-		echo "Done"
-		echo -n "Activate nginx config file... "
+		sed -i "s@!SERVERIP!@${SERVERIP}@g" ${NGINX_VHOST_DIR}/${SITENAME}.vhost
+		sed -i "s@!SITENAME!@${SITENAME}@g" ${NGINX_VHOST_DIR}/${SITENAME}.vhost
+		sed -i "s@!SITEDIR!@${SITEDIR}@g" ${NGINX_VHOST_DIR}/${SITENAME}.vhost
+		sed -i "s@!PHPFPMSOCKDIR!@${PHP_FPM_SOCK_DIR}@g" ${NGINX_VHOST_DIR}/${SITENAME}.vhost
+		sed -i "s@!USERLOGINNAME!@${USERLOGINNAME}@g" ${NGINX_VHOST_DIR}/${SITENAME}.vhost
+		echo -e "Done${NORMAL}"
+		echo -en "${GREEN}Activate nginx config file...\t\t\t\t"
 		ln -s ${NGINX_VHOST_DIR}/${SITENAME}.vhost ${NGINX_VHOST_SITE_ENABLED_DIR}/100-${SITENAME}.vhost
 		linktest=`readlink ${NGINX_VHOST_SITE_ENABLED_DIR}/100-${SITENAME}.vhost`
-		if [ -n ${linktest} ]
+		if [ -n "${linktest}" ]
 		then
-			echo "Done"
+			echo -e "Done${NORMAL}"
 			nginx_reload
 		else
-			echo "Error, link ${NGINX_VHOST_SITE_ENABLED_DIR}/100-${SITENAME}.vhost not exist"
+			echo -e "${RED}Error, link ${NGINX_VHOST_SITE_ENABLED_DIR}/100-${SITENAME}.vhost not exist${NORMAL}"
 		fi
 	else
-		echo "Error, file ${NGINX_VHOST_DIR}/${SITENAME}.vhost not exist"
+		echo -e "${RED}Error, file ${NGINX_VHOST_DIR}/${SITENAME}.vhost not exist${NORMAL}"
 	fi
 }
 
 create_phpfpm_conf ()
 {
-	SITEDIR=${1}
-	USERLOGINNAME=${2}
-	GROUPNAME=${3}
+	local SITEDIR=${1}
+	local USERLOGINNAME=${2}
+	local GROUPNAME=${3}
 
-	if [ ! -d ${PHP_FPM_POOL_DIR} ]
+	if [ ! -d "${PHP_FPM_POOL_DIR}" ]
 	then
-	  echo "Error: Directory ${PHP_FPM_POOL_DIR} not exist, please, create manual."
-	  exit 1;
+	  echo -e "${CYAN}Warning: Directory ${PHP_FPM_POOL_DIR} not exist.${NORMAL}"
+	  echo -en "${GREEN}Create a php-fpm pool directory ${PHP_FPM_POOL_DIR}...\t"
+	  mkdir -p "${PHP_FPM_POOL_DIR}"
+	  if [ -d "${PHP_FPM_POOL_DIR}" ]; then
+	    echo -e "Done${NORMAL}"
+	    chmod 755 "${PHP_FPM_POOL_DIR}"
+	  else
+	    echo -e "${RED}Error${NORMAL}"
+	  fi
 	fi
 
-	if [ ! -d ${PHP_FPM_SOCK_DIR} ]
+	if [ ! -d "${PHP_FPM_SOCK_DIR}" ]
 	then
-	  echo "Error: Directory ${PHP_FPM_SOCK_DIR} not exist, please, create manual."
-	  exit 1;
+	  echo -e "${CYAN}Warning: Directory ${PHP_FPM_SOCK_DIR} not exist.${NORMAL}"
+	  echo -en "${GREEN}Create a php-fpm socket directory ${PHP_FPM_SOCK_DIR}...\t"
+	  mkdir -p "${PHP_FPM_SOCK_DIR}"
+	  if [ -d "${PHP_FPM_SOCK_DIR}" ]; then
+	    echo -e "Done${NORMAL}"
+	    chmod 755 "${PHP_FPM_SOCK_DIR}"
+	  else
+	    echo -e "${RED}Error${NORMAL}"
+	  fi
 	fi
 
-	echo -n "Create php5-fpm config file ${USERLOGINNAME}.conf... "
-cat <<EOF> ${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf
-[${USERLOGINNAME}]
-
-listen = ${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock
-listen.owner = ${USERLOGINNAME}
-listen.group = ${GROUPNAME}
-listen.mode = 0660
-
-user = ${USERLOGINNAME}
-group = ${GROUPNAME}
-
-pm = dynamic
-pm.max_children = 10
-pm.start_servers = 2
-pm.min_spare_servers = 1
-pm.max_spare_servers = 5
-pm.max_requests = 500
-request_terminate_timeout = 15m
-request_slowlog_timeout = 5s
-slowlog = ${SITEDIR}/log/php-slow.log
-
-chdir = /
-
-php_admin_value[open_basedir] = ${SITEDIR}/web:${SITEDIR}/private:${SITEDIR}/tmp:/usr/share/php5:/usr/share/php:/tmp:/usr/share/phpmyadmin:/etc/phpmyadmin:/var/lib/phpmyadmin
-php_admin_value[session.save_path] = ${SITEDIR}/tmp
-php_admin_value[upload_tmp_dir] = ${SITEDIR}/tmp
-
-php_admin_flag[cgi.fix_pathinfo] = off
-php_admin_value[error_log] = ${SITEDIR}/log/php-error.log
-EOF
-
-	if [ -f "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf" ]
+	echo -en "${GREEN}Create php5-fpm config file ${USERLOGINNAME}.conf...\t\t"
+	cp -- "${DEFAULT_TEMPLATE_DIR}/php_fpm.conf.template" "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf"
+	if [ -e "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf" ]
 	then
-		echo "Done"
-		echo "Reload php5-fpm..."
-		${PHP_FPM_RUN_SCRIPT} reload
+		sed -i "s@!SITEDIR!@${SITEDIR}@g" ${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf
+		sed -i "s@!USERLOGINNAME!@${USERLOGINNAME}@g" ${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf
+		sed -i "s@!GROUPNAME!@${GROUPNAME}@g" ${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf
+		sed -i "s@!PHPFPMSOCKDIR!@${PHP_FPM_SOCK_DIR}@g" ${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf
+		echo -e "Done${NORMAL}"
+		echo -en "${GREEN}Reload php5-fpm...\t\t\t\t\t"
+		${PHP_FPM_RUN_SCRIPT} reload >/dev/null 2>&1
+		echo -e "Done${NORMAL}"
 	else
-		echo "Error"
+		echo -e "${RED}Error${NORMAL}"
 	fi
 }
 
@@ -328,32 +318,131 @@ do
         esac
 done
 
-if [ "${SITEDIR}" == "" ]; then
+
+if [ ! -d "${NGINX_DIR}" ]; then
+	echo -e "${RED}Error: nginx directory ${NGINX_DIR} not found.${NORMAL}"
+	exit 1;
+fi
+
+if [ ! -e "${NGINX_DIR}/settings.conf" ]; then
+	echo -e "${CYAN}Warning: Main settings file ${NGINX_DIR}/settings.conf not found.${NORMAL}"
+	echo -en "${GREEN}Copy default settings file to ${NGINX_DIR}/settings.conf...\t"
+	cp -- "${CUR_DIR}/settings.conf" "${NGINX_DIR}"
+	if [ -e "${NGINX_DIR}/settings.conf" ]; then
+	   echo -e "Done${NORMAL}"
+	else
+	  echo -e "${RED}Error: Main settings file ${NGINX_DIR}/settings.conf not found.${NORMAL}"
+	  exit 1;
+	fi
+fi
+
+if [ ! -d "${NGINX_COMMON_DIR}" ]; then
+	echo -en "${GREEN}Create ${NGINX_COMMON_DIR} directory...\t"
+	mkdir -p "${NGINX_COMMON_DIR}"
+	if [ -d "${NGINX_COMMON_DIR}" ]; then
+	   echo -e "Done${NORMAL}"
+	else
+	   echo -e "${RED}Error: Failed to create the ${NGINX_COMMON_DIR} directory.${NORMAL}"
+	   exit 1;
+	fi
+fi
+
+if [ ! -e "${NGINX_COMMON_DIR}/${NGINX_COMMON_SERVER_CONFFILE}" ]; then
+  if [ -e "${CUR_DIR}/common/${NGINX_COMMON_SERVER_CONFFILE}" ]; then
+    cp -- "${CUR_DIR}/common/${NGINX_COMMON_SERVER_CONFFILE}" "${NGINX_COMMON_DIR}"
+  else
+    echo -e "${RED}Error: File common/${NGINX_COMMON_SERVER_CONFFILE} not found.${NORMAL}"
+    exit 1;
+  fi
+fi
+
+if [ ! -e "${NGINX_COMMON_DIR}/${NGINX_COMMON_REWRITES_CONFFILE}" ]; then
+  if [ -e "${CUR_DIR}/common/${NGINX_COMMON_REWRITES_CONFFILE}" ]; then
+    cp -- "${CUR_DIR}/common/${NGINX_COMMON_REWRITES_CONFFILE}" "${NGINX_COMMON_DIR}"
+  else
+    echo -e "${RED}Error: File common/${NGINX_COMMON_REWRITES_CONFFILE} not found.${NORMAL}"
+    exit 1;
+  fi
+fi
+
+if [ ! -e "${NGINX_COMMON_DIR}/${NGINX_COMMON_PHP_CONFFILE}" ]; then
+  if [ -e "${CUR_DIR}/common/${NGINX_COMMON_PHP_CONFFILE}" ]; then
+    cp -- "${CUR_DIR}/common/${NGINX_COMMON_PHP_CONFFILE}" "${NGINX_COMMON_DIR}"
+  else
+    echo -e "${RED}Error: File common/${NGINX_COMMON_PHP_CONFFILE} not found.${NORMAL}"
+    exit 1;
+  fi
+fi
+
+if [ ! -d "${DEFAULT_TEMPLATE_DIR}" ]; then
+	echo -en "${GREEN}Copy default template directory...\t"
+	cp -R -- "${CUR_DIR}/template/" "${NGINX_DIR}"
+	if [ -d "${DEFAULT_TEMPLATE_DIR}" ]; then
+	   echo -e "Done${NORMAL}"
+	else
+	   echo -e "${RED}Error: Failed to create the ${DEFAULT_TEMPLATE_DIR} directory.${NORMAL}"
+	   exit 1;
+	fi
+fi
+
+if [ "${SITEDIR}" = "" ]; then
 	SITEDIR=${DEFAULT_SITE_DIR}/${SITENAME}
 fi
 
-if [ "${USERLOGINNAME}" == "" ]; then
-	echo "Error: You must enter a user name."
+if [ "${USERLOGINNAME}" = "" ]; then
+	USERLOGINNAME=`cat ${NGINX_DIR}/settings.conf | grep NEXTWEBUSER | cut -d "=" -f 2`
+	if [ "${USERLOGINNAME}" = "" ]; then
+	  echo -e "${RED}Error: In file ${NGINX_DIR}/settings.conf not found parameter NEXTWEBUSER.${NORMAL}"
+	  usage
+	  exit 1;
+	fi
+fi
+echo -e "${GREEN}Set new username:\t${USERLOGINNAME}${NORMAL}"
+
+if [ "${GROUPNAME}" = "" ]; then
+	GROUPNAME=`cat ${NGINX_DIR}/settings.conf | grep NEXTWEBGROUP | cut -d "=" -f 2`
+	if [ "${GROUPNAME}" = "" ]; then
+	  echo -e "${RED}Error: In file ${NGINX_DIR}/settings.conf not found parameter NEXTWEBGROUP.${NORMAL}"
+	  usage
+	  exit 1;
+	fi
+fi
+echo -e "${GREEN}Set new groupname:\t${GROUPNAME}${NORMAL}"
+
+if [ "${SITENAME}" = "" ]; then
+	echo -e "${RED}Error: You must enter a domain name.${NORMAL}"
 	usage
 	exit 1;
 fi
 
-if [ "${GROUPNAME}" == "" ]; then
-	echo "Error: You must enter a group name."
-	usage
-	exit 1;
+# check the domain is roughly valid!
+PATTERN="^([[:alnum:]]([[:alnum:]\-]{0,61}[[:alnum:]])?\.)+[[:alpha:]]{2,6}$"
+if [[ "${SITENAME}" =~ $PATTERN ]]; then
+	DOMAIN=`echo ${SITENAME} | tr '[A-Z]' '[a-z]'`
+	echo -e "${GREEN}Set nginx hostname:\t${SITENAME}${NORMAL}"
+else
+	echo -e "${RED}Error: Invalid domain name.${NORMAL}"
+	exit 1
 fi
+
+if [ -e "${NGINX_DIR}/settings.conf" ]; then
+	SERVERIP=`cat ${NGINX_DIR}/settings.conf | grep SERVERIP | cut -d "=" -f 2`
+	if [ "${SERVERIP}" = "" ]; then
+		SERVERIP = ${DEFAULT_SERVERIP}
+	fi
+fi
+echo -e "${GREEN}Set nginx vhost ip:\t${SERVERIP}${NORMAL}"
 
 if [ "${SITENAME}" != "" ]
 then
-	if [ -d ${SITEDIR} ]
+	if [ -d "${SITEDIR}" ]
 	then
-	  echo "Error: Site directory ${SITEDIR} alredy exist."
+	  echo -e "${RED}Error: Site directory ${SITEDIR} alredy exist.${NORMAL}"
 	  exit 1;
 	fi
 	create_linux_user_and_group "${USERLOGINNAME}" "${GROUPNAME}"
-        create_nginx_vhost "${SITENAME}" "${SITEDIR}" "${USERLOGINNAME}" "${GROUPNAME}"
         create_phpfpm_conf "${SITEDIR}" "${USERLOGINNAME}" "${GROUPNAME}"
+        create_nginx_vhost "${SITENAME}" "${SITEDIR}" "${USERLOGINNAME}" "${GROUPNAME}"
 else
         usage
         exit 1;

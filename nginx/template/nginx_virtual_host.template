@@ -1,0 +1,17 @@
+server {
+        listen !SERVERIP!:80;
+        server_name !SITENAME! www.!SITENAME!;
+        root !SITEDIR!/web;
+
+        include /etc/nginx/common/server.conf;
+        include /etc/nginx/common/rewrites.conf;
+
+        index index.php index.html index.htm;
+
+        error_log !SITEDIR!/log/error.log;
+        access_log !SITEDIR!/log/access.log main;
+
+        set $fastcgipass unix:!PHPFPMSOCKDIR!/!USERLOGINNAME!.sock;
+
+        include /etc/nginx/common/php.conf;
+}

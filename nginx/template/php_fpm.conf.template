@@ -1,0 +1,28 @@
+[!USERLOGINNAME!]
+
+listen = !PHPFPMSOCKDIR!/!USERLOGINNAME!.sock
+listen.owner = !USERLOGINNAME!
+listen.group = !GROUPNAME!
+listen.mode = 0660
+
+user = !USERLOGINNAME!
+group = !GROUPNAME!
+
+pm = dynamic
+pm.max_children = 10
+pm.start_servers = 2
+pm.min_spare_servers = 1
+pm.max_spare_servers = 5
+pm.max_requests = 500
+request_terminate_timeout = 15m
+request_slowlog_timeout = 5s
+slowlog = !SITEDIR!/log/php-slow.log
+
+chdir = /
+
+php_admin_value[open_basedir] = !SITEDIR!/web:!SITEDIR!/private:!SITEDIR!/tmp:/usr/share/php5:/usr/share/php:/tmp:/usr/share/phpmyadmin:/etc/phpmyadmin:/var/lib/phpmyadmin
+php_admin_value[session.save_path] = !SITEDIR!/tmp
+php_admin_value[upload_tmp_dir] = !SITEDIR!/tmp
+
+php_admin_flag[cgi.fix_pathinfo] = off
+php_admin_value[error_log] = !SITEDIR!/log/php-error.log
