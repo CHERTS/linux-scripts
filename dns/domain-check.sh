@@ -1,12 +1,16 @@
-#!/bin/bash 
+#!/usr/bin/env bash
+
 #
 # Program: Domain Expiration Check <domain-check>
 #
 # Author: Matty < matty91 at gmail dot com >
 # 
-# Current Version: 2.8
+# Current Version: 2.9
 #
 # Revision History:
+#
+#  Version 2.9
+#   Bug fix for .ru -- Mikhail Grigorev <sleuthound@gmail.com>
 #
 #  Version 2.8
 #   Use 'which' to autodetect awk, whois, date and other utils -- Mikhail Grigorev <sleuthound@gmail.com>
@@ -179,15 +183,15 @@ date2julian()
          ## calculations are done from 1 March 0000 (a fictional year)
          d2j_tmpmonth=$((12 * ${3} + ${1} - 3))
         
-          ## If it is not yet March, the year is changed to the previous year
-          d2j_tmpyear=$(( ${d2j_tmpmonth} / 12))
+         ## If it is not yet March, the year is changed to the previous year
+         d2j_tmpyear=$(( ${d2j_tmpmonth} / 12))
         
-          ## The number of days from 1 March 0000 is calculated
-          ## and the number of days from 1 Jan. 4713BC is added 
-          echo $(( (734 * ${d2j_tmpmonth} + 15) / 24 -  2 * ${d2j_tmpyear} + ${d2j_tmpyear}/4
-                        - ${d2j_tmpyear}/100 + ${d2j_tmpyear}/400 + $2 + 1721119 ))
+         ## The number of days from 1 March 0000 is calculated
+         ## and the number of days from 1 Jan. 4713BC is added 
+         echo $(( (734 * ${d2j_tmpmonth} + 15) / 24 -  2 * ${d2j_tmpyear} + ${d2j_tmpyear}/4
+                       - ${d2j_tmpyear}/100 + ${d2j_tmpyear}/400 + $2 + 1721119 ))
     else
-          echo 0
+         echo 0
     fi
 }
 
@@ -523,8 +527,8 @@ check_domain_status()
     elif [ "${TLDTYPE}" == "ru" -o "${TLDTYPE}" == "su" ]; # for .ru and .su 2014/11/13
     then
            tdomdate=`cat ${WHOIS_TMP} | ${AWK} '/paid-till:/ { print $2 }'`
-           tyear=`echo ${tdomdate} | ${CUT} -d'.' -f1`
-           tmon=`echo ${tdomdate} |${CUT} -d'.' -f2`
+           tyear=`echo ${tdomdate} | ${CUT} -d'-' -f1`
+           tmon=`echo ${tdomdate} |${CUT} -d'-' -f2`
 	       case ${tmon} in
 	             1|01) tmonth=jan ;;
 	             2|02) tmonth=feb ;;
@@ -540,10 +544,10 @@ check_domain_status()
 	             12) tmonth=dec ;;
 	             *) tmonth=0 ;;
 	       esac
-           tday=`echo ${tdomdate} | ${CUT} -d'.' -f3`
+	   tday=`echo ${tdomdate} | ${CUT} -d "-" -f 3 | ${CUT} -d "T" -f 1`
            DOMAINDATE=`echo "${tday}-${tmonth}-${tyear}"`
     else # .com, .edu, .net and may work with others	 
-	    DOMAINDATE=`cat ${WHOIS_TMP} | ${AWK} '/Expiration/ { print $NF }'`	
+ 	   DOMAINDATE=`cat ${WHOIS_TMP} | ${AWK} '/Expiration/ { print $NF }'`	
     fi
 
     #echo $DOMAINDATE # debug 
