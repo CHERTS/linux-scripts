@@ -10,10 +10,10 @@
 # Revision History:
 #
 #  Version 2.9
-#   Bug fix for .ru -- Mikhail Grigorev <sleuthound@gmail.com>
+#   Bug fix for .ru -- Mikhail Grigorev <sleuthhound@gmail.com>
 #
 #  Version 2.8
-#   Use 'which' to autodetect awk, whois, date and other utils -- Mikhail Grigorev <sleuthound@gmail.com>
+#   Use 'which' to autodetect awk, whois, date and other utils -- Mikhail Grigorev <sleuthhound@gmail.com>
 #
 #  Version 2.7
 #   Bug fix for .md and .co -- Bill Bell <billnbell@gmail.com>
@@ -22,13 +22,13 @@
 #   Bug fix for .mobi -- Bill Bell <billnbell@gmail.com>
 #
 #  Version 2.5
-#   Bug fix for .me -- Mikhail Grigorev <sleuthound@gmail.com>
+#   Bug fix for .me -- Mikhail Grigorev <sleuthhound@gmail.com>
 #
 #  Version 2.4
-#   Bug fix for .com, .net, .us, .org, .in -- Mikhail Grigorev <sleuthound@gmail.com>
+#   Bug fix for .com, .net, .us, .org, .in -- Mikhail Grigorev <sleuthhound@gmail.com>
 #
 #  Version 2.3
-#   Bug fix for .info -- Mikhail Grigorev <sleuthound@gmail.com>
+#   Bug fix for .info -- Mikhail Grigorev <sleuthhound@gmail.com>
 #
 #  Version 2.2
 #   Bug fix that adds support for .ru and .su domains -- Jim McNamara
