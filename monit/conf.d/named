@@ -4,7 +4,7 @@ check process named with pidfile /var/run/named/named.pid
    stop program = "/etc/init.d/bind9 stop"
    if failed host 127.0.0.1 port 53 type tcp protocol dns then restart
    if failed host 127.0.0.1 port 53 type udp protocol dns then restart
-   if 5 restarts within 5 cycles then timeout
+   if 5 restarts within 5 cycles then unmonitor
    depend named_bin
 
 check file named_bin with path /usr/sbin/named

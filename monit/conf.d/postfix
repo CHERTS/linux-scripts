@@ -4,7 +4,7 @@ check process postfix with pidfile /var/spool/postfix/pid/master.pid
   start program = "/etc/init.d/postfix start"
   stop  program = "/etc/init.d/postfix stop"
   if failed host localhost port 25 with protocol smtp for 2 times within 3 cycles then restart
-  if 5 restarts with 5 cycles then timeout
+  if 5 restarts with 5 cycles then unmonitor
   depend master_bin
   depend postfix_rc
   depend postdrop_bin

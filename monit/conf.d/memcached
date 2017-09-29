@@ -7,7 +7,7 @@ check process memcache matching "/usr/bin/memcached"
    if failed host 127.0.0.1 port 11211 and protocol memcache then restart
    if cpu > 60% for 2 cycles then alert
    if cpu > 90% for 5 cycles then restart
-   if 5 restarts within 20 cycles then timeout
+   if 5 restarts within 20 cycles then unmonitor
    depend memcache_bin
    depend memcache_rc
 

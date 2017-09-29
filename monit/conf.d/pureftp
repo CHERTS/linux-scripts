@@ -3,7 +3,7 @@ check process pureftpd with pidfile /var/run/pure-ftpd/pure-ftpd.pid
   start program = "/etc/init.d/pure-ftpd-mysql start"
   stop program  = "/etc/init.d/pure-ftpd-mysql stop"
   if failed host localhost port 21 protocol ftp with timeout 5 seconds for 3 times within 4 cycles then restart
-  if 5 restarts with 5 cycles then timeout
+  if 5 restarts with 5 cycles then unmonitor
   depend pureftpd_bin
   depend pureftpd_rc
 

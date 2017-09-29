@@ -5,7 +5,7 @@ check process mysqld with pidfile /var/run/mysqld/mysqld.pid
    stop  program = "/etc/init.d/mysql stop"
    if failed host localhost port 3306 protocol mysql with timeout 15 seconds for 3 times within 4 cycles then restart
    if failed unixsocket /var/run/mysqld/mysqld.sock protocol mysql for 3 times within 4 cycles then restart
-   if 5 restarts with 5 cycles then timeout
+   if 5 restarts with 5 cycles then unmonitor
    depend mysql_bin
    depend mysql_rc
 

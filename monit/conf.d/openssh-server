@@ -4,7 +4,7 @@ check process sshd with pidfile /var/run/sshd.pid
    start program = "/etc/init.d/ssh start"
    stop  program = "/etc/init.d/ssh stop"
    if failed host localhost port 22 with proto ssh then restart
-   if 5 restarts with 5 cycles then timeout
+   if 5 restarts with 5 cycles then unmonitor
    depend on sshd_bin
    depend on sftp_bin
    depend on sshd_rc

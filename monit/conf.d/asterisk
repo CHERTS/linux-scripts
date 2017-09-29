@@ -5,7 +5,7 @@ check process asterisk with pidfile /var/run/asterisk/asterisk.pid
    stop program = "/etc/init.d/asterisk stop"
    if cpu > 40% for 5 cycles then alert
    if failed host 127.0.0.1 port 5038 then restart
-   if 2 restarts within 2 cycles then timeout
+   if 2 restarts within 2 cycles then unmonitor
    depend asterisk_bin
 
 check file asterisk_bin with path /usr/sbin/asterisk
