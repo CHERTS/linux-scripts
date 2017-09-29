@@ -65,6 +65,10 @@ set alert monit@mysite.ru
 # Обратите внимание на allow XX.XX.XX.XX, вы должны обязательно разрешить
 # соединятся с monit с адреса из use address XX.XX.XX.XX, иначе при попытке
 # вывести статус сервисов командой monit status Вы получите ошибку.
+# Так же обратите внимание на строку allow monit:XXXXX в ней вместо XXXXX необходимо
+# придумать и указать пароль для пользователя monit, если это не сделать, то
+# при попытке вывести статус сервисов консольной командой monit status Вы получите
+# ошибку "You are not authorized to access monit"
 set httpd port 2812 and
    ssl enable
    with ssl {

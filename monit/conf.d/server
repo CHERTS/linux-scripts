@@ -14,11 +14,15 @@ check device rootfs with path /
     group server
     if failed permission 755 then alert
     if space usage > 90% for 5 times within 10 cycles then alert
-    if inode usage > 90% for 5 times within 10 cycles then alert
+    if space usage > 99% then stop
+    if inode usage > 30% for 5 times within 10 cycles then alert
+    if inode usage > 50% then stop
 
 check device varfs with path /var
     group system
     group server
     if failed permission 0755 then alert
     if space usage > 90% for 5 times within 10 cycles then alert
-    if inode usage > 90% for 5 times within 10 cycles then alert
+    if space usage > 99% then stop
+    if inode usage > 30% for 5 times within 10 cycles then alert
+    if inode usage > 50% then stop
