@@ -1,0 +1,14 @@
+check process clamd matching "/usr/sbin/clamd"
+   group mail
+   group clamav
+   start program = "/etc/init.d/clamav-daemon start"
+   stop program  = "/etc/init.d/clamav-daemon stop"
+   if cpu > 60% for 2 cycles then alert
+   if cpu > 90% for 5 cycles then restart
+   if failed unixsocket /var/run/clamav/clamd.ctl then restart
+   if 5 restarts within 20 cycles then timeout
+   depend clamd_bin
+
+check file clamd_bin with path /usr/sbin/clamd
+   group clamav
+   include /etc/monit/templates/rootbin

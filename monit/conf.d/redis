@@ -1,0 +1,16 @@
+check process redis with pidfile /var/run/redis/redis-server.pid
+    group database
+    group redis
+    start program = "/etc/init.d/redis-server start"
+    stop program = "/etc/init.d/redis-server stop"
+    if failed host 127.0.0.1 port 6379 then restart
+    if 5 restarts within 5 cycles then timeout
+    depend redis_server_bin
+
+check file dump.rdb with path /var/lib/redis/dump.rdb
+    group redis
+    if size > 100 MB then alert
+
+check file redis_server_bin with path /usr/bin/redis-server
+    group redis
+    include /etc/monit/templates/rootbin

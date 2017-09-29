@@ -1,0 +1,12 @@
+check process named with pidfile /var/run/named/named.pid
+   group named
+   start program = "/etc/init.d/bind9 start"
+   stop program = "/etc/init.d/bind9 stop"
+   if failed host 127.0.0.1 port 53 type tcp protocol dns then restart
+   if failed host 127.0.0.1 port 53 type udp protocol dns then restart
+   if 5 restarts within 5 cycles then timeout
+   depend named_bin
+
+check file named_bin with path /usr/sbin/named
+   group named
+   include /etc/monit/templates/rootbin

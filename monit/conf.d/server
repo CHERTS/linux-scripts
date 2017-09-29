@@ -1,0 +1,20 @@
+check system mycompany.ru
+    group system
+    group server
+    if loadavg (15min) > 10 then alert
+    if loadavg (5min) > 30 then alert
+    if memory usage > 90% then alert
+
+check device rootfs with path /
+    group system
+    group server
+    if failed permission 755 then alert
+    if space usage > 90% for 5 times within 10 cycles then alert
+    if inode usage > 90% for 5 times within 10 cycles then alert
+
+check device varfs with path /var
+    group system
+    group server
+    if failed permission 0755 then alert
+    if space usage > 90% for 5 times within 10 cycles then alert
+    if inode usage > 90% for 5 times within 10 cycles then alert
