@@ -1,0 +1,32 @@
+RANDFILE = /etc/monit/ssl/openssl.rnd
+
+[ req ]
+default_bits = 2048
+encrypt_key = yes
+distinguished_name = req_dn
+x509_extensions = cert_type
+
+[ req_dn ]
+countryName = Country Name (2 letter code)
+countryName_default = RU
+
+stateOrProvinceName             = State or Province Name (full name)
+stateOrProvinceName_default     = Moscow
+
+localityName                    = Locality Name (city)
+localityName_default            = Moscow
+
+organizationName                = Organization Name (company)
+organizationName_default        = MyCompany Ltd.
+
+organizationalUnitName          = Organizational Unit Name (section)
+organizationalUnitName_default  = Dept. of Monitoring Technologies
+
+commonName                      = Common Name (FQDN of your server)
+commonName_default              = mycompany.ru
+
+emailAddress                    = Email Address
+emailAddress_default            = admin@mycompany.ru
+
+[ cert_type ]
+nsCertType = server
