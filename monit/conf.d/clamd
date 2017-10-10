@@ -6,7 +6,7 @@ check process clamd matching "/usr/sbin/clamd"
    if cpu > 60% for 2 cycles then alert
    if cpu > 90% for 5 cycles then restart
    if failed unixsocket /var/run/clamav/clamd.ctl then restart
-   if 5 restarts within 20 cycles then timeout
+   if 5 restarts within 20 cycles then unmonitor
    depend clamd_bin
    depend clamd_rc
 
