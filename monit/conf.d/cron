@@ -1,0 +1,16 @@
+check process cron with pidfile /var/run/crond.pid
+   group system
+   group cron
+   start program "/etc/init.d/cron start"
+   stop program "/etc/init.d/cron stop"
+   if 5 restarts within 5 cycles then timeout
+   depend cron_bin
+   depend cron_rc
+
+check file cron_bin with path /usr/sbin/cron
+   group cron
+   include /etc/monit/templates/rootbin
+
+check file cron_rc with path /etc/init.d/cron
+   group cron
+   include /etc/monit/templates/rootbin

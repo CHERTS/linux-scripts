@@ -6,7 +6,12 @@ check process dovecot with pidfile /var/run/dovecot/master.pid
    if failed host localhost port 143 protocol imap then alert
    if 5 restarts within 5 cycles then unmonitor
    depend dovecot_bin
+   depend dovecot_rc
 
 check file dovecot_bin with path /usr/sbin/dovecot
+   group dovecot
+   include /etc/monit/templates/rootbin
+
+check file dovecot_rc with path /etc/init.d/dovecot
    group dovecot
    include /etc/monit/templates/rootbin

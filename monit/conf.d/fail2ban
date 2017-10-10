@@ -1,5 +1,11 @@
 check process fail2ban with pidfile /var/run/fail2ban/fail2ban.pid
    group system
+   group fail2ban
    start program = "/etc/init.d/fail2ban start"
    stop program = "/etc/init.d/fail2ban stop"
    if failed unixsocket /var/run/fail2ban/fail2ban.sock protocol fail2ban then alert
+   depend fail2ban_rc
+
+check file fail2ban_rc with path /etc/init.d/fail2ban
+   group fail2ban
+   include /etc/monit/templates/rootbin

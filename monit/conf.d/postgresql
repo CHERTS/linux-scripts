@@ -1,12 +1,12 @@
 check process postgresql with pidfile /var/run/postgresql/9.4-main.pid
-    group database
-    group postgresql
-    start program = "/etc/init.d/postgresql start 9.4"
-    stop  program = "/etc/init.d/postgresql stop 9.4"
-    if failed unixsocket /var/run/postgresql/.s.PGSQL.5432 protocol pgsql then alert
-    if failed host localhost port 5432 protocol pgsql then alert
-    depend postgres_bin
+   group database
+   group postgresql
+   start program = "/etc/init.d/postgresql start 9.4"
+   stop  program = "/etc/init.d/postgresql stop 9.4"
+   if failed unixsocket /var/run/postgresql/.s.PGSQL.5432 protocol pgsql then alert
+   if failed host localhost port 5432 protocol pgsql then alert
+   depend postgres_bin
 
 check file postgres_bin with path /usr/lib/postgresql/9.4/bin/postgres
-    group postgresql
-    include /etc/monit/templates/rootbin
+   group postgresql
+   include /etc/monit/templates/rootbin

@@ -18,4 +18,3 @@ check file memcache_bin with path /usr/bin/memcached
 check file memcache_rc with path /etc/init.d/memcached
    group memcached
    include /etc/monit/templates/rootbin
-

@@ -16,4 +16,3 @@ check file mysql_bin with path /usr/sbin/mysqld
 check file mysql_rc with path /etc/init.d/mysql
    group mysql
    include /etc/monit/templates/rootbin
-

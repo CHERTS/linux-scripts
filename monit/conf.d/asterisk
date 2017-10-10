@@ -7,7 +7,12 @@ check process asterisk with pidfile /var/run/asterisk/asterisk.pid
    if failed host 127.0.0.1 port 5038 then restart
    if 2 restarts within 2 cycles then unmonitor
    depend asterisk_bin
+   depend asterisk_rc
 
 check file asterisk_bin with path /usr/sbin/asterisk
+   group asterisk
+   include /etc/monit/templates/rootbin
+
+check file asterisk_rc with path /etc/init.d/asterisk
    group asterisk
    include /etc/monit/templates/rootbin

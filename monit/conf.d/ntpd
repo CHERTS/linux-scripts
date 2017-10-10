@@ -6,7 +6,12 @@ check process ntpd with pidfile /var/run/ntpd.pid
    if failed host 127.0.0.1 port 123 type udp then restart
    if 5 restarts within 5 cycles then unmonitor
    depend ntpd_bin
+   depend ntpd_rc
 
 check file ntpd_bin with path /usr/sbin/ntpd
+   group ntpd
+   include /etc/monit/templates/rootbin
+
+check file ntpd_rc with path /etc/init.d/ntp
    group ntpd
    include /etc/monit/templates/rootbin

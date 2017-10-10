@@ -1,4 +1,3 @@
-
 check process clamd matching "/usr/sbin/clamd"
    group mail
    group clamav
@@ -7,9 +6,14 @@ check process clamd matching "/usr/sbin/clamd"
    if cpu > 60% for 2 cycles then alert
    if cpu > 90% for 5 cycles then restart
    if failed unixsocket /var/run/clamav/clamd.ctl then restart
-   if 5 restarts within 20 cycles then unmonitor
+   if 5 restarts within 20 cycles then timeout
    depend clamd_bin
+   depend clamd_rc
 
 check file clamd_bin with path /usr/sbin/clamd
+   group clamav
+   include /etc/monit/templates/rootbin
+
+check file clamd_rc with path /etc/init.d/clamav-daemon
    group clamav
    include /etc/monit/templates/rootbin
