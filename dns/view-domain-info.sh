@@ -89,7 +89,7 @@ get_mail_server() {
 view_domain_info() 
 {
   DOMAIN=${1}
-  echo "Starts checking the domain '${DOMAIN}', please wait..."
+  echo "Checking the domain '${DOMAIN}', please wait..."
   whoisdomain=$(whois "${DOMAIN}" | grep -Ei 'state|status')
   nslookupdomain=$(nslookup "${DOMAIN}" | awk '/^Address: / { print $2 }')
   if [ -n "${whoisdomain}" ]; then
