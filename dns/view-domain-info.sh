@@ -100,12 +100,24 @@ view_domain_info()
 		exit 1
 	fi
 	get_ip_address "${DOMAIN}"
-	get_nameserver "${DOMAIN}"
-	get_mail_server "${DOMAIN}"
+        domainalias=$(host -t A "${DOMAIN}" | grep "is\ an\ alias" | awk '{print $6}' | sed 's/.$//')
+        if [ -n "${domainalias}" ]; then
+          get_nameserver "${domainalias}"
+          get_mail_server "${domainalias}"
+        else
+	  get_nameserver "${DOMAIN}"
+          get_mail_server "${DOMAIN}"
+	fi
   elif [ -n "${nslookupdomain}" ]; then
     get_ip_address "${DOMAIN}"
-    get_nameserver "${DOMAIN}"
-    get_mail_server "${DOMAIN}"
+    domainalias=$(host -t A "${DOMAIN}" | grep "is\ an\ alias" | awk '{print $6}' | sed 's/.$//')
+    if [ -n "${domainalias}" ]; then
+      get_nameserver "${domainalias}"
+      get_mail_server "${domainalias}"
+    else
+      get_nameserver "${DOMAIN}"
+      get_mail_server "${DOMAIN}"
+    fi
   else
     echo "Domain ${DOMAIN} is not registered."
     exit 1
