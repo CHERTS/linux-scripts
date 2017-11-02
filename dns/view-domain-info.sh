@@ -8,6 +8,9 @@
 #
 # Revision History:
 #
+#  Version 1.2
+#    Added alias detection for original domain
+#
 #  Version 1.1
 #    Added subdomain support
 #
@@ -25,9 +28,15 @@ usage()
 
 get_ip_address() {
   DOMAIN=${1}
-  #ipaddress=$(dig "${DOMAIN}" +short | tr '\n' ' ' | sed 's/ $//')
+  domainalias=$(host -t A "${DOMAIN}" | grep "is\ an\ alias" | awk '{print $6}' | sed 's/.$//')
   ipaddress=$(host -t A "${DOMAIN}" | grep -v "has\ no" | awk '{print $4}' | sed '/^ *$/d' | tr '\n' ' ' | sed 's/ $//')
-  echo -e "Domain:\t\t${DOMAIN}"
+  #ipaddress=$(dig "${DOMAIN}" +short | tr '\n' ' ' | sed 's/ $//')
+  if [ -n "${domainalias}" ]; then
+    echo -e "Domain:\t\t${DOMAIN} is alias for ${domainalias}"
+    ipaddress=$(host -t A "${domainalias}" | grep -v "has\ no" | awk '{print $4}' | sed '/^ *$/d' | tr '\n' ' ' | sed 's/ $//')
+  else
+    echo -e "Domain:\t\t${DOMAIN}"
+  fi
   if [ -n "${ipaddress}" ]; then
     echo -e "IP Address:\t${ipaddress}"
   else
