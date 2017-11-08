@@ -30,7 +30,7 @@ set -e
 monit_tmp_dir=/tmp
 
 # Set debug to info
-debug=1
+debug=0
 
 # Additional functions
 command_exists ()
