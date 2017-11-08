@@ -118,8 +118,8 @@ fi
 current_monit_ver=$(${monit_bin} -V | ${sed_bin} -n 1p | ${sed_bin} 's/[[:alpha:]|(|[:space:]]//g' | ${awk_bin} -F- '{print $1}')
 monit_url="https://mmonit.com/monit/dist/binary/${monit_latest_ver}/monit-${monit_latest_ver}-${monit_platform}.tar.gz"
 
-debug_log "DEBUG: Monit version in your system: ${current_monit_ver}"
-debug_log "DEBUG: Latest monit version on official web site: ${monit_latest_ver}"
+echo "Version of Monit in your system: ${current_monit_ver}"
+echo "Latest Monit version on official web site: ${monit_latest_ver}"
 debug_log "DEBUG: Monit URL: ${monit_url}"
 
 if [ "${current_monit_ver}" == "${monit_latest_ver}" ]; then
