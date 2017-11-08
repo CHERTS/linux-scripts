@@ -30,7 +30,7 @@ set -e
 monit_tmp_dir=/tmp
 
 # Set debug to info
-debug=0
+debug=1
 
 # Additional functions
 command_exists ()
@@ -127,8 +127,6 @@ if [ "${current_monit_ver}" == "${monit_latest_ver}" ]; then
 	exit 0;
 fi
 
-exit 1;
-
 if ! command_exists wget ; then
 	echo "ERROR: wget not installed!"
 	exit 1;
@@ -150,6 +148,9 @@ else
         du_bin=`which du`
 fi
 
+if [ -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" ]; then
+	rm -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz"
+fi
 
 if [ ! -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" ]; then
     monit_arch_status_code=$(${wget_bin} ${monit_url} --spider --server-response -O - 2>&1 | grep "HTTP/" | awk '{print $2}')
