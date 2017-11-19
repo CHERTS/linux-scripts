@@ -235,13 +235,6 @@ else
 	tar_bin=`which tar`
 fi
 
-if ! command_exists du ; then
-        echo "ERROR: du not installed!"
-        exit 1;
-else
-        du_bin=`which du`
-fi
-
 if [ -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" ]; then
 	rm -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz"
 fi
@@ -253,14 +246,12 @@ if [ ! -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" 
 	    echo "ERROR: Monit of version ${monit_latest_ver} not found in official web site https://mmonit.com"
 	    exit 1;
     fi
-    #monit_arch_size=$(${wget_bin} ${monit_url} --spider --server-response -O - 2>&1 | ${sed_bin} -ne '/Content-Length/{s/.*: //;p}')
     monit_arch_size=$(${curl_bin} -sI ${monit_url} | grep Content-Length | awk '{print $2}' | tr -d '\n' | tr -d '\r')
     debug_log "DEBUG: Check monit in official web site... Return file size: ${monit_arch_size}"
     echo -n "Downloading new monit version (v${monit_latest_ver})... "
     ${wget_bin} ${monit_url} -O "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" >/dev/null 2>&1
     if [ -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" ]; then
 	    echo "Done"
-	    #monit_arch_size_on_disk=$(${du_bin} -b "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" | cut -f 1)
             monit_arch_size_on_disk=$(${ls_bin} -l "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" | awk '{print $5}')
 	    debug_log "DEBUG: Check monit archive ${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz on local disk... Size: ${monit_arch_size_on_disk}"
     else
