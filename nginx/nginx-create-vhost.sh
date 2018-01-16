@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 #
-# Program: Added nginx + php5-fpm vhosts <nginx-create-vhost.sh>
+# Program: Added nginx + php-fpm vhosts <nginx-create-vhost.sh>
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.1
+# Current Version: 1.2
 # 
 # Example: ./nginx-create-vhost.sh -d "domain.com"
 # or
@@ -13,6 +13,9 @@
 # Example: ./nginx-create-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1
 #
 # Revision History:
+#
+#  Version 1.2
+#    Added Debian 9 and PHP-FPM 7 support
 #
 #  Version 1.1
 #    Added template function
@@ -43,6 +46,10 @@ BLUE='\033[0;34m'       # BLUE
 CYAN='\033[0;36m'	# CYAN
 YELLOW='\033[0;33m'     # YELLOW
 NORMAL='\033[0m'        # Default color
+
+command_exists () {
+        type "$1" &> /dev/null ;
+}
 
 user_in_group()
 {
@@ -121,7 +128,7 @@ create_simple_index_page ()
 	local SITEDIR=${1}
 	local SITENAME=${2}
 
-	echo -en "${GREEN}Create ${SITEDIR}/web/index.html...\t"
+	echo -en "${GREEN}Create ${SITEDIR}/web/index.html...\t\t"
 	cp -- "${DEFAULT_TEMPLATE_DIR}/index.html.template" "${SITEDIR}/web/index.html"
 	if [ -e "${SITEDIR}/web/index.html" ]
 	then
@@ -137,7 +144,7 @@ create_robots_file ()
 {
 	local SITEDIR=${1}
 
-	echo -en "${GREEN}Create ${SITEDIR}/web/robots.txt...\t"
+	echo -en "${GREEN}Create ${SITEDIR}/web/robots.txt...\t\t"
 	cp -- "${DEFAULT_TEMPLATE_DIR}/robots.txt.template" "${SITEDIR}/web/robots.txt"
 	if [ -e "${SITEDIR}/web/robots.txt" ]
 	then
@@ -209,16 +216,20 @@ create_nginx_vhost ()
 	fi
 
 	echo -en "${GREEN}Set permition to directory...\t\t\t\t"
-	chmod -R 755 ${SITEDIR}
-	chmod -R 770 ${SITEDIR}/tmp
-	chmod -R 755 ${SITEDIR}/web
-	chmod -R 710 ${SITEDIR}/private
-	chown -R ${USERLOGINNAME}:${GROUPNAME} ${SITEDIR}/*
-	chown root:root ${SITEDIR}
-	chown root:root ${SITEDIR}/log
+	chmod -R 755 "${SITEDIR}"
+	chmod -R 770 "${SITEDIR}/tmp"
+	chmod -R 755 "${SITEDIR}/web"
+	chmod -R 710 "${SITEDIR}/private"
+	chown -R ${USERLOGINNAME}:${GROUPNAME} "${SITEDIR}"
+	chown root:root "${SITEDIR}"
+	chown root:root "${SITEDIR}/log"
 	echo -e "Done${NORMAL}"
 
-	echo -en "${GREEN}Create nginx config file ${SITENAME}.vhost...\t"
+	echo -en "${GREEN}Set protected attribute to directory...\t\t\t"
+	chattr +a "${SITEDIR}"
+	echo -e "Done${NORMAL}"
+
+	echo -en "${GREEN}Create nginx config file ${SITENAME}.vhost...\t\t"
 	cp -- "${DEFAULT_TEMPLATE_DIR}/nginx_virtual_host.template" "${NGINX_VHOST_DIR}/${SITENAME}.vhost"
 	if [ -e "${NGINX_VHOST_DIR}/${SITENAME}.vhost" ]
 	then
@@ -275,7 +286,7 @@ create_phpfpm_conf ()
 	  fi
 	fi
 
-	echo -en "${GREEN}Create php5-fpm config file ${USERLOGINNAME}.conf...\t\t"
+	echo -en "${GREEN}Create php-fpm config file ${USERLOGINNAME}.conf...\t\t\t"
 	cp -- "${DEFAULT_TEMPLATE_DIR}/php_fpm.conf.template" "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf"
 	if [ -e "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf" ]
 	then
@@ -284,12 +295,47 @@ create_phpfpm_conf ()
 		sed -i "s@!GROUPNAME!@${GROUPNAME}@g" ${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf
 		sed -i "s@!PHPFPMSOCKDIR!@${PHP_FPM_SOCK_DIR}@g" ${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf
 		echo -e "Done${NORMAL}"
-		echo -en "${GREEN}Reload php5-fpm...\t\t\t\t\t"
+		echo -en "${GREEN}Reload php-fpm...\t\t\t\t\t"
 		${PHP_FPM_RUN_SCRIPT} reload >/dev/null 2>&1
 		echo -e "Done${NORMAL}"
 	else
 		echo -e "${RED}Error${NORMAL}"
 	fi
+}
+
+unknown_os ()
+{
+  echo
+  echo "Unfortunately, your operating system distribution and version are not supported by this script."
+  echo
+  echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
+  exit 1
+}
+
+unknown_debian ()
+{
+  echo
+  echo "Unfortunately, your Debian Linux operating system distribution and version are not supported by this script."
+  echo
+  echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
+  exit 1
+}
+
+function valid_ip()
+{
+    local  ip=$1
+    local  stat=1
+
+    if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+        OIFS=$IFS
+        IFS='.'
+        ip=($ip)
+        IFS=$OIFS
+        [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
+            && ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
+        stat=$?
+    fi
+    return $stat
 }
 
 usage()
@@ -318,6 +364,46 @@ do
         esac
 done
 
+os=$(uname -s)
+os_arch=$(uname -m)
+echo -en "${GREEN}Detecting your OS\t"
+if [ "${os}" = "Linux" ]; then
+	echo -e "Linux (${os_arch})${NORMAL}"
+else
+	echo -e "${RED}Unknown${NORMAL}"
+	unknown_os
+fi
+
+if [ -f /etc/debian_version ]; then
+	DEBIAN_VERSION=$(sed 's/\..*//' /etc/debian_version)
+	if [ ${DEBIAN_VERSION} == '9' ]; then
+		echo -en "${GREEN}Detecting your php-fpm\t"
+		if command_exists php-fpm7.0 ; then
+			echo -e "Found php-fpm7.0${NORMAL}"
+                        PHP_FPM_POOL_DIR=/etc/php/7.0/fpm/pool.d
+                        PHP_FPM_SOCK_DIR=/run/php
+                        PHP_FPM_RUN_SCRIPT=/etc/init.d/php7.0-fpm
+		else
+			echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+			exit 1;
+		fi
+	elif [ ${DEBIAN_VERSION} == '8' ]; then
+		echo -en "${GREEN}Detecting your php-fpm\t"
+                if command_exists php5-fpm ; then
+                        echo -e "Found php5-fpm${NORMAL}"
+			PHP_FPM_POOL_DIR=/etc/php5/fpm/pool.d
+			PHP_FPM_SOCK_DIR=/var/lib/php5-fpm
+			PHP_FPM_RUN_SCRIPT=/etc/init.d/php5-fpm
+                else
+                        echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+                        exit 1;
+                fi
+	else
+		unknown_debian
+	fi
+else
+	unknown_debian
+fi
 
 if [ ! -d "${NGINX_DIR}" ]; then
 	echo -e "${RED}Error: nginx directory ${NGINX_DIR} not found.${NORMAL}"
@@ -426,9 +512,15 @@ else
 fi
 
 if [ -e "${NGINX_DIR}/settings.conf" ]; then
-	SERVERIP=`cat ${NGINX_DIR}/settings.conf | grep SERVERIP | cut -d "=" -f 2`
-	if [ "${SERVERIP}" = "" ]; then
-		SERVERIP = ${DEFAULT_SERVERIP}
+	SERVERIP=$(cat ${NGINX_DIR}/settings.conf | grep SERVERIP | cut -d "=" -f 2)
+	AUTO_DETECT_SERVERIP=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
+	if valid_ip ${AUTO_DETECT_SERVERIP}; then
+		if [ "${SERVERIP}" != "${AUTO_DETECT_SERVERIP}" ]; then
+			SERVERIP=${AUTO_DETECT_SERVERIP}
+		fi
+	fi
+	if [ -z "${SERVERIP}" ]; then
+		SERVERIP=${DEFAULT_SERVERIP}
 	fi
 fi
 echo -e "${GREEN}Set nginx vhost ip:\t${SERVERIP}${NORMAL}"
