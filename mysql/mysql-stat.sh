@@ -3,11 +3,14 @@
 #
 # Program: Simple MySQL database server statistics <mysql-stat.sh>
 #
-# Author: Mikhail Grigorev <sleuthhound at gmail dot com>
+# Author: Mikhail Grigorev <sleuthound at gmail dot com>
 # 
-# Current Version: 1.0
+# Current Version: 1.1
 #
 # Revision History:
+#
+#  Version 1.1
+#    Added analysis of query_cache
 #
 #  Version 1.0
 #    Initial Release
@@ -70,9 +73,13 @@
 #  |                              TOTAL (MIN) |        4298.625 MB |
 #  |                              TOTAL (MAX) |       25453.000 MB |
 #  +------------------------------------------+--------------------+
+#  |                    QUERY_CACHE_USAGE (%) |              26.2% |
+#  |                     QUERY_CACHE_FREE (%) |              73.8% |
+#  |                 QUERY_CACHE_HIT_RATE (%) |              92.1% |
+#  +------------------------------------------+--------------------+
 #
 
-VERSION="1.0.0"
+VERSION="1.0.1"
 MYSQL=`which mysql`
 
 echo "Simple MySQL database server statistics v$VERSION"
@@ -158,6 +165,9 @@ BASE_MEM=VAR["key_buffer_size"] + VAR["query_cache_size"] + VAR["innodb_buffer_p
 MEM_PER_CONN=VAR["read_buffer_size"] + VAR["read_rnd_buffer_size"] + VAR["sort_buffer_size"] + VAR["join_buffer_size"] + VAR["binlog_cache_size"] + VAR["thread_stack"]
 MEM_TOTAL_MIN=BASE_MEM + MEM_PER_CONN*MAX_USED_CONN
 MEM_TOTAL_MAX=BASE_MEM + MEM_PER_CONN*MAX_CONN
+QUERY_CACHE_FREE=VAR["Qcache_free_memory"]*100/VAR["query_cache_size"]
+QUERY_CACHE_USAGE=((VAR["query_cache_size"]-VAR["Qcache_free_memory"])/VAR["query_cache_size"])*100
+QUERY_CACHE_HIT_RATE=((VAR["Qcache_hits"]/(VAR["Qcache_hits"]+VAR["Qcache_inserts"]+VAR["Qcache_not_cached"]))*100)
 printf "+------------------------------------------+--------------------+\n"
 printf "| %40s | %9dh:%dm:%ds |\n", "Uptime", UPTIME/3600, UPTIME%3600/60, UPTIME%60
 printf "+------------------------------------------+--------------------+\n"
@@ -186,6 +196,10 @@ printf "| %40s | %18d |\n", "max_connections", MAX_CONN
 printf "+------------------------------------------+--------------------+\n"
 printf "| %40s | %15.3f MB |\n", "TOTAL (MIN)", MEM_TOTAL_MIN/1048576
 printf "| %40s | %15.3f MB |\n", "TOTAL (MAX)", MEM_TOTAL_MAX/1048576
+printf "+------------------------------------------+--------------------+\n"
+printf "| %40s | %17.1f% |\n", " QUERY_CACHE_USAGE (%)", QUERY_CACHE_USAGE
+printf "| %40s | %17.1f% |\n", " QUERY_CACHE_FREE (%)", QUERY_CACHE_FREE
+printf "| %40s | %17.1f% |\n", " QUERY_CACHE_HIT_RATE (%)", QUERY_CACHE_HIT_RATE
 printf "+------------------------------------------+--------------------+\n"
 }'
 
