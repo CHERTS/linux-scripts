@@ -5,9 +5,14 @@
 #
 # Author: Mikhail Grigorev <sleuthound at gmail dot com>
 # 
-# Current Version: 1.1
+# Current Version: 1.2
 #
 # Revision History:
+#
+#  Version 1.2
+#    Fixed error division by zero attempted
+#    Fixed creating log file
+#    Added check mysql binary file
 #
 #  Version 1.1
 #    Added analysis of query_cache
@@ -79,12 +84,24 @@
 #  +------------------------------------------+--------------------+
 #
 
-VERSION="1.0.1"
-MYSQL=`which mysql`
+VERSION="1.2.0"
 
 echo "Simple MySQL database server statistics v$VERSION"
 echo "Written by Mikhail Grigorev (sleuthhound@gmail.com, http://www.programs74.ru)"
 echo ""
+
+command_exists () {
+        command -v "$1" >/dev/null 2>&1 || {
+                return 1
+        }
+}
+
+if ! command_exists mysql ; then
+	echo "ERROR: Command mysql not found."
+	exit 1;
+else
+	MYSQL=`which mysql`
+fi
 
 showHelp() {
 	echo -e "\t--help -h\t\tthis menu"
@@ -104,10 +121,12 @@ while [[ $1 == -* ]]; do
 	esac
 done
 
-if [[ ! ${log} ]]; then
-	log="$PWD/mysql_stat.log"
+CUR_DIR=$(dirname "$0")
+
+if [[ ! "${log}" ]]; then
+	log="${CUR_DIR}/mysql_stat.log"
 fi
-if [[ ! -f ${log} ]]; then
+if [[ ! -f "${log}" ]]; then
         touch "${log}"
 fi
 
@@ -165,9 +184,11 @@ BASE_MEM=VAR["key_buffer_size"] + VAR["query_cache_size"] + VAR["innodb_buffer_p
 MEM_PER_CONN=VAR["read_buffer_size"] + VAR["read_rnd_buffer_size"] + VAR["sort_buffer_size"] + VAR["join_buffer_size"] + VAR["binlog_cache_size"] + VAR["thread_stack"]
 MEM_TOTAL_MIN=BASE_MEM + MEM_PER_CONN*MAX_USED_CONN
 MEM_TOTAL_MAX=BASE_MEM + MEM_PER_CONN*MAX_CONN
+if (VAR["query_cache_size"]) {
 QUERY_CACHE_FREE=VAR["Qcache_free_memory"]*100/VAR["query_cache_size"]
 QUERY_CACHE_USAGE=((VAR["query_cache_size"]-VAR["Qcache_free_memory"])/VAR["query_cache_size"])*100
 QUERY_CACHE_HIT_RATE=((VAR["Qcache_hits"]/(VAR["Qcache_hits"]+VAR["Qcache_inserts"]+VAR["Qcache_not_cached"]))*100)
+}
 printf "+------------------------------------------+--------------------+\n"
 printf "| %40s | %9dh:%dm:%ds |\n", "Uptime", UPTIME/3600, UPTIME%3600/60, UPTIME%60
 printf "+------------------------------------------+--------------------+\n"
@@ -203,6 +224,6 @@ printf "| %40s | %17.1f% |\n", " QUERY_CACHE_HIT_RATE (%)", QUERY_CACHE_HIT_RATE
 printf "+------------------------------------------+--------------------+\n"
 }'
 
-if [[ ! -s ${log} ]]; then
+if [[ ! -s "${log}" ]]; then
 	rm -f "${log}"
 fi
