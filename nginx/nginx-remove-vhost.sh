@@ -10,7 +10,7 @@
 #
 # Revision History:
 #
-#  Version 1.3
+#  Version 1.4
 #    Added Oracle Linux 7.4 support
 #
 #  Version 1.3
@@ -150,29 +150,39 @@ delete_phpfpm_conf ()
 
 phpfpm_reload ()
 {
-        local USERLOGINNAME=$1
+	local USERLOGINNAME=$1
 
         echo -en "${GREEN}Configtest php-fpm...\t\t\t\t"
         ${PHP_FPM_BIN} -t > /tmp/phpfpm_configtest 2>&1
         PHPFPM_CONFIG_TEST_RESULT=$(grep ERROR /tmp/phpfpm_configtest)
         if [ -n "${PHPFPM_CONFIG_TEST_RESULT}" ]; then
-                rm -f /tmp/phpfpm_configtest >/dev/null 2>&1
-                echo -e "${RED}Error${NORMAL}"
-                exit 1;
+		rm -f /tmp/phpfpm_configtest >/dev/null 2>&1
+		echo -e "${RED}Error${NORMAL}"
+		exit 1;
         else
-                rm -f /tmp/phpfpm_configtest >/dev/null 2>&1
-                echo -e "Done${NORMAL}"
-                echo -en "${GREEN}Restart php-fpm...\t\t\t\t"
-                if [ -f "${PHP_FPM_RUN_SCRIPT}" ]; then
-                        ${PHP_FPM_RUN_SCRIPT} restart >/dev/null 2>&1
-                        if [ ! -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
-                                echo -e "Done${NORMAL}"
-                        else
-                                echo -e "${RED}Error: Socket exist${NORMAL}"
-                        fi
-                else
-                        echo -e "${RED}Error: ${PHP_FPM_RUN_SCRIPT} does not exist.${NORMAL}"
-                fi
+		rm -f /tmp/phpfpm_configtest >/dev/null 2>&1
+		echo -e "Done${NORMAL}"
+		echo -en "${GREEN}Restart php-fpm...\t\t\t\t"
+		if [ ${OS_INIT_SYSTEM} == "SYSTEMD" ]; then
+			SYSTEMCTL_BIN=$(which systemctl)
+			${SYSTEMCTL_BIN} restart ${PHP_FPM_RUN_SCRIPT} >/dev/null 2>&1
+               		if [ -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
+				echo -e "Done${NORMAL}"
+               		else
+				echo -e "${RED}Error: Socket does not exist${NORMAL}"
+               		fi
+		else
+			if [ -f "${PHP_FPM_RUN_SCRIPT}" ]; then
+				${PHP_FPM_RUN_SCRIPT} restart >/dev/null 2>&1
+                		if [ -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
+					echo -e "Done${NORMAL}"
+                		else
+					echo -e "${RED}Error: Socket does not exist${NORMAL}"
+                		fi
+			else
+				echo -e "${RED}Error: ${PHP_FPM_RUN_SCRIPT} does not exist.${NORMAL}"
+			fi
+		fi
         fi
 }
 
@@ -266,40 +276,50 @@ else
         unknown_os
 fi
 
+OS_INIT_SYSTEM=$(strings /sbin/init | awk 'match($0, /(upstart|systemd|sysvinit)/) { print toupper(substr($0, RSTART, RLENGTH));exit; }')
+
 echo -en "${GREEN}Detecting ${os} distrib\t"
 if [ -f /etc/debian_version ]; then
-        DEBIAN_VERSION=$(sed 's/\..*//' /etc/debian_version)
-        OS_DISTRIB="Debian"
-        if [ ${DEBIAN_VERSION} == '9' ]; then
-                echo -e "${OS_DISTRIB}${NORMAL}"
-                echo -en "${GREEN}Detecting your php-fpm\t"
-                if command_exists php-fpm7.0 ; then
-                        echo -e "Found php-fpm7.0${NORMAL}"
+	DEBIAN_VERSION=$(sed 's/\..*//' /etc/debian_version)
+	OS_DISTRIB="Debian"
+	echo -e "${OS_DISTRIB}${NORMAL}"
+	if [ ${DEBIAN_VERSION} == '9' ]; then
+		echo -en "${GREEN}Detecting your php-fpm\t"
+		if command_exists php-fpm7.0 ; then
+			echo -e "Found php-fpm7.0${NORMAL}"
 			PHP_FPM_BIN=$(which php-fpm7.0)
                         PHP_FPM_POOL_DIR=/etc/php/7.0/fpm/pool.d
                         PHP_FPM_SOCK_DIR=/run/php
-                        PHP_FPM_RUN_SCRIPT=/etc/init.d/php7.0-fpm
-                else
-                        echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-                        exit 1;
-                fi
-        elif [ ${DEBIAN_VERSION} == '8' ]; then
-                echo -e "${OS_DISTRIB}${NORMAL}"
-                echo -en "${GREEN}Detecting your php-fpm\t"
+			if [ -f "/etc/init.d/php7.0-fpm" ]; then
+	                        PHP_FPM_RUN_SCRIPT=/etc/init.d/php7.0-fpm
+			else
+				echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
+				exit 1;
+			fi
+		else
+			echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+			exit 1;
+		fi
+	elif [ ${DEBIAN_VERSION} == '8' ]; then
+		echo -en "${GREEN}Detecting your php-fpm\t"
                 if command_exists php5-fpm ; then
                         echo -e "Found php5-fpm${NORMAL}"
 			PHP_FPM_BIN=$(which php5-fpm)
-                        PHP_FPM_POOL_DIR=/etc/php5/fpm/pool.d
-                        PHP_FPM_SOCK_DIR=/var/lib/php5-fpm
-                        PHP_FPM_RUN_SCRIPT=/etc/init.d/php5-fpm
+			PHP_FPM_POOL_DIR=/etc/php5/fpm/pool.d
+			PHP_FPM_SOCK_DIR=/var/lib/php5-fpm
+			if [ -f "/etc/init.d/php5-fpm" ]; then
+				PHP_FPM_RUN_SCRIPT=/etc/init.d/php5-fpm
+			else
+				echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
+				exit 1;
+			fi
                 else
                         echo -e "${RED}Error: php-fpm not found.${NORMAL}"
                         exit 1;
                 fi
-        else
-                echo -e "${OS_DISTRIB}${NORMAL}"
-                unknown_debian
-        fi
+	else
+		unknown_debian
+	fi
 elif [ -f /etc/oracle-release ]; then
 	ORACLE_VERSION=$(cat /etc/oracle-release | sed s/.*release\ // | sed s/\ .*//)
 	OS_DISTRIB="Oracle"
@@ -315,7 +335,7 @@ elif [ -f /etc/oracle-release ]; then
 				if [ -f "/etc/init.d/php-fpm" ]; then
                         		PHP_FPM_RUN_SCRIPT=/etc/init.d/php-fpm
 				else
-					echo -e "${RED}Error: php-fpm init scripn not found.${NORMAL}"
+					echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
 					exit 1;
 				fi
 			else
@@ -333,11 +353,11 @@ elif [ -f /etc/oracle-release ]; then
                         echo -e "Found php-fpm${NORMAL}"
 			if [ -d "/etc/php-fpm.d" ]; then
                         	PHP_FPM_POOL_DIR=/etc/php-fpm.d
-                        	PHP_FPM_SOCK_DIR=/var/run
-				if [ -f "/etc/init.d/php-fpm" ]; then
-                        		PHP_FPM_RUN_SCRIPT=/etc/init.d/php-fpm
+                        	PHP_FPM_SOCK_DIR=/run
+				if [ -f "/usr/lib/systemd/system/php-fpm.service" ]; then
+                        		PHP_FPM_RUN_SCRIPT=php-fpm
 				else
-					echo -e "${RED}Error: php-fpm init scripn not found.${NORMAL}"
+					echo -e "${RED}Error: php-fpm unit not found.${NORMAL}"
 					exit 1;
 				fi
 			else
@@ -352,7 +372,7 @@ elif [ -f /etc/oracle-release ]; then
                 unknown_oracle
         fi
 else
-        unknown_distrib
+	unknown_distrib
 fi
 
 if command_exists nginx ; then

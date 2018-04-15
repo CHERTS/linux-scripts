@@ -182,15 +182,25 @@ phpfpm_reload ()
 		rm -f /tmp/phpfpm_configtest >/dev/null 2>&1
 		echo -e "Done${NORMAL}"
 		echo -en "${GREEN}Restart php-fpm...\t\t\t\t"
-		if [ -f "${PHP_FPM_RUN_SCRIPT}" ]; then
-			${PHP_FPM_RUN_SCRIPT} restart >/dev/null 2>&1
-                	if [ -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
+		if [ ${OS_INIT_SYSTEM} == "SYSTEMD" ]; then
+			SYSTEMCTL_BIN=$(which systemctl)
+			${SYSTEMCTL_BIN} restart ${PHP_FPM_RUN_SCRIPT} >/dev/null 2>&1
+               		if [ -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
 				echo -e "Done${NORMAL}"
-                	else
+               		else
 				echo -e "${RED}Error: Socket does not exist${NORMAL}"
-                	fi
+               		fi
 		else
-			echo -e "${RED}Error: ${PHP_FPM_RUN_SCRIPT} does not exist.${NORMAL}"
+			if [ -f "${PHP_FPM_RUN_SCRIPT}" ]; then
+				${PHP_FPM_RUN_SCRIPT} restart >/dev/null 2>&1
+                		if [ -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
+					echo -e "Done${NORMAL}"
+                		else
+					echo -e "${RED}Error: Socket does not exist${NORMAL}"
+                		fi
+			else
+				echo -e "${RED}Error: ${PHP_FPM_RUN_SCRIPT} does not exist.${NORMAL}"
+			fi
 		fi
         fi
 }
@@ -451,6 +461,8 @@ else
 	unknown_os
 fi
 
+OS_INIT_SYSTEM=$(strings /sbin/init | awk 'match($0, /(upstart|systemd|sysvinit)/) { print toupper(substr($0, RSTART, RLENGTH));exit; }')
+
 echo -en "${GREEN}Detecting ${os} distrib\t"
 if [ -f /etc/debian_version ]; then
 	DEBIAN_VERSION=$(sed 's/\..*//' /etc/debian_version)
@@ -463,7 +475,12 @@ if [ -f /etc/debian_version ]; then
 			PHP_FPM_BIN=$(which php-fpm7.0)
                         PHP_FPM_POOL_DIR=/etc/php/7.0/fpm/pool.d
                         PHP_FPM_SOCK_DIR=/run/php
-                        PHP_FPM_RUN_SCRIPT=/etc/init.d/php7.0-fpm
+			if [ -f "/etc/init.d/php7.0-fpm" ]; then
+	                        PHP_FPM_RUN_SCRIPT=/etc/init.d/php7.0-fpm
+			else
+				echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
+				exit 1;
+			fi
 		else
 			echo -e "${RED}Error: php-fpm not found.${NORMAL}"
 			exit 1;
@@ -475,7 +492,12 @@ if [ -f /etc/debian_version ]; then
 			PHP_FPM_BIN=$(which php5-fpm)
 			PHP_FPM_POOL_DIR=/etc/php5/fpm/pool.d
 			PHP_FPM_SOCK_DIR=/var/lib/php5-fpm
-			PHP_FPM_RUN_SCRIPT=/etc/init.d/php5-fpm
+			if [ -f "/etc/init.d/php5-fpm" ]; then
+				PHP_FPM_RUN_SCRIPT=/etc/init.d/php5-fpm
+			else
+				echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
+				exit 1;
+			fi
                 else
                         echo -e "${RED}Error: php-fpm not found.${NORMAL}"
                         exit 1;
@@ -498,7 +520,7 @@ elif [ -f /etc/oracle-release ]; then
 				if [ -f "/etc/init.d/php-fpm" ]; then
                         		PHP_FPM_RUN_SCRIPT=/etc/init.d/php-fpm
 				else
-					echo -e "${RED}Error: php-fpm init scripn not found.${NORMAL}"
+					echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
 					exit 1;
 				fi
 			else
@@ -516,11 +538,11 @@ elif [ -f /etc/oracle-release ]; then
                         echo -e "Found php-fpm${NORMAL}"
 			if [ -d "/etc/php-fpm.d" ]; then
                         	PHP_FPM_POOL_DIR=/etc/php-fpm.d
-                        	PHP_FPM_SOCK_DIR=/var/run
-				if [ -f "/etc/init.d/php-fpm" ]; then
-                        		PHP_FPM_RUN_SCRIPT=/etc/init.d/php-fpm
+                        	PHP_FPM_SOCK_DIR=/run
+				if [ -f "/usr/lib/systemd/system/php-fpm.service" ]; then
+                        		PHP_FPM_RUN_SCRIPT=php-fpm
 				else
-					echo -e "${RED}Error: php-fpm init scripn not found.${NORMAL}"
+					echo -e "${RED}Error: php-fpm unit not found.${NORMAL}"
 					exit 1;
 				fi
 			else
