@@ -178,7 +178,8 @@ create_logrotate ()
 	echo -en "${GREEN}Create logrotate rule...\t\t\t"
 
 cat <<EOT > /etc/logrotate.d/${USERLOGINNAME}.tmp
-${SITEDIR}/log/access.log,${SITEDIR}/log/error.log {
+${SITEDIR}/log/access.log
+${SITEDIR}/log/error.log {
     create 0644 root root
     daily
     rotate 10
@@ -187,7 +188,7 @@ ${SITEDIR}/log/access.log,${SITEDIR}/log/error.log {
     compress
     sharedscripts
     postrotate
-        [ ! -f /var/run/nginx.pid ] || kill -USR1 `cat /var/run/nginx.pid`
+        [ ! -f /var/run/nginx.pid ] || kill -USR1 \`cat /var/run/nginx.pid\`
         nginx -t >/dev/null 2>&1 && nginx -s reload >/dev/null 2>&1
     endscript
 }
