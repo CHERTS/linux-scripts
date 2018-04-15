@@ -166,7 +166,7 @@ phpfpm_reload ()
 		if [ ${OS_INIT_SYSTEM} == "SYSTEMD" ]; then
 			SYSTEMCTL_BIN=$(which systemctl)
 			${SYSTEMCTL_BIN} restart ${PHP_FPM_RUN_SCRIPT} >/dev/null 2>&1
-               		if [ -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
+               		if [ ! -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
 				echo -e "Done${NORMAL}"
                		else
 				echo -e "${RED}Error: Socket does not exist${NORMAL}"
@@ -174,7 +174,7 @@ phpfpm_reload ()
 		else
 			if [ -f "${PHP_FPM_RUN_SCRIPT}" ]; then
 				${PHP_FPM_RUN_SCRIPT} restart >/dev/null 2>&1
-                		if [ -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
+                		if [ ! -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
 					echo -e "Done${NORMAL}"
                 		else
 					echo -e "${RED}Error: Socket does not exist${NORMAL}"
