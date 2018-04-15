@@ -177,6 +177,7 @@ create_logrotate ()
 
 	echo -en "${GREEN}Create logrotate rule...\t\t\t"
 
+	if [ ${OS_DISTRIB} == 'Oracle' ]; then
 cat <<EOT > /etc/logrotate.d/${USERLOGINNAME}.tmp
 ${SITEDIR}/log/access.log
 ${SITEDIR}/log/error.log {
@@ -193,6 +194,23 @@ ${SITEDIR}/log/error.log {
     endscript
 }
 EOT
+	else
+cat <<EOT > /etc/logrotate.d/${USERLOGINNAME}.tmp
+${SITEDIR}/log/access.log
+${SITEDIR}/log/error.log {
+    create 0644 root root
+    daily
+    rotate 10
+    missingok
+    notifempty
+    compress
+    sharedscripts
+    postrotate
+        [ ! -f /var/run/nginx.pid ] || kill -USR1 \`cat /var/run/nginx.pid\`
+    endscript
+}
+EOT
+fi
 
 	if [ $(echo $?) != 0 ]; then
 		echo -e "${RED}Error: Failed to create /etc/logrotate.d/${USERLOGINNAME}.tmp.${NORMAL}"
