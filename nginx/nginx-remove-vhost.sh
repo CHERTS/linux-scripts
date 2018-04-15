@@ -4,11 +4,14 @@
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.4
+# Current Version: 1.4.1
 # 
 # Example: ./nginx-remove-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1
 #
 # Revision History:
+#
+#  Version 1.4.1
+#    Added logrotate rule
 #
 #  Version 1.4
 #    Added Oracle Linux 7.4 support
@@ -41,7 +44,7 @@ YELLOW='\033[0;33m'     # YELLOW
 NORMAL='\033[0m'        # Default color
 
 command_exists () {
-        type "$1" &> /dev/null ;
+        type "${1}" &> /dev/null ;
 }
 
 delete_linux_user_and_group ()
@@ -148,9 +151,24 @@ delete_phpfpm_conf ()
 	fi
 }
 
+delete_logrotate ()
+{
+	local USERLOGINNAME=${1}
+
+	if [ -f "/etc/logrotate.d/${USERLOGINNAME}" ]; then
+		echo -en "${GREEN}Delete logrotate rule...\t\t\t"
+		rm -f "/etc/logrotate.d/${USERLOGINNAME}" 2>/dev/null
+		if [ $(echo $?) != 0 ]; then
+			echo -e "${RED}Error: Failed to delete /etc/logrotate.d/${USERLOGINNAME}.${NORMAL}"
+		else
+			echo -e "Done${NORMAL}"
+		fi
+	fi
+}
+
 phpfpm_reload ()
 {
-	local USERLOGINNAME=$1
+	local USERLOGINNAME=${1}
 
         echo -en "${GREEN}Configtest php-fpm...\t\t\t\t"
         ${PHP_FPM_BIN} -t > /tmp/phpfpm_configtest 2>&1
@@ -407,6 +425,7 @@ then
 	fi
         delete_phpfpm_conf "${USERLOGINNAME}" "${GROUPNAME}"
         delete_nginx_vhost "${SITENAME}"
+	delete_logrotate "${USERLOGINNAME}"
 	if [ -d ${SITEDIR} ]
 	then
 	        echo -en "${GREEN}Unset protected attribute to directory...\t"

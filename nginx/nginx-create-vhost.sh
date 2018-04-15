@@ -4,7 +4,7 @@
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.4
+# Current Version: 1.4.1
 # 
 # Example: ./nginx-create-vhost.sh -d "domain.com"
 # or
@@ -13,6 +13,9 @@
 # Example: ./nginx-create-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1
 #
 # Revision History:
+#
+#  Version 1.4.1
+#    Added logrotate rule
 #
 #  Version 1.4
 #    Added Oracle Linux 7.4 support
@@ -51,7 +54,7 @@ YELLOW='\033[0;33m'     # YELLOW
 NORMAL='\033[0m'        # Default color
 
 command_exists () {
-        type "$1" &> /dev/null ;
+        type "${1}" &> /dev/null ;
 }
 
 user_in_group()
@@ -167,9 +170,45 @@ create_robots_file ()
 
 }
 
+create_logrotate ()
+{
+        local SITEDIR=${1}
+	local USERLOGINNAME=${1}
+
+	echo -en "${GREEN}Create logrotate rule...\t\t\t"
+
+cat <<EOT > /etc/logrotate.d/${USERLOGINNAME}.tmp
+${SITEDIR}/log/access.log,${SITEDIR}/log/error.log {
+    create 0644 root root
+    daily
+    rotate 10
+    missingok
+    notifempty
+    compress
+    sharedscripts
+    postrotate
+        [ ! -f /var/run/nginx.pid ] || kill -USR1 `cat /var/run/nginx.pid`
+        nginx -t >/dev/null 2>&1 && nginx -s reload >/dev/null 2>&1
+    endscript
+}
+EOT
+
+	if [ $(echo $?) != 0 ]; then
+		echo -e "${RED}Error: Failed to create /etc/logrotate.d/${USERLOGINNAME}.tmp.${NORMAL}"
+	else
+		mv /etc/logrotate.d/${USERLOGINNAME}.tmp /etc/logrotate.d/${USERLOGINNAME} 2>/dev/null
+		if [ $(echo $?) != 0 ]; then
+			echo -e "${RED}Error: Failed to re-create /etc/logrotate.d/${USERLOGINNAME}.${NORMAL}"
+		else
+			echo -e "Done${NORMAL}"
+		fi
+	fi
+
+}
+
 phpfpm_reload ()
 {
-	local USERLOGINNAME=$1
+	local USERLOGINNAME=${1}
 
         echo -en "${GREEN}Configtest php-fpm...\t\t\t\t"
         ${PHP_FPM_BIN} -t > /tmp/phpfpm_configtest 2>&1
@@ -680,6 +719,7 @@ then
 	create_site_dir "${SITENAME}" "${SITEDIR}" "${USERLOGINNAME}" "${GROUPNAME}"
         create_phpfpm_conf "${SITEDIR}" "${USERLOGINNAME}" "${GROUPNAME}"
         create_nginx_vhost "${SITENAME}" "${SITEDIR}" "${USERLOGINNAME}"
+	create_logrotate "${SITEDIR}" "${USERLOGINNAME}"
 else
         usage
         exit 1;
