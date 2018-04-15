@@ -173,7 +173,7 @@ create_robots_file ()
 create_logrotate ()
 {
         local SITEDIR=${1}
-	local USERLOGINNAME=${1}
+	local USERLOGINNAME=${2}
 
 	echo -en "${GREEN}Create logrotate rule...\t\t\t"
 
