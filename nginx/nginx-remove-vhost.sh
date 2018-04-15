@@ -4,11 +4,14 @@
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.3
+# Current Version: 1.4
 # 
 # Example: ./nginx-remove-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1
 #
 # Revision History:
+#
+#  Version 1.3
+#    Added Oracle Linux 7.4 support
 #
 #  Version 1.3
 #    Added Oracle Linux 6.9 support
@@ -298,33 +301,54 @@ if [ -f /etc/debian_version ]; then
                 unknown_debian
         fi
 elif [ -f /etc/oracle-release ]; then
-        ORACLE_VERSION=$(cat /etc/oracle-release | sed s/.*release\ // | sed s/\ .*//)
-        OS_DISTRIB="Oracle"
-        if [ ${ORACLE_VERSION} == '6.9' ]; then
-                echo -e "${OS_DISTRIB}${NORMAL}"
+	ORACLE_VERSION=$(cat /etc/oracle-release | sed s/.*release\ // | sed s/\ .*//)
+	OS_DISTRIB="Oracle"
+	echo -e "${OS_DISTRIB}${NORMAL}"
+	if [ ${ORACLE_VERSION} == '6.9' ]; then
                 echo -en "${GREEN}Detecting your php-fpm\t"
                 if command_exists php-fpm ; then
 			PHP_FPM_BIN=$(which php-fpm)
                         echo -e "Found php-fpm${NORMAL}"
-                        if [ -d "/etc/php-fpm.d" ]; then
-                                PHP_FPM_POOL_DIR=/etc/php-fpm.d
-                                PHP_FPM_SOCK_DIR=/var/run
-                                if [ -f "/etc/init.d/php-fpm" ]; then
-                                        PHP_FPM_RUN_SCRIPT=/etc/init.d/php-fpm
-                                else
-                                        echo -e "${RED}Error: php-fpm init scripn not found.${NORMAL}"
-                                        exit 1;
-                                fi
-                        else
-                                echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-                                exit 1;
-                        fi
+			if [ -d "/etc/php-fpm.d" ]; then
+                        	PHP_FPM_POOL_DIR=/etc/php-fpm.d
+                        	PHP_FPM_SOCK_DIR=/var/run
+				if [ -f "/etc/init.d/php-fpm" ]; then
+                        		PHP_FPM_RUN_SCRIPT=/etc/init.d/php-fpm
+				else
+					echo -e "${RED}Error: php-fpm init scripn not found.${NORMAL}"
+					exit 1;
+				fi
+			else
+                        	echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+                        	exit 1;
+			fi
+                else
+                        echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+                        exit 1;
+                fi
+	elif [ ${ORACLE_VERSION} == '7.4' ]; then
+                echo -en "${GREEN}Detecting your php-fpm\t"
+                if command_exists php-fpm ; then
+			PHP_FPM_BIN=$(which php-fpm)
+                        echo -e "Found php-fpm${NORMAL}"
+			if [ -d "/etc/php-fpm.d" ]; then
+                        	PHP_FPM_POOL_DIR=/etc/php-fpm.d
+                        	PHP_FPM_SOCK_DIR=/var/run
+				if [ -f "/etc/init.d/php-fpm" ]; then
+                        		PHP_FPM_RUN_SCRIPT=/etc/init.d/php-fpm
+				else
+					echo -e "${RED}Error: php-fpm init scripn not found.${NORMAL}"
+					exit 1;
+				fi
+			else
+                        	echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+                        	exit 1;
+			fi
                 else
                         echo -e "${RED}Error: php-fpm not found.${NORMAL}"
                         exit 1;
                 fi
         else
-                echo -e "${OS_DISTRIB}${NORMAL}"
                 unknown_oracle
         fi
 else
