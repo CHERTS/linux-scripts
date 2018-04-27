@@ -5,9 +5,12 @@
 #
 # Author: Mikhail Grigorev <sleuthound at gmail dot com>
 # 
-# Current Version: 1.2
+# Current Version: 1.3
 #
 # Revision History:
+#
+#  Version 1.3
+#    Added port option
 #
 #  Version 1.2
 #    Fixed error division by zero attempted
@@ -34,6 +37,7 @@
 # Tested platforms:
 #  -- FreeBSD 10.3 using /usr/local/bin/bash
 #  -- Debian 8.5 using /bin/bash
+#  -- Ubuntu 14.04.1 using /bin/bash
 #
 # Usage:
 #  Refer to the usage() sub-routine, or invoke mysql-stat.sh
@@ -84,7 +88,7 @@
 #  +------------------------------------------+--------------------+
 #
 
-VERSION="1.2.0"
+VERSION="1.3"
 
 echo "Simple MySQL database server statistics v$VERSION"
 echo "Written by Mikhail Grigorev (sleuthhound@gmail.com, http://www.programs74.ru)"
@@ -108,6 +112,7 @@ showHelp() {
 	echo -e "\t--user username\t\tspecify mysql username to use, the script will prompt for a password during runtime, unless you supply a password"
 	echo -e "\t--password \"yourpass\""
 	echo -e "\t--host hostname\t\tspecify mysql hostname to use, be it local (default) or remote"
+	echo -e "\t--port port\t\tspecify mysql port number to use, be it 3306 (default)"
 }
 
 # Parse arguments
@@ -116,6 +121,7 @@ while [[ $1 == -* ]]; do
 		--user)      mysqlUser="$2"; shift 2;;
 		--password)  mysqlPass="$2"; shift 2;;
 		--host)      mysqlHost="$2"; shift 2;;
+		--port)      mysqlPort="$2"; shift 2;;
 		--help|-h)   showHelp; exit 0;;
 		--*)         shift; break;;
 	esac
@@ -132,21 +138,23 @@ fi
 
 # prevent overwriting the commandline args with the ones in .my.cnf, and check that .my.cnf exists
 if [[ ! ${mysqlUser}  && -f "$HOME/.my.cnf" ]]; then
-	if grep "user=" "$HOME/.my.cnf" >/dev/null 2>&1; then
-		if grep "password=" "$HOME/.my.cnf" >/dev/null 2>&1; then
-			mysqlUser=$(grep -m 1 "user=" "$HOME/.my.cnf" | sed -e 's/^[^=]\+=//g');
-			mysqlPass=$(grep -m 1 "password=" "$HOME/.my.cnf" | sed -e 's/^[^=]\+=//g');
-
-			if grep "host=" "$HOME/.my.cnf" >/dev/null 2>&1; then
-				mysqlHost=$(grep -m 1 "host=" "$HOME/.my.cnf" | sed -e 's/^[^=]\+=//g');
-			fi
-		else
-			echo "Found no pass line in your .my.cnf,, fix this or specify with --password"
-		fi
-	else
-		echo "Found no user line in your .my.cnf, fix this or specify with --user"
-		exit 1;
-	fi
+        if grep "host=" "$HOME/.my.cnf" >/dev/null 2>&1; then
+                mysqlHost=$(grep -m 1 "host=" "$HOME/.my.cnf" | sed -e 's/^[^=]\+=//g');
+        fi
+        if grep "port=" "$HOME/.my.cnf" >/dev/null 2>&1; then
+                mysqlPort=$(grep -m 1 "port=" "$HOME/.my.cnf" | sed -e 's/^[^=]\+=//g');
+        fi
+        if grep "user=" "$HOME/.my.cnf" >/dev/null 2>&1; then
+                mysqlUser=$(grep -m 1 "user=" "$HOME/.my.cnf" | sed -e 's/^[^=]\+=//g');
+                if grep "password=" "$HOME/.my.cnf" >/dev/null 2>&1; then
+                        mysqlPass=$(grep -m 1 "password=" "$HOME/.my.cnf" | sed -e 's/^[^=]\+=//g');
+                else
+                        echo "Found no pass line in your .my.cnf, fix this or specify with --password"
+                fi
+        else
+                echo "Found no user line in your .my.cnf, fix this or specify with --user"
+                exit 1;
+        fi
 fi
 
 MYSQL="${MYSQL} -u${mysqlUser} -p${mysqlPass}"
@@ -154,6 +162,11 @@ MYSQL="${MYSQL} -u${mysqlUser} -p${mysqlPass}"
 # If set, add -h parameter to mysqlHost
 if [[ ${mysqlHost} ]]; then
 	MYSQL=${MYSQL}" -h${mysqlHost}"
+fi
+
+# If set, add -p parameter to mysqlHost
+if [[ ${mysqlPort} ]]; then
+        MYSQL=${MYSQL}" -P${mysqlPort}"
 fi
 
 # Error out if no auth details are found for the user
