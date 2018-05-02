@@ -190,6 +190,7 @@ ${MYSQL} -e "show variables; show status" | awk '
 VAR[$1]=$2
 }
 END {
+split(VAR["version"],VERSION,"-")
 UPTIME = VAR["Uptime"]
 MAX_CONN = VAR["max_connections"]
 MAX_USED_CONN = VAR["Max_used_connections"]
@@ -203,6 +204,7 @@ QUERY_CACHE_USAGE=((VAR["query_cache_size"]-VAR["Qcache_free_memory"])/VAR["quer
 QUERY_CACHE_HIT_RATE=((VAR["Qcache_hits"]/(VAR["Qcache_hits"]+VAR["Qcache_inserts"]+VAR["Qcache_not_cached"]))*100)
 }
 printf "+------------------------------------------+--------------------+\n"
+printf "| %40s | %18s |\n", "Version", VERSION[1]
 printf "| %40s | %9dh:%dm:%ds |\n", "Uptime", UPTIME/3600, UPTIME%3600/60, UPTIME%60
 printf "+------------------------------------------+--------------------+\n"
 printf "| %40s | %15.3f MB |\n", "key_buffer_size", VAR["key_buffer_size"]/1048576
