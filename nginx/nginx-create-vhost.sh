@@ -691,7 +691,7 @@ echo -e "${GREEN}Set new username:\t${USERLOGINNAME}${NORMAL}"
 
 if [ -z "${GROUPNAME}" ]; then
 	GROUPNAME=`cat ${NGINX_DIR}/settings.conf | grep NEXTWEBGROUP | cut -d "=" -f 2`
-	if [ "${GROUPNAME}" = "" ]; then
+	if [ -z "${GROUPNAME}" ]; then
 	  echo -e "${RED}Error: In file ${NGINX_DIR}/settings.conf not found parameter NEXTWEBGROUP.${NORMAL}"
 	  usage
 	  exit 1;

@@ -90,7 +90,7 @@ delete_nginx_vhost ()
 {
 	local SITENAME=${1}
 
-	if [ ! -d ${NGINX_VHOST_DIR} ]
+	if [ ! -d "${NGINX_VHOST_DIR}" ]
 	then
 	  echo -e "${RED}Error: Directory ${NGINX_VHOST_DIR} not exist, please, check directory.${NORMAL}"
 	  exit 1;
@@ -128,12 +128,12 @@ delete_phpfpm_conf ()
 	local USERLOGINNAME=${1}
 	local GROUPNAME=${2}
 
-	if [ ! -d ${PHP_FPM_POOL_DIR} ]
+	if [ ! -d "${PHP_FPM_POOL_DIR}" ]
 	then
 	  echo -e "${RED}Error: Directory ${PHP_FPM_POOL_DIR} not exist, please, check directory.${NORMAL}"
 	fi
 
-	if [ ! -d ${PHP_FPM_SOCK_DIR} ]
+	if [ ! -d "${PHP_FPM_SOCK_DIR}" ]
 	then
 	  echo -e "${CYAN}Warning: Directory ${PHP_FPM_SOCK_DIR} not exist.${NORMAL}"
 	fi
