@@ -99,7 +99,7 @@ create_linux_user_and_group ()
 	if $ret; then
 	    echo -e "${CYAN}Warning, group ${GROUPNAME} already exists${NORMAL}"
 	else
-		if [ ${OS_DISTRIB} == 'Oracle' ]; then
+		if [[ "${OS_DISTRIB}" = "Oracle" ]]; then
 			groupadd ${GROUPNAME} >/dev/null 2>&1
 		else
 			addgroup ${GROUPNAME} >/dev/null 2>&1
@@ -118,7 +118,7 @@ create_linux_user_and_group ()
 		fi
 	fi
 
-	echo -en "${GREEN}Adding user ${USERLOGINNAME} to group ${GROUPNAME}...\t\t"
+	echo -en "${GREEN}Adding user ${USERLOGINNAME} to group ${GROUPNAME}...\t"
 	usermod -a -G ${GROUPNAME} ${USERLOGINNAME} >/dev/null 2>&1
 	if user_in_group "${USERLOGINNAME}" "${GROUPNAME}"; then
 		echo -e "Done${NORMAL}"
@@ -177,7 +177,7 @@ create_logrotate ()
 
 	echo -en "${GREEN}Create logrotate rule...\t\t\t"
 
-	if [ ${OS_DISTRIB} == 'Oracle' ]; then
+	if [[ "${OS_DISTRIB} = "Oracle" ]]; then
 cat <<EOT > /etc/logrotate.d/${USERLOGINNAME}.tmp
 ${SITEDIR}/log/access.log
 ${SITEDIR}/log/error.log {
@@ -240,7 +240,7 @@ phpfpm_reload ()
 		rm -f /tmp/phpfpm_configtest >/dev/null 2>&1
 		echo -e "Done${NORMAL}"
 		echo -en "${GREEN}Restart php-fpm...\t\t\t\t"
-		if [ ${OS_INIT_SYSTEM} == "SYSTEMD" ]; then
+		if [[ "${OS_INIT_SYSTEM}" = "SYSTEMD" ]]; then
 			SYSTEMCTL_BIN=$(which systemctl)
 			${SYSTEMCTL_BIN} restart ${PHP_FPM_RUN_SCRIPT} >/dev/null 2>&1
                		if [ -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
@@ -519,14 +519,21 @@ else
 	unknown_os
 fi
 
-OS_INIT_SYSTEM=$(strings /sbin/init | awk 'match($0, /(upstart|systemd|sysvinit)/) { print toupper(substr($0, RSTART, RLENGTH));exit; }')
+if command_exists strings ; then
+	STRINGS_BIN=$(which strings)
+else
+	echo -e "${RED}Error: Command strings not found.${NORMAL}"
+	exit 1;
+fi
+
+OS_INIT_SYSTEM=$(${STRINGS_BIN} /sbin/init | awk 'match($0, /(upstart|systemd|sysvinit)/) { print toupper(substr($0, RSTART, RLENGTH));exit; }')
 
 echo -en "${GREEN}Detecting ${os} distrib\t"
-if [ -f /etc/debian_version ]; then
+if [ -f "/etc/debian_version" ]; then
 	DEBIAN_VERSION=$(sed 's/\..*//' /etc/debian_version)
 	OS_DISTRIB="Debian"
 	echo -e "${OS_DISTRIB}${NORMAL}"
-	if [ ${DEBIAN_VERSION} == '9' ]; then
+	if [[ "${DEBIAN_VERSION}" = "9" ]]; then
 		echo -en "${GREEN}Detecting your php-fpm\t"
 		if command_exists php-fpm7.0 ; then
 			echo -e "Found php-fpm7.0${NORMAL}"
@@ -543,7 +550,7 @@ if [ -f /etc/debian_version ]; then
 			echo -e "${RED}Error: php-fpm not found.${NORMAL}"
 			exit 1;
 		fi
-	elif [ ${DEBIAN_VERSION} == '8' ]; then
+	elif [[ "${DEBIAN_VERSION}" = "8" ]]; then
 		echo -en "${GREEN}Detecting your php-fpm\t"
                 if command_exists php5-fpm ; then
                         echo -e "Found php5-fpm${NORMAL}"
@@ -563,11 +570,11 @@ if [ -f /etc/debian_version ]; then
 	else
 		unknown_debian
 	fi
-elif [ -f /etc/oracle-release ]; then
-	ORACLE_VERSION=$(cat /etc/oracle-release | sed s/.*release\ // | sed s/\ .*//)
+elif [ -f "/etc/oracle-release" ]; then
+	ORACLE_VERSION=$(cat "/etc/oracle-release" | sed s/.*release\ // | sed s/\ .*//)
 	OS_DISTRIB="Oracle"
 	echo -e "${OS_DISTRIB}${NORMAL}"
-	if [ ${ORACLE_VERSION} == '6.9' ]; then
+	if [[ "${ORACLE_VERSION}" = "6.9" ]]; then
                 echo -en "${GREEN}Detecting your php-fpm\t"
                 if command_exists php-fpm ; then
 			PHP_FPM_BIN=$(which php-fpm)
@@ -589,7 +596,7 @@ elif [ -f /etc/oracle-release ]; then
                         echo -e "${RED}Error: php-fpm not found.${NORMAL}"
                         exit 1;
                 fi
-	elif [ ${ORACLE_VERSION} == '7.4' ]; then
+	elif [[ "${ORACLE_VERSION}" = "7.4" ]]; then
                 echo -en "${GREEN}Detecting your php-fpm\t"
                 if command_exists php-fpm ; then
 			PHP_FPM_BIN=$(which php-fpm)
@@ -647,7 +654,7 @@ fi
 
 if [ ! -e "${NGINX_DIR}/settings.conf" ]; then
 	echo -e "${CYAN}Warning: Main settings file ${NGINX_DIR}/settings.conf not found.${NORMAL}"
-	echo -en "${GREEN}Copy default settings file to ${NGINX_DIR}/settings.conf...\t"
+	echo -en "${GREEN}Copy settings.conf to ${NGINX_DIR}...\t"
 	cp -- "${CUR_DIR}/settings.conf" "${NGINX_DIR}"
 	if [ -e "${NGINX_DIR}/settings.conf" ]; then
 	   echo -e "Done${NORMAL}"
@@ -668,11 +675,11 @@ if [ ! -d "${DEFAULT_TEMPLATE_DIR}" ]; then
 	fi
 fi
 
-if [ "${SITEDIR}" = "" ]; then
+if [ -z "${SITEDIR}" ]; then
 	SITEDIR=${DEFAULT_SITE_DIR}/${SITENAME}
 fi
 
-if [ "${USERLOGINNAME}" = "" ]; then
+if [ -z "${USERLOGINNAME}" ]; then
 	USERLOGINNAME=`cat ${NGINX_DIR}/settings.conf | grep NEXTWEBUSER | cut -d "=" -f 2`
 	if [ "${USERLOGINNAME}" = "" ]; then
 	  echo -e "${RED}Error: In file ${NGINX_DIR}/settings.conf not found parameter NEXTWEBUSER.${NORMAL}"
@@ -682,7 +689,7 @@ if [ "${USERLOGINNAME}" = "" ]; then
 fi
 echo -e "${GREEN}Set new username:\t${USERLOGINNAME}${NORMAL}"
 
-if [ "${GROUPNAME}" = "" ]; then
+if [ -z "${GROUPNAME}" ]; then
 	GROUPNAME=`cat ${NGINX_DIR}/settings.conf | grep NEXTWEBGROUP | cut -d "=" -f 2`
 	if [ "${GROUPNAME}" = "" ]; then
 	  echo -e "${RED}Error: In file ${NGINX_DIR}/settings.conf not found parameter NEXTWEBGROUP.${NORMAL}"
@@ -692,7 +699,7 @@ if [ "${GROUPNAME}" = "" ]; then
 fi
 echo -e "${GREEN}Set new groupname:\t${GROUPNAME}${NORMAL}"
 
-if [ "${SITENAME}" = "" ]; then
+if [ -z "${SITENAME}" ]; then
 	echo -e "${RED}Error: You must enter a domain name.${NORMAL}"
 	usage
 	exit 1;
@@ -727,8 +734,7 @@ if [ -e "${NGINX_DIR}/settings.conf" ]; then
 fi
 echo -e "${GREEN}Set nginx vhost ip:\t${SERVERIP}:${SERVERPORT}${NORMAL}"
 
-if [ "${SITENAME}" != "" ]
-then
+if [ -n "${SITENAME}" ]; then
 	if [ -d "${SITEDIR}" ]
 	then
 	  echo -e "${RED}Error: Site directory ${SITEDIR} alredy exist.${NORMAL}"
