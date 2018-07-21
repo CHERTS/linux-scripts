@@ -118,7 +118,7 @@ create_linux_user_and_group ()
 		fi
 	fi
 
-	echo -en "${GREEN}Adding user ${USERLOGINNAME} to group ${GROUPNAME}...\t"
+	echo -en "${GREEN}Adding user ${USERLOGINNAME} to group ${GROUPNAME}...\t\t"
 	usermod -a -G ${GROUPNAME} ${USERLOGINNAME} >/dev/null 2>&1
 	if user_in_group "${USERLOGINNAME}" "${GROUPNAME}"; then
 		echo -e "Done${NORMAL}"
@@ -127,7 +127,7 @@ create_linux_user_and_group ()
 		exit 1;
 	fi
 
-	echo -en "${GREEN}Adding user ${NGINX_USER} to group ${GROUPNAME}...\t\t"
+	echo -en "${GREEN}Adding user ${NGINX_USER} to group ${GROUPNAME}...\t"
 	usermod -a -G ${GROUPNAME} ${NGINX_USER} >/dev/null 2>&1
 	if user_in_group "${NGINX_USER}" "${GROUPNAME}"; then
 		echo -e "Done${NORMAL}"
