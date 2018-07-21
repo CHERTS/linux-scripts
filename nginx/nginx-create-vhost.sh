@@ -179,9 +179,8 @@ create_logrotate ()
 
 	if [[ "${OS_DISTRIB}" = "Oracle" ]]; then
 cat <<EOT > /etc/logrotate.d/${USERLOGINNAME}.tmp
-${SITEDIR}/log/access.log
-${SITEDIR}/log/error.log {
-    create 0644 root root
+${SITEDIR}/log/access.log ${SITEDIR}/log/error.log {
+    create 0644 ${NGINX_USER} root
     daily
     rotate 10
     missingok
@@ -196,9 +195,8 @@ ${SITEDIR}/log/error.log {
 EOT
 	else
 cat <<EOT > /etc/logrotate.d/${USERLOGINNAME}.tmp
-${SITEDIR}/log/access.log
-${SITEDIR}/log/error.log {
-    create 0644 root root
+${SITEDIR}/log/access.log ${SITEDIR}/log/error.log {
+    create 0644 ${NGINX_USER} root
     daily
     rotate 10
     missingok
