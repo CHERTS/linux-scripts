@@ -145,7 +145,7 @@ create_simple_index_page ()
 
 	echo -en "${GREEN}Create index.html...\t\t\t\t"
 	cp -- "${DEFAULT_TEMPLATE_DIR}/index.html.template" "${SITEDIR}/web/index.html"
-	if [ -e "${SITEDIR}/web/index.html" ]
+	if [ -f "${SITEDIR}/web/index.html" ]
 	then
 	  sed -i "s@!SITENAME!@${SITENAME}@g" ${SITEDIR}/web/index.html
 	  echo -e "Done${NORMAL}"
@@ -161,7 +161,7 @@ create_robots_file ()
 
 	echo -en "${GREEN}Create robots.txt...\t\t\t\t"
 	cp -- "${DEFAULT_TEMPLATE_DIR}/robots.txt.template" "${SITEDIR}/web/robots.txt"
-	if [ -e "${SITEDIR}/web/robots.txt" ]
+	if [ -f "${SITEDIR}/web/robots.txt" ]
 	then
 	  echo -e "Done${NORMAL}"
 	else
@@ -358,7 +358,7 @@ create_nginx_vhost ()
 
 	echo -en "${GREEN}Create nginx config file...\t\t\t"
 	cp -- "${DEFAULT_TEMPLATE_DIR}/nginx_virtual_host.template" "${NGINX_VHOST_DIR}/${SITENAME}.vhost"
-	if [ -e "${NGINX_VHOST_DIR}/${SITENAME}.vhost" ]
+	if [ -f "${NGINX_VHOST_DIR}/${SITENAME}.vhost" ]
 	then
 		sed -i "s@!SERVERIP!@${SERVERIP}@g" ${NGINX_VHOST_DIR}/${SITENAME}.vhost
 		sed -i "s@!SERVERPORT!@${SERVERPORT}@g" ${NGINX_VHOST_DIR}/${SITENAME}.vhost
@@ -416,7 +416,7 @@ create_phpfpm_conf ()
 
 	echo -en "${GREEN}Create php-fpm config file ${USERLOGINNAME}.conf...\t\t"
 	cp -- "${DEFAULT_TEMPLATE_DIR}/php_fpm.conf.template" "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf"
-	if [ -e "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf" ]
+	if [ -f "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf" ]
 	then
 		sed -i "s@!SITEDIR!@${SITEDIR}@g" ${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf
 		sed -i "s@!USERLOGINNAME!@${USERLOGINNAME}@g" ${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf
@@ -656,7 +656,7 @@ if [ ! -e "${NGINX_DIR}/settings.conf" ]; then
 	echo -e "${CYAN}Warning: Main settings file ${NGINX_DIR}/settings.conf not found.${NORMAL}"
 	echo -en "${GREEN}Copy settings.conf to ${NGINX_DIR}...\t"
 	cp -- "${CUR_DIR}/settings.conf" "${NGINX_DIR}"
-	if [ -e "${NGINX_DIR}/settings.conf" ]; then
+	if [ -f "${NGINX_DIR}/settings.conf" ]; then
 	   echo -e "Done${NORMAL}"
 	else
 	  echo -e "${RED}Error: Main settings file ${NGINX_DIR}/settings.conf not found.${NORMAL}"
@@ -715,7 +715,7 @@ else
 	exit 1
 fi
 
-if [ -e "${NGINX_DIR}/settings.conf" ]; then
+if [ -f "${NGINX_DIR}/settings.conf" ]; then
 	SERVERIP=$(cat ${NGINX_DIR}/settings.conf | grep SERVERIP | cut -d "=" -f 2)
 	SERVERPORT=$(cat ${NGINX_DIR}/settings.conf | grep SERVERPORT | cut -d "=" -f 2)
 	AUTO_DETECT_SERVERIP=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
