@@ -177,7 +177,7 @@ create_logrotate ()
 
 	echo -en "${GREEN}Create logrotate rule...\t\t\t"
 
-	if [[ "${OS_DISTRIB} = "Oracle" ]]; then
+	if [[ "${OS_DISTRIB}" = "Oracle" ]]; then
 cat <<EOT > /etc/logrotate.d/${USERLOGINNAME}.tmp
 ${SITEDIR}/log/access.log
 ${SITEDIR}/log/error.log {
