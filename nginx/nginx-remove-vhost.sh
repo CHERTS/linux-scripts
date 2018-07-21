@@ -307,7 +307,7 @@ echo -en "${GREEN}Detecting ${os} distrib\t"
 if [ -f "/etc/debian_version" ]; then
 	DEBIAN_VERSION=$(sed 's/\..*//' /etc/debian_version)
 	OS_DISTRIB="Debian"
-	echo -e "${OS_DISTRIB}${NORMAL}"
+	echo -e "${OS_DISTRIB} (${OS_INIT_SYSTEM})${NORMAL}"
 	if [[ "${DEBIAN_VERSION}" = "9" ]]; then
 		echo -en "${GREEN}Detecting your php-fpm\t"
 		if command_exists php-fpm7.0 ; then
@@ -315,11 +315,15 @@ if [ -f "/etc/debian_version" ]; then
 			PHP_FPM_BIN=$(which php-fpm7.0)
                         PHP_FPM_POOL_DIR=/etc/php/7.0/fpm/pool.d
                         PHP_FPM_SOCK_DIR=/run/php
-			if [ -f "/etc/init.d/php7.0-fpm" ]; then
-	                        PHP_FPM_RUN_SCRIPT=/etc/init.d/php7.0-fpm
+			if [[ "${OS_INIT_SYSTEM}" = "SYSTEMD" ]]; then
+				PHP_FPM_RUN_SCRIPT="php7.0-fpm"
 			else
-				echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
-				exit 1;
+				if [ -f "/etc/init.d/php7.0-fpm" ]; then
+		                        PHP_FPM_RUN_SCRIPT=/etc/init.d/php7.0-fpm
+				else
+					echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
+					exit 1;
+				fi
 			fi
 		else
 			echo -e "${RED}Error: php-fpm not found.${NORMAL}"
@@ -348,7 +352,7 @@ if [ -f "/etc/debian_version" ]; then
 elif [ -f /etc/oracle-release ]; then
 	ORACLE_VERSION=$(cat /etc/oracle-release | sed s/.*release\ // | sed s/\ .*//)
 	OS_DISTRIB="Oracle"
-	echo -e "${OS_DISTRIB}${NORMAL}"
+	echo -e "${OS_DISTRIB} (${OS_INIT_SYSTEM})${NORMAL}"
 	if [[ "${ORACLE_VERSION}" = "6.9" ]]; then
                 echo -en "${GREEN}Detecting your php-fpm\t"
                 if command_exists php-fpm ; then
