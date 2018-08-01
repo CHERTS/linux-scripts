@@ -29,8 +29,8 @@
 #
 # Tested MySQL:
 #  -- Oracle MySQL 5.7.22
-#  -- MariaDB 10.3
-#  -- Percona Server for MySQL 5.6
+#  -- MariaDB 10.3.8
+#  -- Percona Server for MySQL 5.6.40-84.0/5.7.22-22
 #
 # Usage:
 #  Refer to the _show_help() sub-routine, or invoke mysql_innodb_log_file_size_calculator.sh
@@ -155,7 +155,7 @@ fi
 if [ -n "${MYSQL_PASSWD}" ]; then
         export MYSQL_PWD="${MYSQL_PASSWD}"
 else
-	echo "Error: mysql password is empty, please create settings file '${MYSQL_CNF}'."
+	echo "Error: MySQL password for user ${MYSQL_USER} is empty, please change password and create settings file '${MYSQL_CNF}'."
 	exit 1
 fi
 
