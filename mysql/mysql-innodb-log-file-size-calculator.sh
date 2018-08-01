@@ -72,8 +72,6 @@
 #  Recomended set parameter innodb_log_file_size = 7574M
 #  ================================================
 
-log_wait_in_second=60
-
 command_exists () {
         type "$1" &> /dev/null;
 }
@@ -300,8 +298,8 @@ if command_exists bc ; then
                 echo "Error: ${INNODB_LOG_WRITE_1}"
                 exit
         fi
-        echo "Sleeping $log_wait_in_second second..."
-        sleep $log_wait_in_second;
+        echo "Sleeping 3600 second..."
+        sleep 3600;
         INNODB_LOG_WRITE_2=$(_mysql_exec_one_query "SELECT VARIABLE_VALUE FROM ${MYSQL_SETTINGS_SCHEMA}.global_status WHERE VARIABLE_NAME = 'Innodb_os_log_written';")
         if [ $? -eq 0 ]; then
                 echo "Innodb_os_log_written = ${INNODB_LOG_WRITE_2}"
@@ -309,14 +307,11 @@ if command_exists bc ; then
                 echo "Error: ${INNODB_LOG_WRITE_2}"
                 exit
         fi
-        INNODB_LOG_WRITE_EX=$(echo "${INNODB_LOG_WRITE_2}-${INNODB_LOG_WRITE_1}" | bc)
-        INNODB_LOG_WRITE_MB_PER_MIN=$(echo "scale=3;${INNODB_LOG_WRITE_EX}/1048576" | bc)
-        echo "Write speed (MB_per_${log_wait_in_second}_second): ${INNODB_LOG_WRITE_MB_PER_MIN}"
-        INNODB_LOG_WRITE_BYTE_PER_HOUR=$(echo "${INNODB_LOG_WRITE_EX}*60" | bc)
-        INNODB_LOG_WRITE_MB_PER_HOUR=$(echo "scale=1;${INNODB_LOG_WRITE_MB_PER_MIN}*60" | bc)
+        INNODB_LOG_WRITE_BYTE_PER_HOUR=$(echo "${INNODB_LOG_WRITE_2}-${INNODB_LOG_WRITE_1}" | bc)
+        INNODB_LOG_WRITE_MB_PER_HOUR=$(echo "scale=1;${INNODB_LOG_WRITE_BYTE_PER_HOUR}/1048576" | bc)
         echo "Write speed (MB_per_1_hour): ${INNODB_LOG_WRITE_MB_PER_HOUR}"
 	echo "================================================"
-        if [ ${INNODB_LOG_WRITE_BYTE_PER_HOUR} -gt ${INNODB_LOG_FILE_SIZE} ]; then
+        if [ ${INNODB_LOG_WRITE_BYTE_PER_HOUR} -gt ${INNODB_TOTAL_LOG_SIZE} ]; then
                 echo "Note: Current redo-log write speed > innodb_log_file_size"
                 INNODB_LOG_WRITE_BYTE_PER_HOUR_10PRC=$(echo "${INNODB_LOG_WRITE_BYTE_PER_HOUR}+(${INNODB_LOG_WRITE_BYTE_PER_HOUR}/10)" | bc)
                 if [ ${INNODB_LOG_WRITE_BYTE_PER_HOUR_10PRC} -gt 1048576 ]; then
