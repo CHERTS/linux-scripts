@@ -90,8 +90,9 @@
 
 VERSION="1.3"
 
+echo ""
 echo "Simple MySQL database server statistics v$VERSION"
-echo "Written by Mikhail Grigorev (sleuthhound@gmail.com, http://www.programs74.ru)"
+echo "Written by Mikhail Grigorev (sleuthhound@gmail.com, http://blog.programs74.ru)"
 echo ""
 
 command_exists () {
