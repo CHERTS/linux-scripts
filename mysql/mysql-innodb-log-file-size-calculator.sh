@@ -312,8 +312,8 @@ if command_exists bc ; then
         echo "Write speed (MB_per_1_hour): ${INNODB_LOG_WRITE_MB_PER_HOUR}"
 	echo "================================================"
         if [ ${INNODB_LOG_WRITE_BYTE_PER_HOUR} -gt ${INNODB_TOTAL_LOG_SIZE} ]; then
-                echo "Note: Current redo-log write speed > innodb_log_file_size"
-                INNODB_LOG_WRITE_BYTE_PER_HOUR_10PRC=$(echo "${INNODB_LOG_WRITE_BYTE_PER_HOUR}+(${INNODB_LOG_WRITE_BYTE_PER_HOUR}/10)" | bc)
+                echo "Note: Current redo-log write speed > innodb_log_file_size*innodb_log_files_in_group"
+                INNODB_LOG_WRITE_BYTE_PER_HOUR_10PRC=$(echo "(${INNODB_LOG_WRITE_BYTE_PER_HOUR}*1.2)/${INNODB_LOG_FILES_IN_GROUP}" | bc)
                 if [ ${INNODB_LOG_WRITE_BYTE_PER_HOUR_10PRC} -gt 1048576 ]; then
                         INNODB_LOG_FILE_SIZE_RECOMEND=$(echo "${INNODB_LOG_WRITE_BYTE_PER_HOUR_10PRC}/1048576" | bc)
                         echo "Recomended set parameter innodb_log_file_size = ${INNODB_LOG_FILE_SIZE_RECOMEND}M"
