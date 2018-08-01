@@ -116,16 +116,16 @@ CURRENT_USER_HOME_DIR=$(getent passwd ${CURRENT_USER} | awk -F':' '{print $6}')
 MYSQL_CNF="${CURRENT_USER_HOME_DIR}/.my.cnf"
 
 if [ -f "${MYSQL_CNF}" ]; then
+        if grep "host=" "${MYSQL_CNF}" >/dev/null 2>&1; then
+                MYSQL_HOST=$(grep -m 1 "host=" "${MYSQL_CNF}" | sed -e 's/^[^=]\+=//g');
+        fi
+        if grep "port=" "${MYSQL_CNF}" >/dev/null 2>&1; then
+                MYSQL_PORT=$(grep -m 1 "port=" "${MYSQL_CNF}" | sed -e 's/^[^=]\+=//g');
+        fi
         if grep "user=" "${MYSQL_CNF}" >/dev/null 2>&1; then
+                MYSQL_USER=$(grep -m 1 "user=" "${MYSQL_CNF}" | sed -e 's/^[^=]\+=//g');
                 if grep "password=" "${MYSQL_CNF}" >/dev/null 2>&1; then
-                        MYSQL_USER=$(grep -m 1 "user=" "${MYSQL_CNF}" | sed -e 's/^[^=]\+=//g');
                         MYSQL_PASSWD=$(grep -m 1 "password=" "${MYSQL_CNF}" | sed -e 's/^[^=]\+=//g');
-                        if grep "host=" "${MYSQL_CNF}" >/dev/null 2>&1; then
-                                MYSQL_HOST=$(grep -m 1 "host=" "${MYSQL_CNF}" | sed -e 's/^[^=]\+=//g');
-                        fi
-                        if grep "port=" "${MYSQL_CNF}" >/dev/null 2>&1; then
-                                MYSQL_PORT=$(grep -m 1 "port=" "${MYSQL_CNF}" | sed -e 's/^[^=]\+=//g');
-                        fi
                 else
                         echo "Not found password line in your '${MYSQL_CNF}', fix this or specify with --password"
                 fi
@@ -134,12 +134,12 @@ if [ -f "${MYSQL_CNF}" ]; then
                 exit 1;
         fi
 else
-	if [ -z "${MYSQL_USER}" ]; then
-		echo "ERROR: Authentication information not found as arguments and in file '${MYSQL_CNF}'."
-	        echo
-		_show_help
-		exit 1;
-	fi
+        if [ -z "${MYSQL_USER}" ]; then
+                echo "ERROR: Authentication information not found as arguments and in file '${MYSQL_CNF}'."
+                echo
+                _show_help
+                exit 1;
+        fi
 fi
 
 MYSQL="${MYSQL_BIN} -u ${MYSQL_USER}"
