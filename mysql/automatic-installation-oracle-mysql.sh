@@ -18,7 +18,7 @@
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 # Requirements:
-#   Requires mysql
+#   Requires: apt-get, apt-key, pwgen
 #
 # Installation:
 #   Copy the shell script to a suitable location
