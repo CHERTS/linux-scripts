@@ -239,27 +239,27 @@ if [ $(dpkg-query -W -f='${Status}' mysql-community-server  2>/dev/null | grep -
                         mysql -s -u root -p"${MYSQL_ROOT_PASSWD}" -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\_%'" >/dev/null 2>&1
                         mysql -s -u root -p"${MYSQL_ROOT_PASSWD}" -e "FLUSH PRIVILEGES" >/dev/null 2>&1
                         echo -n "Creating ${MYSQL_CNF}... "
-                        (cat <<-EOF
-                                [mysql]
-                                prompt = [\\u@\\p][\\d]>\\_
-                                no-auto-rehash
-                                user=root
-                                password=${MYSQL_ROOT_PASSWD}
-                                [mysqladmin]
-                                user=root
-                                password=${MYSQL_ROOT_PASSWD}
-                                [mysqldump]
-                                single-transaction
-                                user=root
-                                password=${MYSQL_ROOT_PASSWD}
-                                [mysqlcheck]
-                                user=root
-                                password=${MYSQL_ROOT_PASSWD}
-                                [mysql_upgrade]
-                                user=root
-                                password=${MYSQL_ROOT_PASSWD}
-                        EOF
-                        ) > "${MYSQL_CNF}"
+			(cat <<-EOF
+				[mysql]
+				prompt = [\\u@\\p][\\d]>\\_
+				no-auto-rehash
+				user=root
+				password=${MYSQL_ROOT_PASSWD}
+				[mysqladmin]
+				user=root
+				password=${MYSQL_ROOT_PASSWD}
+				[mysqldump]
+				single-transaction
+				user=root
+				password=${MYSQL_ROOT_PASSWD}
+				[mysqlcheck]
+				user=root
+				password=${MYSQL_ROOT_PASSWD}
+				[mysql_upgrade]
+				user=root
+				password=${MYSQL_ROOT_PASSWD}
+			EOF
+			) > "${MYSQL_CNF}"
                         if [ -f "${MYSQL_CNF}" ]; then
                                 echo "OK"
                         else
