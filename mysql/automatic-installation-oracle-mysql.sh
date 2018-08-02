@@ -247,6 +247,9 @@ if [ $(dpkg-query -W -f='${Status}' mysql-community-server  2>/dev/null | grep -
                         echo "Error"
                 fi
                 echo -n "Adding Oracle repositary... "
+		if [ -f "/etc/apt/sources.list.d/mysql.list" ]; then
+			rm -f "/etc/apt/sources.list.d/mysql.list" >/dev/null 2>&1
+		fi
                 if [[ "${DIST}" = "Ubuntu" ]] ; then
                         echo "deb http://repo.mysql.com/apt/ubuntu/ ${PSUEDONAME} mysql-apt-config" | tee -a /etc/apt/sources.list.d/mysql.list >/dev/null 2>&1
                         echo "deb http://repo.mysql.com/apt/ubuntu/ ${PSUEDONAME} mysql-5.7" | tee -a /etc/apt/sources.list.d/mysql.list >/dev/null 2>&1
