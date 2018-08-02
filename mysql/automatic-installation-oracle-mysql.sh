@@ -148,7 +148,7 @@ case "${DIST}" in
 		echo -n "${DIST} ${REV}"
 		case "${REV}" in
 		14.04|16.04|17.10|18.04)
-			echo  " (${PSUEDONAME})"
+			echo " (${PSUEDONAME})"
 			;;
 		*)
 			_unknown_distrib
@@ -159,7 +159,7 @@ case "${DIST}" in
 		echo -n "${DIST} ${REV}"
 		case "${REV}" in
 		8|9)
-			echo  " (${PSUEDONAME})"
+			echo " (${PSUEDONAME})"
 			;;
 		*)
 			_unknown_distrib
