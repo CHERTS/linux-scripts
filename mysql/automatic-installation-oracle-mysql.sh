@@ -61,7 +61,7 @@ _unknown_os() {
 
 _unknown_distrib() {
         echo
-        echo "Unfortunately, your Linux distribution are not supported by this script."
+        echo "Unfortunately, your Linux distribution or distribution version are not supported by this script."
         echo
         echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
         exit 1
@@ -133,7 +133,7 @@ if [[ "${OS}" = "Linux" ]]; then
 			DISTROBASEDON="Debian"
 			DIST=$(cat /etc/os-release | grep '^NAME' | awk -F=  '{ print $2 }' | grep -oP '(?<=\")(\w+)(?=\ )')
 			PSUEDONAME=$(cat /etc/os-release | grep '^VERSION=' | awk -F= '{ print $2 }' | grep -oP '(?<=\()(\w+)(?=\))')
-			REV=$(cat /etc/debian_version)
+			REV=$(sed 's/\..*//' /etc/debian_version)
 		fi
 
         fi
@@ -144,8 +144,27 @@ fi
 
 echo -n "Detecting your Linux distrib: "
 case "${DIST}" in
-	Ubuntu|Debian)
-		echo "${DIST} (${PSUEDONAME})"
+	Ubuntu)
+		echo "${DIST} ${REV}"
+		case "${REV}" in
+		14.04|16.04|17.10|18.04)
+			echo  " (${PSUEDONAME})"
+			;;
+		*)
+			_unknown_distrib
+			;;
+		esac
+		;;
+	Debian)
+		echo -n "${DIST} ${REV}"
+		case "${REV}" in
+		8|9)
+			echo  " (${PSUEDONAME})"
+			;;
+		*)
+			_unknown_distrib
+			;;
+		esac
 		;;
 	*)
 		echo "Unknown"
