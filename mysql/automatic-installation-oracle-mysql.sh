@@ -145,7 +145,7 @@ fi
 echo -n "Detecting your Linux distrib: "
 case "${DIST}" in
 	Ubuntu)
-		echo "${DIST} ${REV}"
+		echo -n "${DIST} ${REV}"
 		case "${REV}" in
 		14.04|16.04|17.10|18.04)
 			echo  " (${PSUEDONAME})"
