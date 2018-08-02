@@ -18,7 +18,7 @@
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 # Requirements:
-#   Requires: apt-get, apt-key, pwgen
+#   Requires: apt-get, apt-key, dpkg-query, pwgen
 #
 # Installation:
 #   Copy the shell script to a suitable location
