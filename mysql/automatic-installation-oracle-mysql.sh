@@ -53,7 +53,15 @@ _command_exists() {
 
 _unknown_os() {
         echo
-        echo "Unfortunately, your operating system distribution and version are not supported by this script."
+        echo "Unfortunately, your operating system are not supported by this script."
+        echo
+        echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
+        exit 1
+}
+
+_unknown_distrib() {
+        echo
+        echo "Unfortunately, your Linux distribution are not supported by this script."
         echo
         echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
         exit 1
@@ -94,7 +102,7 @@ OS=$(uname -s)
 OS_ARCH=$(uname -m)
 echo -n "Detecting your OS: "
 if [[ "${OS}" = "Linux" ]]; then
-        echo -n "Linux (${OS_ARCH}) - "
+        echo "Linux (${OS_ARCH})"
         PLATFORM="linux"
         DISTROBASEDON="Unknown"
         DIST="Unknown"
@@ -116,16 +124,34 @@ if [[ "${OS}" = "Linux" ]]; then
             PSUEDONAME=$(cat /etc/mandrake-release | sed s/.*\(// | sed s/\)//)
             REV=$(cat /etc/mandrake-release | sed s/.*release\ // | sed s/\ .*//)
         elif [ -f "/etc/debian_version" ]; then
-            DISTROBASEDON="Debian"
-            DIST=$(cat /etc/lsb-release | grep '^DISTRIB_ID' | awk -F=  '{ print $2 }')
-            PSUEDONAME=$(cat /etc/lsb-release | grep '^DISTRIB_CODENAME' | awk -F=  '{ print $2 }')
-            REV=$(cat /etc/lsb-release | grep '^DISTRIB_RELEASE' | awk -F=  '{ print $2 }')
+		if [ -f "/etc/lsb-release" ]; then
+			DISTROBASEDON="Debian"
+			DIST=$(cat /etc/lsb-release | grep '^DISTRIB_ID' | awk -F=  '{ print $2 }')
+			PSUEDONAME=$(cat /etc/lsb-release | grep '^DISTRIB_CODENAME' | awk -F=  '{ print $2 }')
+			REV=$(cat /etc/lsb-release | grep '^DISTRIB_RELEASE' | awk -F=  '{ print $2 }')
+		elif [ -f "/etc/os-release" ]; then
+			DISTROBASEDON="Debian"
+			DIST=$(cat /etc/os-release | grep '^NAME' | awk -F=  '{ print $2 }' | grep -oP '(?<=\")(\w+)(?=\ )')
+			PSUEDONAME=$(cat /etc/os-release | grep '^VERSION=' | awk -F= '{ print $2 }' | grep -oP '(?<=\()(\w+)(?=\))')
+			REV=$(cat /etc/debian_version)
+		fi
+
         fi
-        echo "${DIST} (${PSUEDONAME})"
 else
         echo "Unknown"
         _unknown_os
 fi
+
+echo -n "Detecting your Linux distrib: "
+case "${DIST}" in
+	Ubuntu|Debian)
+		echo "${DIST} (${PSUEDONAME})"
+		;;
+	*)
+		echo "Unknown"
+		_unknown_distrib
+		;;
+esac
 
 _installing_pwgen() {
         echo -n "Installing pwgen... "
