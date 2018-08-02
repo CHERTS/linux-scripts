@@ -38,7 +38,7 @@
 #
 # Example:
 #
-#  The first example will print the mysql stat:
+#  The first example will run test:
 #
 #  $ ./mysql_innodb_log_file_size_calculator.sh 
 #  or
