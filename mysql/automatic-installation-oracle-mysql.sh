@@ -313,8 +313,8 @@ _configure_logrotate() {
 			postrotate
 				test -x /usr/bin/mysqladmin || exit 0
 				MYADMIN="/usr/bin/mysqladmin --defaults-file=${MYSQL_DEBIAN_CNF}"
-				if [ ! -z "`$MYADMIN ping 2>/dev/null`" ]; then
-					$MYADMIN flush-logs
+				if [ ! -z "\$(\$MYADMIN ping 2>/dev/null)" ]; then
+					\$MYADMIN flush-logs
 				fi
 			endscript
 			}
