@@ -133,10 +133,10 @@ _view_domain_info() {
 	local whoisdomain_delagated=""
 	local domainalias=""
 	echo "Checking the domain '${DOMAIN}', please wait..."
-	whoisdomain=$(whois "${DOMAIN}" | grep -Ei 'state|status')
-	nslookupdomain=$(nslookup "${DOMAIN}" | awk '/^Address: / { print $2 }')
+	whoisdomain=$(whois "${DOMAIN}" 2>/dev/null | grep -Ei 'state|status')
+	nslookupdomain=$(nslookup "${DOMAIN}" 2>/dev/null | awk '/^Address: / { print $2 }')
 	if [ -n "${whoisdomain}" ]; then
-		whoisdomain_delagated=$(whois "${DOMAIN}" | grep -Ei 'NOT DELEGATED')
+		whoisdomain_delagated=$(whois "${DOMAIN}" 2>/dev/null | grep -Ei 'NOT DELEGATED')
 		if [ -n "${whoisdomain_delagated}" ]; then
 			echo "Domain ${DOMAIN} is not delegated."
 			exit 1
