@@ -3,7 +3,7 @@
 #
 # Program: Calculate InnoDB redo log used and write speed <mysql_innodb_log_file_size_calculator.sh>
 #
-# Author: Mikhail Grigorev <sleuthound at gmail dot com>
+# Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 # 
 # Current Version: 1.0
 #

@@ -3,7 +3,7 @@
 #
 # Program: Simple MySQL database server statistics <mysql-stat.sh>
 #
-# Author: Mikhail Grigorev <sleuthound at gmail dot com>
+# Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 # 
 # Current Version: 1.3
 #

@@ -3,7 +3,7 @@
 #
 # Program: Automatic installer Oracle VM VirtualBox Extension Pack <install_dbs_zbx_mon.sh>
 #
-# Author: Mikhail Grigorev <sleuthound at gmail dot com>
+# Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 # 
 # Current Version: 1.0.0
 #
