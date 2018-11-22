@@ -3,7 +3,7 @@
 #
 # Program: Automatic installation (removing) Oracle MySQL <automatic_installation_oracle_mysql.sh>
 #
-# Author: Mikhail Grigorev <sleuthound at gmail dot com>
+# Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 #
 # Current Version: 1.1
 #
