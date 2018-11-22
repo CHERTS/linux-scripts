@@ -4,7 +4,7 @@
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.4.1
+# Current Version: 1.4.2
 # 
 # Example: ./nginx-create-vhost.sh -d "domain.com"
 # or
@@ -13,6 +13,9 @@
 # Example: ./nginx-create-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1
 #
 # Revision History:
+#
+#  Version 1.4.2
+#    Added Oracle Linux 6.x and 7.x support
 #
 #  Version 1.4.1
 #    Added logrotate rule
@@ -54,7 +57,7 @@ YELLOW='\033[0;33m'     # YELLOW
 NORMAL='\033[0m'        # Default color
 
 command_exists () {
-        type "${1}" &> /dev/null ;
+	type "${1}" &> /dev/null ;
 }
 
 user_in_group()
@@ -118,7 +121,7 @@ create_linux_user_and_group ()
 		fi
 	fi
 
-	echo -en "${GREEN}Adding user ${USERLOGINNAME} to group ${GROUPNAME}...\t\t"
+	echo -en "${GREEN}Adding user ${USERLOGINNAME} to group ${GROUPNAME}...\t\t\t"
 	usermod -a -G ${GROUPNAME} ${USERLOGINNAME} >/dev/null 2>&1
 	if user_in_group "${USERLOGINNAME}" "${GROUPNAME}"; then
 		echo -e "Done${NORMAL}"
@@ -135,7 +138,6 @@ create_linux_user_and_group ()
 		echo -e "${RED}Error: User ${NGINX_USER} not adding in group ${GROUPNAME}${NORMAL}"
 		exit 1;
 	fi
-
 }
 
 create_simple_index_page ()
@@ -147,12 +149,11 @@ create_simple_index_page ()
 	cp -- "${DEFAULT_TEMPLATE_DIR}/index.html.template" "${SITEDIR}/web/index.html"
 	if [ -f "${SITEDIR}/web/index.html" ]
 	then
-	  sed -i "s@!SITENAME!@${SITENAME}@g" ${SITEDIR}/web/index.html
-	  echo -e "Done${NORMAL}"
+		sed -i "s@!SITENAME!@${SITENAME}@g" ${SITEDIR}/web/index.html
+		echo -e "Done${NORMAL}"
 	else
-	  echo -e "${RED}Error${NORMAL}"
+		echo -e "${RED}Error${NORMAL}"
 	fi
-
 }
 
 create_robots_file ()
@@ -163,16 +164,15 @@ create_robots_file ()
 	cp -- "${DEFAULT_TEMPLATE_DIR}/robots.txt.template" "${SITEDIR}/web/robots.txt"
 	if [ -f "${SITEDIR}/web/robots.txt" ]
 	then
-	  echo -e "Done${NORMAL}"
+		echo -e "Done${NORMAL}"
 	else
-	  echo -e "${RED}Error${NORMAL}"
+		echo -e "${RED}Error${NORMAL}"
 	fi
-
 }
 
 create_logrotate ()
 {
-        local SITEDIR=${1}
+	local SITEDIR=${1}
 	local USERLOGINNAME=${2}
 
 	echo -en "${GREEN}Create logrotate rule...\t\t\t"
@@ -227,101 +227,99 @@ phpfpm_reload ()
 {
 	local USERLOGINNAME=${1}
 
-        echo -en "${GREEN}Configtest php-fpm...\t\t\t\t"
-        ${PHP_FPM_BIN} -t > /tmp/phpfpm_configtest 2>&1
-        PHPFPM_CONFIG_TEST_RESULT=$(grep ERROR /tmp/phpfpm_configtest)
-        if [ -n "${PHPFPM_CONFIG_TEST_RESULT}" ]; then
+	echo -en "${GREEN}Configtest php-fpm...\t\t\t\t"
+	${PHP_FPM_BIN} -t > /tmp/phpfpm_configtest 2>&1
+	PHPFPM_CONFIG_TEST_RESULT=$(grep ERROR /tmp/phpfpm_configtest)
+	if [ -n "${PHPFPM_CONFIG_TEST_RESULT}" ]; then
 		rm -f /tmp/phpfpm_configtest >/dev/null 2>&1
 		echo -e "${RED}Error${NORMAL}"
 		exit 1;
-        else
+	else
 		rm -f /tmp/phpfpm_configtest >/dev/null 2>&1
 		echo -e "Done${NORMAL}"
 		echo -en "${GREEN}Restart php-fpm...\t\t\t\t"
 		if [[ "${OS_INIT_SYSTEM}" = "SYSTEMD" ]]; then
 			SYSTEMCTL_BIN=$(which systemctl)
 			${SYSTEMCTL_BIN} restart ${PHP_FPM_RUN_SCRIPT} >/dev/null 2>&1
-               		if [ -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
+			if [ -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
 				echo -e "Done${NORMAL}"
-               		else
+			else
 				echo -e "${RED}Error: Socket does not exist${NORMAL}"
-               		fi
+			fi
 		else
 			if [ -f "${PHP_FPM_RUN_SCRIPT}" ]; then
 				${PHP_FPM_RUN_SCRIPT} restart >/dev/null 2>&1
-                		if [ -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
+				if [ -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
 					echo -e "Done${NORMAL}"
-                		else
+				else
 					echo -e "${RED}Error: Socket does not exist${NORMAL}"
-                		fi
+				fi
 			else
 				echo -e "${RED}Error: ${PHP_FPM_RUN_SCRIPT} does not exist.${NORMAL}"
 			fi
 		fi
-        fi
+	fi
 }
 
 nginx_reload ()
 {
-        echo -en "${GREEN}Nginx configtest...\t\t\t\t"
-        ${NGINX_BIN} -t > /tmp/nginx_configtest 2>&1
-        NGX_CONFIG_TEST_RESULT=$(grep successful /tmp/nginx_configtest)
-        if [ -z "${NGX_CONFIG_TEST_RESULT}" ]; then
-            rm -f /tmp/nginx_configtest >/dev/null 2>&1
-            echo -e "${RED}Error${NORMAL}"
-            exit 1;
-        else
-            rm -f /tmp/nginx_configtest >/dev/null 2>&1
-            echo -e "Done${NORMAL}"
-            echo -en "${GREEN}Reload nginx...\t\t\t\t\t"
-            ${NGINX_BIN} -s reload >/dev/null 2>&1
-            echo -e "Done${NORMAL}"
-        fi
+	echo -en "${GREEN}Nginx configtest...\t\t\t\t"
+	${NGINX_BIN} -t > "/tmp/nginx_configtest" 2>&1
+	NGX_CONFIG_TEST_RESULT=$(grep successful "/tmp/nginx_configtest")
+	if [ -z "${NGX_CONFIG_TEST_RESULT}" ]; then
+		rm -f "/tmp/nginx_configtest" >/dev/null 2>&1
+		echo -e "${RED}Error${NORMAL}"
+		exit 1;
+	else
+		rm -f "/tmp/nginx_configtest" >/dev/null 2>&1
+		echo -e "Done${NORMAL}"
+		echo -en "${GREEN}Reload nginx...\t\t\t\t\t"
+		${NGINX_BIN} -s reload >/dev/null 2>&1
+		echo -e "Done${NORMAL}"
+	fi
 }
 
 create_site_dir ()
 {
-        local SITENAME=${1}
-        local SITEDIR=${2}
-        local USERLOGINNAME=${3}
-        local GROUPNAME=${4}
+	local SITENAME=${1}
+	local SITEDIR=${2}
+	local USERLOGINNAME=${3}
+	local GROUPNAME=${4}
 
-        echo -en "${GREEN}Create a home directory...\t\t\t"
-        mkdir -p "${SITEDIR}"
-        if [ -d "${SITEDIR}" ]
-        then
-          echo -e "Done${NORMAL}"
-        else
-          echo -e "${RED}Error${NORMAL}"
-        fi
+	echo -en "${GREEN}Create a home directory...\t\t\t"
+	mkdir -p "${SITEDIR}"
+	if [ -d "${SITEDIR}" ]; then
+		echo -e "Done${NORMAL}"
+	else
+		echo -e "${RED}Error${NORMAL}"
+	fi
 
-        echo -en "${GREEN}Create web,log,tmp,private directory...\t\t"
-        mkdir -p "${SITEDIR}/web"
-        mkdir -p "${SITEDIR}/log"
-        mkdir -p "${SITEDIR}/private"
-        mkdir -p "${SITEDIR}/tmp"
-        if [ -d "${SITEDIR}/web" ]
-        then
-                echo -e "Done${NORMAL}"
-                create_simple_index_page "${SITEDIR}" "${SITENAME}"
-                create_robots_file "${SITEDIR}"
-        else
-                echo -e "${RED}Error${NORMAL}"
-        fi
+	echo -en "${GREEN}Create web,log,tmp,private directory...\t\t"
+	mkdir -p "${SITEDIR}/web"
+	mkdir -p "${SITEDIR}/log"
+	mkdir -p "${SITEDIR}/private"
+	mkdir -p "${SITEDIR}/tmp"
+	if [ -d "${SITEDIR}/web" ]; then
+		echo -e "Done${NORMAL}"
+		create_simple_index_page "${SITEDIR}" "${SITENAME}"
+		create_robots_file "${SITEDIR}"
+	else
+		echo -e "${RED}Error${NORMAL}"
+	fi
 
-        echo -en "${GREEN}Set permition to directory...\t\t\t"
-        chmod -R 755 "${SITEDIR}"
-        chmod -R 770 "${SITEDIR}/tmp"
-        chmod -R 755 "${SITEDIR}/web"
-        chmod -R 710 "${SITEDIR}/private"
-        chown -R ${USERLOGINNAME}:${GROUPNAME} "${SITEDIR}"
-        chown root:root "${SITEDIR}"
-        chown root:root "${SITEDIR}/log"
-        echo -e "Done${NORMAL}"
+	echo -en "${GREEN}Set permition to directory...\t\t\t"
+	chmod -R 755 "${SITEDIR}"
+	chmod -R 770 "${SITEDIR}/tmp"
+	chmod -R 755 "${SITEDIR}/web"
+	chmod -R 710 "${SITEDIR}/private"
+	chown -R ${USERLOGINNAME}:${GROUPNAME} "${SITEDIR}"
+	chown root:root "${SITEDIR}"
+	chown root:root "${SITEDIR}/log"
+	echo -e "Done${NORMAL}"
 
-        echo -en "${GREEN}Set protected attribute to directory...\t\t"
-        chattr +a "${SITEDIR}"
-        echo -e "Done${NORMAL}"
+	echo -en "${GREEN}Set protected attribute to directory...\t\t"
+	chattr +a "${SITEDIR}"
+	echo -e "Done${NORMAL}"
 }
 
 create_nginx_vhost ()
@@ -330,34 +328,31 @@ create_nginx_vhost ()
 	local SITEDIR=${2}
 	local USERLOGINNAME=${3}
 
-	if [ ! -d "${NGINX_VHOST_DIR}" ]
-	then
-	  echo -e "${CYAN}Warning: Directory ${NGINX_VHOST_DIR} not exist.${NORMAL}"
-	  echo -en "${GREEN}Create a nginx vhost directory...\t\t"
-	  mkdir -p "${NGINX_VHOST_DIR}"
-	  if [ -d "${NGINX_VHOST_DIR}" ]; then
-	    echo -e "Done${NORMAL}"
-	  else
-	    echo -e "${RED}Error${NORMAL}"
-	  fi
+	if [ ! -d "${NGINX_VHOST_DIR}" ]; then
+		echo -e "${CYAN}Warning: Directory ${NGINX_VHOST_DIR} not exist.${NORMAL}"
+		echo -en "${GREEN}Create a nginx vhost directory...\t\t"
+		mkdir -p "${NGINX_VHOST_DIR}"
+		if [ -d "${NGINX_VHOST_DIR}" ]; then
+			echo -e "Done${NORMAL}"
+		else
+			echo -e "${RED}Error${NORMAL}"
+		fi
 	fi
 
-        if [ ! -d "${NGINX_VHOST_SITE_ENABLED_DIR}" ]
-        then
-          echo -e "${CYAN}Warning: Directory ${NGINX_VHOST_SITE_ENABLED_DIR} not exist.${NORMAL}"
-          echo -en "${GREEN}Create a nginx vhost enabled directory...\t"
-          mkdir -p "${NGINX_VHOST_SITE_ENABLED_DIR}"
-          if [ -d "${NGINX_VHOST_SITE_ENABLED_DIR}" ]; then
-            echo -e "Done${NORMAL}"
-          else
-            echo -e "${RED}Error${NORMAL}"
-          fi
-        fi
+	if [ ! -d "${NGINX_VHOST_SITE_ENABLED_DIR}" ]; then
+		echo -e "${CYAN}Warning: Directory ${NGINX_VHOST_SITE_ENABLED_DIR} not exist.${NORMAL}"
+		echo -en "${GREEN}Create a nginx vhost enabled directory...\t"
+		mkdir -p "${NGINX_VHOST_SITE_ENABLED_DIR}"
+		if [ -d "${NGINX_VHOST_SITE_ENABLED_DIR}" ]; then
+			echo -e "Done${NORMAL}"
+		else
+			echo -e "${RED}Error${NORMAL}"
+		fi
+	fi
 
 	echo -en "${GREEN}Create nginx config file...\t\t\t"
 	cp -- "${DEFAULT_TEMPLATE_DIR}/nginx_virtual_host.template" "${NGINX_VHOST_DIR}/${SITENAME}.vhost"
-	if [ -f "${NGINX_VHOST_DIR}/${SITENAME}.vhost" ]
-	then
+	if [ -f "${NGINX_VHOST_DIR}/${SITENAME}.vhost" ]; then
 		sed -i "s@!SERVERIP!@${SERVERIP}@g" ${NGINX_VHOST_DIR}/${SITENAME}.vhost
 		sed -i "s@!SERVERPORT!@${SERVERPORT}@g" ${NGINX_VHOST_DIR}/${SITENAME}.vhost
 		sed -i "s@!SITENAME!@${SITENAME}@g" ${NGINX_VHOST_DIR}/${SITENAME}.vhost
@@ -368,8 +363,7 @@ create_nginx_vhost ()
 		echo -en "${GREEN}Activate nginx config file...\t\t\t"
 		ln -s ${NGINX_VHOST_DIR}/${SITENAME}.vhost ${NGINX_VHOST_SITE_ENABLED_DIR}/100-${SITENAME}.vhost
 		linktest=`readlink ${NGINX_VHOST_SITE_ENABLED_DIR}/100-${SITENAME}.vhost`
-		if [ -n "${linktest}" ]
-		then
+		if [ -n "${linktest}" ]; then
 			echo -e "Done${NORMAL}"
 			nginx_reload
 		else
@@ -386,83 +380,79 @@ create_phpfpm_conf ()
 	local USERLOGINNAME=${2}
 	local GROUPNAME=${3}
 
-	if [ ! -d "${PHP_FPM_POOL_DIR}" ]
-	then
-	  echo -e "${CYAN}Warning: Directory ${PHP_FPM_POOL_DIR} not exist.${NORMAL}"
-	  echo -en "${GREEN}Create a php-fpm pool directory ${PHP_FPM_POOL_DIR}...\t"
-	  mkdir -p "${PHP_FPM_POOL_DIR}"
-	  if [ -d "${PHP_FPM_POOL_DIR}" ]; then
-	    echo -e "Done${NORMAL}"
-	    chmod 755 "${PHP_FPM_POOL_DIR}"
-	  else
-	    echo -e "${RED}Error${NORMAL}"
-	  fi
+	if [ ! -d "${PHP_FPM_POOL_DIR}" ]; then
+		echo -e "${CYAN}Warning: Directory ${PHP_FPM_POOL_DIR} not exist.${NORMAL}"
+		echo -en "${GREEN}Create a php-fpm pool directory ${PHP_FPM_POOL_DIR}...\t"
+		mkdir -p "${PHP_FPM_POOL_DIR}"
+		if [ -d "${PHP_FPM_POOL_DIR}" ]; then
+			echo -e "Done${NORMAL}"
+			chmod 755 "${PHP_FPM_POOL_DIR}"
+		else
+			echo -e "${RED}Error${NORMAL}"
+		fi
 	fi
 
-	if [ ! -d "${PHP_FPM_SOCK_DIR}" ]
-	then
-	  echo -e "${CYAN}Warning: Directory ${PHP_FPM_SOCK_DIR} not exist.${NORMAL}"
-	  echo -en "${GREEN}Create a php-fpm socket directory ${PHP_FPM_SOCK_DIR}...\t"
-	  mkdir -p "${PHP_FPM_SOCK_DIR}"
-	  if [ -d "${PHP_FPM_SOCK_DIR}" ]; then
-	    echo -e "Done${NORMAL}"
-	    chmod 755 "${PHP_FPM_SOCK_DIR}"
-	  else
-	    echo -e "${RED}Error${NORMAL}"
-	  fi
+	if [ ! -d "${PHP_FPM_SOCK_DIR}" ]; then
+		echo -e "${CYAN}Warning: Directory ${PHP_FPM_SOCK_DIR} not exist.${NORMAL}"
+		echo -en "${GREEN}Create a php-fpm socket directory ${PHP_FPM_SOCK_DIR}...\t"
+		mkdir -p "${PHP_FPM_SOCK_DIR}"
+		if [ -d "${PHP_FPM_SOCK_DIR}" ]; then
+			echo -e "Done${NORMAL}"
+			chmod 755 "${PHP_FPM_SOCK_DIR}"
+		else
+			echo -e "${RED}Error${NORMAL}"
+		fi
 	fi
 
 	echo -en "${GREEN}Create php-fpm config file ${USERLOGINNAME}.conf...\t\t"
 	cp -- "${DEFAULT_TEMPLATE_DIR}/php_fpm.conf.template" "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf"
-	if [ -f "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf" ]
-	then
+	if [ -f "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf" ]; then
 		sed -i "s@!SITEDIR!@${SITEDIR}@g" ${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf
 		sed -i "s@!USERLOGINNAME!@${USERLOGINNAME}@g" ${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf
 		sed -i "s@!GROUPNAME!@${GROUPNAME}@g" ${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf
 		sed -i "s@!PHPFPMSOCKDIR!@${PHP_FPM_SOCK_DIR}@g" ${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf
 		echo -e "Done${NORMAL}"
 		phpfpm_reload ${USERLOGINNAME}
-        else
-                echo -e "${RED}Error${NORMAL}"
-        fi
+	else
+		echo -e "${RED}Error${NORMAL}"
+	fi
 }
 
 unknown_os ()
 {
-  echo
-  echo "Unfortunately, your operating system distribution and version are not supported by this script."
-  echo
-  echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
-  exit 1
+	echo
+	echo "Unfortunately, your operating system distribution and version are not supported by this script."
+	echo
+	echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
+	exit 1
 }
 
 unknown_distrib ()
 {
-  echo
-  echo "Unfortunately, your ${os} operating system distribution and version are not supported by this script."
-  echo
-  echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
-  exit 1
+	echo
+	echo "Unfortunately, your ${os} operating system distribution and version are not supported by this script."
+	echo
+	echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
+	exit 1
 }
 
 unknown_debian ()
 {
-  echo
-  echo "Unfortunately, your Debian Linux operating system distribution and version are not supported by this script."
-  echo
-  echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
-  exit 1
+	echo
+	echo "Unfortunately, your Debian Linux operating system distribution and version are not supported by this script."
+	echo
+	echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
+	exit 1
 }
 
 unknown_oracle ()
 {
-  echo
-  echo "Unfortunately, your Oracle Linux operating system distribution and version are not supported by this script."
-  echo
-  echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
-  exit 1
+	echo
+	echo "Unfortunately, your Oracle Linux operating system distribution and version are not supported by this script."
+	echo
+	echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
+	exit 1
 }
-
 
 function valid_ip()
 {
@@ -483,28 +473,28 @@ function valid_ip()
 
 usage()
 {
-        echo "Usage: $0 [ -d domain_name -s site_directory -u user_name -g group_name]"
-        echo ""
-        echo "  -d sitename	: Domain name, domain.com"
-        echo "  -s sitedir	: Site directory, /var/www/domain.com"
-        echo "  -u username	: User name, www-data"
-        echo "  -g group	: Group name, www-data"
-        echo "  -h		: Print this screen"
-        echo ""
+	echo "Usage: $0 [ -d domain_name -s site_directory -u user_name -g group_name]"
+	echo ""
+	echo "  -d sitename	: Domain name, domain.com"
+	echo "  -s sitedir	: Site directory, /var/www/domain.com"
+	echo "  -u username	: User name, www-data"
+	echo "  -g group	: Group name, www-data"
+	echo "  -h		: Print this screen"
+	echo ""
 }
 
 ### Evaluate the options passed on the command line
 while getopts h:s:d:u:g: option
 do
-        case "${option}"
-        in
-                d) SITENAME=${OPTARG};;
-                u) USERLOGINNAME=${OPTARG};;
-                g) GROUPNAME=${OPTARG};;
-                s) SITEDIR=${OPTARG};;
-                \?) usage
-                    exit 1;;
-        esac
+	case "${option}"
+	in
+		d) SITENAME=${OPTARG};;
+		u) USERLOGINNAME=${OPTARG};;
+		g) GROUPNAME=${OPTARG};;
+		s) SITEDIR=${OPTARG};;
+		\?) usage
+		exit 1;;
+	esac
 done
 
 os=$(uname -s)
@@ -536,13 +526,13 @@ if [ -f "/etc/debian_version" ]; then
 		if command_exists php-fpm7.0 ; then
 			echo -e "Found php-fpm7.0${NORMAL}"
 			PHP_FPM_BIN=$(which php-fpm7.0)
-                        PHP_FPM_POOL_DIR=/etc/php/7.0/fpm/pool.d
-                        PHP_FPM_SOCK_DIR=/run/php
+			PHP_FPM_POOL_DIR=/etc/php/7.0/fpm/pool.d
+			PHP_FPM_SOCK_DIR=/run/php
 			if [[ "${OS_INIT_SYSTEM}" = "SYSTEMD" ]]; then
 				PHP_FPM_RUN_SCRIPT="php7.0-fpm"
 			else
 				if [ -f "/etc/init.d/php7.0-fpm" ]; then
-		                        PHP_FPM_RUN_SCRIPT=/etc/init.d/php7.0-fpm
+					PHP_FPM_RUN_SCRIPT=/etc/init.d/php7.0-fpm
 				else
 					echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
 					exit 1;
@@ -554,8 +544,8 @@ if [ -f "/etc/debian_version" ]; then
 		fi
 	elif [[ "${DEBIAN_VERSION}" = "8" ]]; then
 		echo -en "${GREEN}Detecting your php-fpm\t"
-                if command_exists php5-fpm ; then
-                        echo -e "Found php5-fpm${NORMAL}"
+		if command_exists php5-fpm ; then
+			echo -e "Found php5-fpm${NORMAL}"
 			PHP_FPM_BIN=$(which php5-fpm)
 			PHP_FPM_POOL_DIR=/etc/php5/fpm/pool.d
 			PHP_FPM_SOCK_DIR=/var/lib/php5-fpm
@@ -565,64 +555,68 @@ if [ -f "/etc/debian_version" ]; then
 				echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
 				exit 1;
 			fi
-                else
-                        echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-                        exit 1;
-                fi
+		else
+			echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+			exit 1;
+		fi
 	else
 		unknown_debian
 	fi
 elif [ -f "/etc/oracle-release" ]; then
 	ORACLE_VERSION=$(cat "/etc/oracle-release" | sed s/.*release\ // | sed s/\ .*//)
 	OS_DISTRIB="Oracle"
-	echo -e "${OS_DISTRIB} (${OS_INIT_SYSTEM})${NORMAL}"
-	if [[ "${ORACLE_VERSION}" = "6.9" ]]; then
-                echo -en "${GREEN}Detecting your php-fpm\t"
-                if command_exists php-fpm ; then
-			PHP_FPM_BIN=$(which php-fpm)
-                        echo -e "Found php-fpm${NORMAL}"
-			if [ -d "/etc/php-fpm.d" ]; then
-                        	PHP_FPM_POOL_DIR=/etc/php-fpm.d
-                        	PHP_FPM_SOCK_DIR=/var/run
-				if [ -f "/etc/init.d/php-fpm" ]; then
-                        		PHP_FPM_RUN_SCRIPT=/etc/init.d/php-fpm
+	echo -e "${OS_DISTRIB} ${ORACLE_VERSION} (${OS_INIT_SYSTEM})${NORMAL}"
+	case "${ORACLE_VERSION}" in
+		6.*)
+			echo -en "${GREEN}Detecting your php-fpm\t"
+			if command_exists php-fpm ; then
+				PHP_FPM_BIN=$(which php-fpm)
+				echo -e "Found php-fpm${NORMAL}"
+				if [ -d "/etc/php-fpm.d" ]; then
+					PHP_FPM_POOL_DIR=/etc/php-fpm.d
+					PHP_FPM_SOCK_DIR=/var/run
+					if [ -f "/etc/init.d/php-fpm" ]; then
+						PHP_FPM_RUN_SCRIPT=/etc/init.d/php-fpm
+					else
+						echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
+						exit 1;
+					fi
 				else
-					echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
+					echo -e "${RED}Error: php-fpm not found.${NORMAL}"
 					exit 1;
 				fi
 			else
-                        	echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-                        	exit 1;
+				echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+				exit 1;
 			fi
-                else
-                        echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-                        exit 1;
-                fi
-	elif [[ "${ORACLE_VERSION}" = "7.4" ]]; then
-                echo -en "${GREEN}Detecting your php-fpm\t"
-                if command_exists php-fpm ; then
-			PHP_FPM_BIN=$(which php-fpm)
-                        echo -e "Found php-fpm${NORMAL}"
-			if [ -d "/etc/php-fpm.d" ]; then
-                        	PHP_FPM_POOL_DIR=/etc/php-fpm.d
-                        	PHP_FPM_SOCK_DIR=/run
-				if [ -f "/usr/lib/systemd/system/php-fpm.service" ]; then
-                        		PHP_FPM_RUN_SCRIPT=php-fpm
+		;;
+		7.*)
+			echo -en "${GREEN}Detecting your php-fpm\t"
+			if command_exists php-fpm ; then
+				PHP_FPM_BIN=$(which php-fpm)
+				echo -e "Found php-fpm${NORMAL}"
+				if [ -d "/etc/php-fpm.d" ]; then
+					PHP_FPM_POOL_DIR=/etc/php-fpm.d
+					PHP_FPM_SOCK_DIR=/run
+					if [ -f "/usr/lib/systemd/system/php-fpm.service" ]; then
+						PHP_FPM_RUN_SCRIPT=php-fpm
+					else
+						echo -e "${RED}Error: php-fpm unit not found.${NORMAL}"
+						exit 1;
+					fi
 				else
-					echo -e "${RED}Error: php-fpm unit not found.${NORMAL}"
+					echo -e "${RED}Error: php-fpm not found.${NORMAL}"
 					exit 1;
 				fi
 			else
-                        	echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-                        	exit 1;
+				echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+				exit 1;
 			fi
-                else
-                        echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-                        exit 1;
-                fi
-        else
-                unknown_oracle
-        fi
+		;;
+		*)
+			unknown_oracle
+		;;
+	esac
 else
 	unknown_distrib
 fi
@@ -659,10 +653,10 @@ if [ ! -e "${NGINX_DIR}/settings.conf" ]; then
 	echo -en "${GREEN}Copy settings.conf to ${NGINX_DIR}...\t"
 	cp -- "${CUR_DIR}/settings.conf" "${NGINX_DIR}"
 	if [ -f "${NGINX_DIR}/settings.conf" ]; then
-	   echo -e "Done${NORMAL}"
+		echo -e "Done${NORMAL}"
 	else
-	  echo -e "${RED}Error: Main settings file ${NGINX_DIR}/settings.conf not found.${NORMAL}"
-	  exit 1;
+		echo -e "${RED}Error: Main settings file ${NGINX_DIR}/settings.conf not found.${NORMAL}"
+		exit 1;
 	fi
 fi
 
@@ -670,10 +664,10 @@ if [ ! -d "${DEFAULT_TEMPLATE_DIR}" ]; then
 	echo -en "${GREEN}Copy default template directory...\t"
 	cp -R -- "${CUR_DIR}/template/" "${NGINX_DIR}"
 	if [ -d "${DEFAULT_TEMPLATE_DIR}" ]; then
-	   echo -e "Done${NORMAL}"
+		echo -e "Done${NORMAL}"
 	else
-	   echo -e "${RED}Error: Failed to create the ${DEFAULT_TEMPLATE_DIR} directory.${NORMAL}"
-	   exit 1;
+		echo -e "${RED}Error: Failed to create the ${DEFAULT_TEMPLATE_DIR} directory.${NORMAL}"
+		exit 1;
 	fi
 fi
 
@@ -684,9 +678,9 @@ fi
 if [ -z "${USERLOGINNAME}" ]; then
 	USERLOGINNAME=`cat ${NGINX_DIR}/settings.conf | grep NEXTWEBUSER | cut -d "=" -f 2`
 	if [ "${USERLOGINNAME}" = "" ]; then
-	  echo -e "${RED}Error: In file ${NGINX_DIR}/settings.conf not found parameter NEXTWEBUSER.${NORMAL}"
-	  usage
-	  exit 1;
+		echo -e "${RED}Error: In file ${NGINX_DIR}/settings.conf not found parameter NEXTWEBUSER.${NORMAL}"
+		usage
+		exit 1;
 	fi
 fi
 echo -e "${GREEN}Set new username:\t${USERLOGINNAME}${NORMAL}"
@@ -694,9 +688,9 @@ echo -e "${GREEN}Set new username:\t${USERLOGINNAME}${NORMAL}"
 if [ -z "${GROUPNAME}" ]; then
 	GROUPNAME=`cat ${NGINX_DIR}/settings.conf | grep NEXTWEBGROUP | cut -d "=" -f 2`
 	if [ -z "${GROUPNAME}" ]; then
-	  echo -e "${RED}Error: In file ${NGINX_DIR}/settings.conf not found parameter NEXTWEBGROUP.${NORMAL}"
-	  usage
-	  exit 1;
+		echo -e "${RED}Error: In file ${NGINX_DIR}/settings.conf not found parameter NEXTWEBGROUP.${NORMAL}"
+		usage
+		exit 1;
 	fi
 fi
 echo -e "${GREEN}Set new groupname:\t${GROUPNAME}${NORMAL}"
@@ -737,17 +731,16 @@ fi
 echo -e "${GREEN}Set nginx vhost ip:\t${SERVERIP}:${SERVERPORT}${NORMAL}"
 
 if [ -n "${SITENAME}" ]; then
-	if [ -d "${SITEDIR}" ]
-	then
-	  echo -e "${RED}Error: Site directory ${SITEDIR} alredy exist.${NORMAL}"
-	  exit 1;
+	if [ -d "${SITEDIR}" ]; then
+		echo -e "${RED}Error: Site directory ${SITEDIR} alredy exist.${NORMAL}"
+		exit 1;
 	fi
 	create_linux_user_and_group "${USERLOGINNAME}" "${GROUPNAME}"
 	create_site_dir "${SITENAME}" "${SITEDIR}" "${USERLOGINNAME}" "${GROUPNAME}"
-        create_phpfpm_conf "${SITEDIR}" "${USERLOGINNAME}" "${GROUPNAME}"
-        create_nginx_vhost "${SITENAME}" "${SITEDIR}" "${USERLOGINNAME}"
+	create_phpfpm_conf "${SITEDIR}" "${USERLOGINNAME}" "${GROUPNAME}"
+	create_nginx_vhost "${SITENAME}" "${SITEDIR}" "${USERLOGINNAME}"
 	create_logrotate "${SITEDIR}" "${USERLOGINNAME}"
 else
-        usage
-        exit 1;
+	usage
+	exit 1;
 fi

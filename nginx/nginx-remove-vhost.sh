@@ -4,11 +4,14 @@
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.4.1
+# Current Version: 1.4.2
 # 
 # Example: ./nginx-remove-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1
 #
 # Revision History:
+#
+#  Version 1.4.2
+#    Added Oracle Linux 6.x and 7.x support
 #
 #  Version 1.4.1
 #    Added logrotate rule
@@ -44,7 +47,7 @@ YELLOW='\033[0;33m'     # YELLOW
 NORMAL='\033[0m'        # Default color
 
 command_exists () {
-        type "${1}" &> /dev/null ;
+	type "${1}" &> /dev/null ;
 }
 
 delete_linux_user_and_group ()
@@ -83,22 +86,19 @@ delete_linux_user_and_group ()
 	else
 	    echo -e "${CYAN}Warning: User ${USERLOGINNAME} not found${NORMAL}"
 	fi
-
 }
 
 delete_nginx_vhost ()
 {
 	local SITENAME=${1}
 
-	if [ ! -d "${NGINX_VHOST_DIR}" ]
-	then
-	  echo -e "${RED}Error: Directory ${NGINX_VHOST_DIR} not exist, please, check directory.${NORMAL}"
-	  exit 1;
+	if [ ! -d "${NGINX_VHOST_DIR}" ]; then
+		echo -e "${RED}Error: Directory ${NGINX_VHOST_DIR} not exist, please, check directory.${NORMAL}"
+		exit 1;
 	fi
 
 	echo -en "${GREEN}Deactivate nginx config file...\t\t\t"
-	if [ -L "${NGINX_VHOST_SITE_ENABLED_DIR}/100-${SITENAME}.vhost" ]
-	then
+	if [ -L "${NGINX_VHOST_SITE_ENABLED_DIR}/100-${SITENAME}.vhost" ]; then
 		unlink "${NGINX_VHOST_SITE_ENABLED_DIR}/100-${SITENAME}.vhost"
 		if [ ! -L "${NGINX_VHOST_SITE_ENABLED_DIR}/100-${SITENAME}.vhost" ]; then
 			echo -e "Done${NORMAL}"
@@ -128,19 +128,16 @@ delete_phpfpm_conf ()
 	local USERLOGINNAME=${1}
 	local GROUPNAME=${2}
 
-	if [ ! -d "${PHP_FPM_POOL_DIR}" ]
-	then
-	  echo -e "${RED}Error: Directory ${PHP_FPM_POOL_DIR} not exist, please, check directory.${NORMAL}"
+	if [ ! -d "${PHP_FPM_POOL_DIR}" ]; then
+		echo -e "${RED}Error: Directory ${PHP_FPM_POOL_DIR} not exist, please, check directory.${NORMAL}"
 	fi
 
-	if [ ! -d "${PHP_FPM_SOCK_DIR}" ]
-	then
-	  echo -e "${CYAN}Warning: Directory ${PHP_FPM_SOCK_DIR} not exist.${NORMAL}"
+	if [ ! -d "${PHP_FPM_SOCK_DIR}" ]; then
+		echo -e "${CYAN}Warning: Directory ${PHP_FPM_SOCK_DIR} not exist.${NORMAL}"
 	fi
 
 	echo -en "${GREEN}Delete php-fpm config file ${USERLOGINNAME}.conf...\t\t"
-	if [ -f "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf" ]
-	then
+	if [ -f "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf" ]; then
 		rm -f "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf"
 		if [ ! -e "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf" ]; then
 			echo -e "Done${NORMAL}"
@@ -170,128 +167,128 @@ phpfpm_reload ()
 {
 	local USERLOGINNAME=${1}
 
-        echo -en "${GREEN}Configtest php-fpm...\t\t\t\t"
-        ${PHP_FPM_BIN} -t > /tmp/phpfpm_configtest 2>&1
-        PHPFPM_CONFIG_TEST_RESULT=$(grep ERROR /tmp/phpfpm_configtest)
-        if [ -n "${PHPFPM_CONFIG_TEST_RESULT}" ]; then
+	echo -en "${GREEN}Configtest php-fpm...\t\t\t\t"
+	${PHP_FPM_BIN} -t > /tmp/phpfpm_configtest 2>&1
+	PHPFPM_CONFIG_TEST_RESULT=$(grep ERROR /tmp/phpfpm_configtest)
+	if [ -n "${PHPFPM_CONFIG_TEST_RESULT}" ]; then
 		rm -f /tmp/phpfpm_configtest >/dev/null 2>&1
 		echo -e "${RED}Error${NORMAL}"
 		exit 1;
-        else
+	else
 		rm -f /tmp/phpfpm_configtest >/dev/null 2>&1
 		echo -e "Done${NORMAL}"
 		echo -en "${GREEN}Restart php-fpm...\t\t\t\t"
 		if [[ "${OS_INIT_SYSTEM}" = "SYSTEMD" ]]; then
 			SYSTEMCTL_BIN=$(which systemctl)
 			${SYSTEMCTL_BIN} restart ${PHP_FPM_RUN_SCRIPT} >/dev/null 2>&1
-               		if [ ! -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
+			if [ -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
 				echo -e "Done${NORMAL}"
-               		else
+			else
 				echo -e "${RED}Error: Socket does not exist${NORMAL}"
-               		fi
+			fi
 		else
 			if [ -f "${PHP_FPM_RUN_SCRIPT}" ]; then
 				${PHP_FPM_RUN_SCRIPT} restart >/dev/null 2>&1
-                		if [ ! -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
+				if [ -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
 					echo -e "Done${NORMAL}"
-                		else
+				else
 					echo -e "${RED}Error: Socket does not exist${NORMAL}"
-                		fi
+				fi
 			else
 				echo -e "${RED}Error: ${PHP_FPM_RUN_SCRIPT} does not exist.${NORMAL}"
 			fi
 		fi
-        fi
+	fi
 }
 
 nginx_reload ()
 {
-        echo -en "${GREEN}Nginx configtest...\t\t\t\t"
-        ${NGINX_BIN} -t > /tmp/nginx_configtest 2>&1
-        NGX_CONFIG_TEST_RESULT=$(grep successful /tmp/nginx_configtest)
-        if [ -z "${NGX_CONFIG_TEST_RESULT}" ]; then
-            rm -f /tmp/nginx_configtest >/dev/null 2>&1
-            echo -e "${RED}Error${NORMAL}"
-            exit 1;
-        else
-            rm -f /tmp/nginx_configtest >/dev/null 2>&1
-            echo -e "Done${NORMAL}"
-            echo -en "${GREEN}Reload nginx...\t\t\t\t\t"
-            ${NGINX_BIN} -s reload >/dev/null 2>&1
-            echo -e "Done${NORMAL}"
-        fi
+	echo -en "${GREEN}Nginx configtest...\t\t\t\t"
+	${NGINX_BIN} -t > "/tmp/nginx_configtest" 2>&1
+	NGX_CONFIG_TEST_RESULT=$(grep successful "/tmp/nginx_configtest")
+	if [ -z "${NGX_CONFIG_TEST_RESULT}" ]; then
+		rm -f "/tmp/nginx_configtest" >/dev/null 2>&1
+		echo -e "${RED}Error${NORMAL}"
+		exit 1;
+	else
+		rm -f "/tmp/nginx_configtest" >/dev/null 2>&1
+		echo -e "Done${NORMAL}"
+		echo -en "${GREEN}Reload nginx...\t\t\t\t\t"
+		${NGINX_BIN} -s reload >/dev/null 2>&1
+		echo -e "Done${NORMAL}"
+	fi
 }
 
 unknown_os ()
 {
-  echo
-  echo "Unfortunately, your operating system distribution and version are not supported by this script."
-  echo
-  echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
-  exit 1
+	echo
+	echo "Unfortunately, your operating system distribution and version are not supported by this script."
+	echo
+	echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
+	exit 1
 }
 
 unknown_distrib ()
 {
-  echo
-  echo "Unfortunately, your ${os} operating system distribution and version are not supported by this script."
-  echo
-  echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
-  exit 1
+	echo
+	echo "Unfortunately, your ${os} operating system distribution and version are not supported by this script."
+	echo
+	echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
+	exit 1
 }
 
 unknown_debian ()
 {
-  echo
-  echo "Unfortunately, your Debian Linux operating system distribution and version are not supported by this script."
-  echo
-  echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
-  exit 1
+	echo
+	echo "Unfortunately, your Debian Linux operating system distribution and version are not supported by this script."
+	echo
+	echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
+	exit 1
 }
 
 unknown_oracle ()
 {
-  echo
-  echo "Unfortunately, your Oracle Linux operating system distribution and version are not supported by this script."
-  echo
-  echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
-  exit 1
+	echo
+	echo "Unfortunately, your Oracle Linux operating system distribution and version are not supported by this script."
+	echo
+	echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
+	exit 1
 }
 
 usage()
 {
-        echo "Usage: $0 [ -d domain_name -s site_directory -u user_name -g group_name]"
-        echo ""
-        echo "  -d sitename	: Domain name, domain.com"
-        echo "  -s sitedir	: Site directory, /var/www/domain.com"
-        echo "  -u username	: User name, www-data"
-        echo "  -g group	: Group name, www-data"
-        echo "  -h		: Print this screen"
-        echo ""
+	echo "Usage: $0 [ -d domain_name -s site_directory -u user_name -g group_name]"
+	echo ""
+	echo "  -d sitename	: Domain name, domain.com"
+	echo "  -s sitedir	: Site directory, /var/www/domain.com"
+	echo "  -u username	: User name, www-data"
+	echo "  -g group	: Group name, www-data"
+	echo "  -h		: Print this screen"
+	echo ""
 }
 
 ### Evaluate the options passed on the command line
 while getopts h:s:d:u:g: option
 do
-        case "${option}"
-        in
-                d) SITENAME=${OPTARG};;
-                u) USERLOGINNAME=${OPTARG};;
-                g) GROUPNAME=${OPTARG};;
-                s) SITEDIR=${OPTARG};;
-                \?) usage
-                    exit 1;;
-        esac
+	case "${option}"
+	in
+		d) SITENAME=${OPTARG};;
+		u) USERLOGINNAME=${OPTARG};;
+		g) GROUPNAME=${OPTARG};;
+		s) SITEDIR=${OPTARG};;
+		\?) usage
+		exit 1;;
+	esac
 done
 
 os=$(uname -s)
 os_arch=$(uname -m)
 echo -en "${GREEN}Detecting your OS\t"
 if [ "${os}" = "Linux" ]; then
-        echo -e "Linux (${os_arch})${NORMAL}"
+	echo -e "Linux (${os_arch})${NORMAL}"
 else
-        echo -e "${RED}Unknown${NORMAL}"
-        unknown_os
+	echo -e "${RED}Unknown${NORMAL}"
+	unknown_os
 fi
 
 if command_exists strings ; then
@@ -313,13 +310,13 @@ if [ -f "/etc/debian_version" ]; then
 		if command_exists php-fpm7.0 ; then
 			echo -e "Found php-fpm7.0${NORMAL}"
 			PHP_FPM_BIN=$(which php-fpm7.0)
-                        PHP_FPM_POOL_DIR=/etc/php/7.0/fpm/pool.d
-                        PHP_FPM_SOCK_DIR=/run/php
+			PHP_FPM_POOL_DIR=/etc/php/7.0/fpm/pool.d
+			PHP_FPM_SOCK_DIR=/run/php
 			if [[ "${OS_INIT_SYSTEM}" = "SYSTEMD" ]]; then
 				PHP_FPM_RUN_SCRIPT="php7.0-fpm"
 			else
 				if [ -f "/etc/init.d/php7.0-fpm" ]; then
-		                        PHP_FPM_RUN_SCRIPT=/etc/init.d/php7.0-fpm
+					PHP_FPM_RUN_SCRIPT=/etc/init.d/php7.0-fpm
 				else
 					echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
 					exit 1;
@@ -331,8 +328,8 @@ if [ -f "/etc/debian_version" ]; then
 		fi
 	elif [[ "${DEBIAN_VERSION}" = "8" ]]; then
 		echo -en "${GREEN}Detecting your php-fpm\t"
-                if command_exists php5-fpm ; then
-                        echo -e "Found php5-fpm${NORMAL}"
+		if command_exists php5-fpm ; then
+			echo -e "Found php5-fpm${NORMAL}"
 			PHP_FPM_BIN=$(which php5-fpm)
 			PHP_FPM_POOL_DIR=/etc/php5/fpm/pool.d
 			PHP_FPM_SOCK_DIR=/var/lib/php5-fpm
@@ -342,73 +339,77 @@ if [ -f "/etc/debian_version" ]; then
 				echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
 				exit 1;
 			fi
-                else
-                        echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-                        exit 1;
-                fi
+		else
+			echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+			exit 1;
+		fi
 	else
 		unknown_debian
 	fi
-elif [ -f /etc/oracle-release ]; then
-	ORACLE_VERSION=$(cat /etc/oracle-release | sed s/.*release\ // | sed s/\ .*//)
+elif [ -f "/etc/oracle-release" ]; then
+	ORACLE_VERSION=$(cat "/etc/oracle-release" | sed s/.*release\ // | sed s/\ .*//)
 	OS_DISTRIB="Oracle"
-	echo -e "${OS_DISTRIB} (${OS_INIT_SYSTEM})${NORMAL}"
-	if [[ "${ORACLE_VERSION}" = "6.9" ]]; then
-                echo -en "${GREEN}Detecting your php-fpm\t"
-                if command_exists php-fpm ; then
-			PHP_FPM_BIN=$(which php-fpm)
-                        echo -e "Found php-fpm${NORMAL}"
-			if [ -d "/etc/php-fpm.d" ]; then
-                        	PHP_FPM_POOL_DIR=/etc/php-fpm.d
-                        	PHP_FPM_SOCK_DIR=/var/run
-				if [ -f "/etc/init.d/php-fpm" ]; then
-                        		PHP_FPM_RUN_SCRIPT=/etc/init.d/php-fpm
+	echo -e "${OS_DISTRIB} ${ORACLE_VERSION} (${OS_INIT_SYSTEM})${NORMAL}"
+	case "${ORACLE_VERSION}" in
+		6.*)
+			echo -en "${GREEN}Detecting your php-fpm\t"
+			if command_exists php-fpm ; then
+				PHP_FPM_BIN=$(which php-fpm)
+				echo -e "Found php-fpm${NORMAL}"
+				if [ -d "/etc/php-fpm.d" ]; then
+					PHP_FPM_POOL_DIR=/etc/php-fpm.d
+					PHP_FPM_SOCK_DIR=/var/run
+					if [ -f "/etc/init.d/php-fpm" ]; then
+						PHP_FPM_RUN_SCRIPT=/etc/init.d/php-fpm
+					else
+						echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
+						exit 1;
+					fi
 				else
-					echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
+					echo -e "${RED}Error: php-fpm not found.${NORMAL}"
 					exit 1;
 				fi
 			else
-                        	echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-                        	exit 1;
+				echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+				exit 1;
 			fi
-                else
-                        echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-                        exit 1;
-                fi
-	elif [[ "${ORACLE_VERSION}" = "7.4" ]]; then
-                echo -en "${GREEN}Detecting your php-fpm\t"
-                if command_exists php-fpm ; then
-			PHP_FPM_BIN=$(which php-fpm)
-                        echo -e "Found php-fpm${NORMAL}"
-			if [ -d "/etc/php-fpm.d" ]; then
-                        	PHP_FPM_POOL_DIR=/etc/php-fpm.d
-                        	PHP_FPM_SOCK_DIR=/run
-				if [ -f "/usr/lib/systemd/system/php-fpm.service" ]; then
-                        		PHP_FPM_RUN_SCRIPT=php-fpm
+		;;
+		7.*)
+			echo -en "${GREEN}Detecting your php-fpm\t"
+			if command_exists php-fpm ; then
+				PHP_FPM_BIN=$(which php-fpm)
+				echo -e "Found php-fpm${NORMAL}"
+				if [ -d "/etc/php-fpm.d" ]; then
+					PHP_FPM_POOL_DIR=/etc/php-fpm.d
+					PHP_FPM_SOCK_DIR=/run
+					if [ -f "/usr/lib/systemd/system/php-fpm.service" ]; then
+						PHP_FPM_RUN_SCRIPT=php-fpm
+					else
+						echo -e "${RED}Error: php-fpm unit not found.${NORMAL}"
+						exit 1;
+					fi
 				else
-					echo -e "${RED}Error: php-fpm unit not found.${NORMAL}"
+					echo -e "${RED}Error: php-fpm not found.${NORMAL}"
 					exit 1;
 				fi
 			else
-                        	echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-                        	exit 1;
+				echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+				exit 1;
 			fi
-                else
-                        echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-                        exit 1;
-                fi
-        else
-                unknown_oracle
-        fi
+		;;
+		*)
+			unknown_oracle
+		;;
+	esac
 else
 	unknown_distrib
 fi
 
 if command_exists nginx ; then
-        NGINX_BIN=$(which nginx)
+	NGINX_BIN=$(which nginx)
 else
-        echo -e "${RED}Error: nginx not found.${NORMAL}"
-        exit 1;
+	echo -e "${RED}Error: nginx not found.${NORMAL}"
+	exit 1;
 fi
 
 if [ -z "${SITEDIR}" ]; then
@@ -428,21 +429,23 @@ if [ -z "${GROUPNAME}" ]; then
 fi
 
 if [ -n "${SITENAME}" ]; then
-	if [ ! -d "${SITEDIR}" ]
-	then
-	  echo -e "${RED}Error: Site directory ${SITEDIR} not found.${NORMAL}"
-	  exit 1;
+	if [ ! -d "${SITEDIR}" ]; then
+		echo -e "${RED}Error: Site directory ${SITEDIR} not found.${NORMAL}"
+		exit 1;
 	fi
-        delete_phpfpm_conf "${USERLOGINNAME}" "${GROUPNAME}"
-        delete_nginx_vhost "${SITENAME}"
+	delete_phpfpm_conf "${USERLOGINNAME}" "${GROUPNAME}"
+	delete_nginx_vhost "${SITENAME}"
 	delete_logrotate "${USERLOGINNAME}"
-	if [ -d "${SITEDIR}" ]
-	then
-	        echo -en "${GREEN}Unset protected attribute to directory...\t"
-        	chattr -a "${SITEDIR}"
-        	echo -e "Done${NORMAL}"
+	if [ -d "${SITEDIR}" ]; then
+		echo -en "${GREEN}Unset protected attribute to directory...\t"
+		chattr -a "${SITEDIR}"
+		if [ $? -eq 0 ]; then
+			echo -e "Done${NORMAL}"
+		else
+			echo -e "Error${NORMAL}"
+		fi
 		echo -en "${GREEN}Delete site directory...\t\t\t"
-		rm -rf ${SITEDIR}
+		rm -rf "${SITEDIR}" >/dev/null 2>&1
 		if [ ! -d "${SITEDIR}" ]; then
 			echo -e "Done${NORMAL}"
 		else
@@ -451,6 +454,6 @@ if [ -n "${SITENAME}" ]; then
 	fi
 	delete_linux_user_and_group "${USERLOGINNAME}" "${GROUPNAME}"
 else
-        usage
-        exit 1;
+	usage
+	exit 1;
 fi
