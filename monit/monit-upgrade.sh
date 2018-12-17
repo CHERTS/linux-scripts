@@ -5,9 +5,12 @@
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.2
+# Current Version: 1.3
 #
 # Revision History:
+#
+#  Version 1.3
+#    Fixed Content-Length
 #
 #  Version 1.2
 #    Added FreeBSD support
@@ -206,7 +209,7 @@ fi
 debug_log "DEBUG: Monit platform: ${monit_platform}"
 
 if [ -z "${monit_latest_ver}" ]; then
-	monit_latest_ver=$(${curl_bin} -s https://mmonit.com/monit/changes/ | grep Version | grep -o 'id=".*"' | awk -F'"' '{print $2}' | head -n1)
+	monit_latest_ver=$(${curl_bin} -s https://mmonit.com/monit/changes/ | grep "Version" | grep -o 'id=".*"' | awk -F'"' '{print $2}' | head -n1)
 fi
 
 current_monit_ver=$(${monit_bin} -V | ${sed_bin} -n 1p | ${sed_bin} 's/[[:alpha:]|(|[:space:]]//g' | ${awk_bin} -F- '{print $1}')
@@ -246,7 +249,7 @@ if [ ! -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" 
 	    echo "ERROR: Monit of version ${monit_latest_ver} not found in official web site https://mmonit.com"
 	    exit 1;
     fi
-    monit_arch_size=$(${curl_bin} -sI ${monit_url} | grep Content-Length | awk '{print $2}' | tr -d '\n' | tr -d '\r')
+    monit_arch_size=$(${curl_bin} -sI ${monit_url} | grep -i "Content-Length" | awk '{print $2}' | tr -d '\n' | tr -d '\r')
     debug_log "DEBUG: Check monit in official web site... Return file size: ${monit_arch_size}"
     echo -n "Downloading new monit version (v${monit_latest_ver})... "
     ${wget_bin} ${monit_url} -O "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" >/dev/null 2>&1
