@@ -4,7 +4,17 @@
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.0.0
+# Current Version: 1.0.1
+#
+# Revision History:
+#
+#  Version 1.0.1
+#    Added checking exist wget util
+#
+# License:
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
 myadmin_ver="4.8.5"
@@ -12,6 +22,17 @@ myadmin_dst_dir=/var/www/apps
 myadmin_dir=phpmyadmin
 www_user=apps
 www_group=apps
+
+_command_exists() {
+	type "$1" &> /dev/null
+}
+
+if _command_exists wget ; then
+        WGET_BIN=$(which wget)
+else
+        echo "ERROR: wget not found."
+        exit 1
+fi
 
 if [ ! -d "${myadmin_dst_dir}" ]; then
 	echo "ERROR: Directory ${myadmin_dst_dir} not exist."
@@ -21,7 +42,7 @@ fi
 cd "${myadmin_dst_dir}"
 
 echo -n "Downloading new version (v${myadmin_ver}) of phpMyAdmin... "
-wget https://files.phpmyadmin.net/phpMyAdmin/${myadmin_ver}/phpMyAdmin-${myadmin_ver}-all-languages.zip >/dev/null 2>&1
+wget "https://files.phpmyadmin.net/phpMyAdmin/${myadmin_ver}/phpMyAdmin-${myadmin_ver}-all-languages.zip" >/dev/null 2>&1
 if [ $? -eq 0 ]; then
 	if [ -f "phpMyAdmin-${myadmin_ver}-all-languages.zip" ]; then
 		echo "OK"
