@@ -35,6 +35,11 @@
 #  Version 1.0
 #    Initial Release
 #
+# License:
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
 
 DEFAULT_SERVERIP="10.0.0.2"
 DEFAULT_SERVERPORT="80"
