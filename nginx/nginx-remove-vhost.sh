@@ -4,11 +4,14 @@
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.4.2
+# Current Version: 1.4.3
 # 
 # Example: ./nginx-remove-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1
 #
 # Revision History:
+#
+#  Version 1.4.3
+#    Fixed php-fpm socket 
 #
 #  Version 1.4.2
 #    Added Oracle Linux 6.x and 7.x support
@@ -110,7 +113,7 @@ delete_nginx_vhost ()
 	fi
 	echo -en "${GREEN}Delete nginx config file...\t\t\t"
 	if [ -f "${NGINX_VHOST_DIR}/${SITENAME}.vhost" ]; then
-		rm -f "${NGINX_VHOST_DIR}/${SITENAME}.vhost"
+		rm -f "${NGINX_VHOST_DIR}/${SITENAME}.vhost" >/dev/null 2>&1
 		if [ ! -f "${NGINX_VHOST_DIR}/${SITENAME}.vhost" ]; then
 			echo -e "Done${NORMAL}"
 			nginx_reload
@@ -138,7 +141,7 @@ delete_phpfpm_conf ()
 
 	echo -en "${GREEN}Delete php-fpm config file ${USERLOGINNAME}.conf...\t\t"
 	if [ -f "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf" ]; then
-		rm -f "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf"
+		rm -f "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf" >/dev/null 2>&1
 		if [ ! -e "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf" ]; then
 			echo -e "Done${NORMAL}"
 			phpfpm_reload ${USERLOGINNAME}
@@ -154,7 +157,7 @@ delete_logrotate ()
 
 	if [ -f "/etc/logrotate.d/${USERLOGINNAME}" ]; then
 		echo -en "${GREEN}Delete logrotate rule...\t\t\t"
-		rm -f "/etc/logrotate.d/${USERLOGINNAME}" 2>/dev/null
+		rm -f "/etc/logrotate.d/${USERLOGINNAME}" >/dev/null 2>&1
 		if [ $(echo $?) != 0 ]; then
 			echo -e "${RED}Error: Failed to delete /etc/logrotate.d/${USERLOGINNAME}.${NORMAL}"
 		else
@@ -189,10 +192,10 @@ phpfpm_reload ()
 		else
 			if [ -f "${PHP_FPM_RUN_SCRIPT}" ]; then
 				${PHP_FPM_RUN_SCRIPT} restart >/dev/null 2>&1
-				if [ -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
+				if [ ! -S "${PHP_FPM_SOCK_DIR}/${USERLOGINNAME}.sock" ]; then
 					echo -e "Done${NORMAL}"
 				else
-					echo -e "${RED}Error: Socket does not exist${NORMAL}"
+					echo -e "${RED}Error: Socket exist${NORMAL}"
 				fi
 			else
 				echo -e "${RED}Error: ${PHP_FPM_RUN_SCRIPT} does not exist.${NORMAL}"
