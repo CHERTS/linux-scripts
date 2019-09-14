@@ -4,7 +4,7 @@
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.4.2
+# Current Version: 1.4.3
 # 
 # Example: ./nginx-create-vhost.sh -d "domain.com"
 # or
@@ -13,6 +13,12 @@
 # Example: ./nginx-create-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1
 #
 # Revision History:
+#
+#  Version 1.4.4
+#    Added Ubuntu support (php7.2)
+#
+#  Version 1.4.3
+#    Fixed php-fpm socket 
 #
 #  Version 1.4.2
 #    Added Oracle Linux 6.x and 7.x support
@@ -41,9 +47,9 @@
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-DEFAULT_SERVERIP="10.0.0.2"
+DEFAULT_SERVERIP="77.81.106.208"
 DEFAULT_SERVERPORT="80"
-NGINX_USER=www-data
+NGINX_USER=nginx
 NGINX_DIR=/etc/nginx
 NGINX_VHOST_DIR=/etc/nginx/sites-available
 NGINX_VHOST_SITE_ENABLED_DIR=/etc/nginx/sites-enabled
@@ -67,66 +73,63 @@ command_exists () {
 
 user_in_group()
 {
-	groups ${1} | grep $2>/dev/null 2>&1
+	groups "${1}" | grep "$2" >/dev/null 2>&1
 }
 
-user_exists()
-{
-	getent passwd ${1} >/dev/null 2>&1
+user_exists() {
+	id -u "${1}" &> /dev/null;
 }
 
 create_linux_user_and_group ()
 {
-	local USERLOGINNAME=${1}
-	local GROUPNAME=${2}
+	local USERLOGINNAME="${1}"
+	local GROUPNAME="${2}"
+	local USER_CNT=1
+	local GROUP_CNT=1
 
-	echo -en "${GREEN}Adding new user ${USERLOGINNAME}...\t\t\t\t"
-	ret=false
-	getent passwd ${USERLOGINNAME} >/dev/null 2>&1 && ret=true
-	if $ret; then
-	    echo -e "${RED}Error, user ${USERLOGINNAME} already exists${NORMAL}"
-	    exit 1;
+	echo -en "${GREEN}Adding new user '${USERLOGINNAME}'...\t\t\t"
+	USER_CNT=$(getent passwd | grep -c "${USERLOGINNAME}")
+	if [ ${USER_CNT} -gt 0 ]; then
+		echo -e "${RED}Error, user '${USERLOGINNAME}' already exists${NORMAL}"
+		exit 1;
 	fi
-	useradd -d ${SITEDIR} -s /bin/false ${USERLOGINNAME} >/dev/null 2>&1
-	ret=false
-	getent passwd ${USERLOGINNAME} >/dev/null 2>&1 && ret=true
-	if $ret; then
-	    echo -e "Done${NORMAL}"
-	    NEXTWEBUSER_NUM=`cat ${NGINX_DIR}/settings.conf | grep NEXTWEBUSER | cut -d "=" -f 2 | sed s/[^0-9]//g`
-	    NEXTWEBUSER_NAME=`cat ${NGINX_DIR}/settings.conf | grep NEXTWEBUSER | cut -d "=" -f 2 | sed s/[^a-zA-Z]//g`
-	    let "NEXTWEBUSER_NUM_INC=${NEXTWEBUSER_NUM}+1"
-	    sed -i "s@${USERLOGINNAME}@${NEXTWEBUSER_NAME}${NEXTWEBUSER_NUM_INC}@g" ${NGINX_DIR}/settings.conf
+	useradd -d "${SITEDIR}" -s /bin/false "${USERLOGINNAME}" >/dev/null 2>&1
+	USER_CNT=$(getent passwd | grep -c "${USERLOGINNAME}")
+	if [ ${USER_CNT} -ne 0 ]; then
+		echo -e "Done${NORMAL}"
+		NEXTWEBUSER_NUM=$(cat "${NGINX_DIR}/settings.conf" | grep NEXTWEBUSER | cut -d "=" -f 2 | sed s/[^0-9]//g)
+		NEXTWEBUSER_NAME=$(cat "${NGINX_DIR}/settings.conf" | grep NEXTWEBUSER | cut -d "=" -f 2 | sed s/[^a-zA-Z]//g)
+		((NEXTWEBUSER_NUM_INC++))
+		sed -i "s@${USERLOGINNAME}@${NEXTWEBUSER_NAME}${NEXTWEBUSER_NUM_INC}@g" "${NGINX_DIR}/settings.conf"
 	else
-	    echo -e "${RED}Error, the user ${USERLOGINNAME} does not exist${NORMAL}"
-	    exit 1;
+		echo -e "${RED}Error, the user ${USERLOGINNAME} does not exist${NORMAL}"
+		exit 1;
 	fi
 
 	echo -en "${GREEN}Adding new group ${GROUPNAME}...\t\t\t"
-	ret=false
-	getent group ${GROUPNAME} >/dev/null 2>&1 && ret=true
-	if $ret; then
+	GROUP_CNT=$(getent group | grep -c "${GROUPNAME}")
+	if [ ${GROUP_CNT} -gt 0 ]; then
 	    echo -e "${CYAN}Warning, group ${GROUPNAME} already exists${NORMAL}"
 	else
 		if [[ "${OS_DISTRIB}" = "Oracle" ]]; then
-			groupadd ${GROUPNAME} >/dev/null 2>&1
+			groupadd "${GROUPNAME}" >/dev/null 2>&1
 		else
-			addgroup ${GROUPNAME} >/dev/null 2>&1
+			addgroup "${GROUPNAME}" >/dev/null 2>&1
 		fi
-		ret=false
-		getent group ${GROUPNAME} >/dev/null 2>&1 && ret=true
-		if $ret; then
+		GROUP_CNT=$(getent group | grep -c "${GROUPNAME}")
+		if [ ${GROUP_CNT} -ne 0 ]; then
 		    echo -e "Done${NORMAL}"
 		    NEXTWEBGROUP_NUM=`cat ${NGINX_DIR}/settings.conf | grep NEXTWEBGROUP | cut -d "=" -f 2 | sed s/[^0-9]//g`
 		    NEXTWEBGROUP_NAME=`cat ${NGINX_DIR}/settings.conf | grep NEXTWEBGROUP | cut -d "=" -f 2 | sed s/[^a-zA-Z]//g`
-		    let "NEXTWEBGROUP_NUM_INC=${NEXTWEBGROUP_NUM}+1"
-		    sed -i "s@${GROUPNAME}@${NEXTWEBGROUP_NAME}${NEXTWEBGROUP_NUM_INC}@g" ${NGINX_DIR}/settings.conf
+			((NEXTWEBGROUP_NUM_INC++))
+		    sed -i "s@${GROUPNAME}@${NEXTWEBGROUP_NAME}${NEXTWEBGROUP_NUM_INC}@g" "${NGINX_DIR}/settings.conf"
 		else
 		    echo -e "${RED}Error, the group ${GROUPNAME} does not exist${NORMAL}"
 		    exit 1;
 		fi
 	fi
 
-	echo -en "${GREEN}Adding user ${USERLOGINNAME} to group ${GROUPNAME}...\t\t\t"
+	echo -en "${GREEN}Adding user ${USERLOGINNAME} to group ${GROUPNAME}...\t\t"
 	usermod -a -G ${GROUPNAME} ${USERLOGINNAME} >/dev/null 2>&1
 	if user_in_group "${USERLOGINNAME}" "${GROUPNAME}"; then
 		echo -e "Done${NORMAL}"
@@ -423,8 +426,7 @@ create_phpfpm_conf ()
 	fi
 }
 
-unknown_os ()
-{
+_unknown_os() {
 	echo
 	echo "Unfortunately, your operating system distribution and version are not supported by this script."
 	echo
@@ -432,10 +434,9 @@ unknown_os ()
 	exit 1
 }
 
-unknown_distrib ()
-{
+_unknown_distrib() {
 	echo
-	echo "Unfortunately, your ${os} operating system distribution and version are not supported by this script."
+	echo "Unfortunately, your Linux distribution or distribution version are not supported by this script."
 	echo
 	echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
 	exit 1
@@ -502,14 +503,101 @@ do
 	esac
 done
 
-os=$(uname -s)
-os_arch=$(uname -m)
-echo -en "${GREEN}Detecting your OS\t"
-if [ "${os}" = "Linux" ]; then
-	echo -e "Linux (${os_arch})${NORMAL}"
+_detect_linux_distrib() {
+	local DIST=$1
+	local REV=$2
+	local PSUEDONAME=$3
+	echo -n "Detecting your Linux distrib: "
+	case "${DIST}" in
+		Ubuntu)
+			echo -n "${DIST} ${REV}"
+			case "${REV}" in
+			14.04|16.04|17.10|18.04)
+				echo " (${PSUEDONAME})"
+				;;
+			*)
+				_unknown_distrib
+				;;
+			esac
+			;;
+		Debian)
+			echo -n "${DIST} ${REV}"
+			case "${REV}" in
+			8|9)
+				echo " (${PSUEDONAME})"
+				;;
+			*)
+				_unknown_distrib
+				;;
+			esac
+			;;
+		"Red Hat"*)
+			echo "${DIST} ${REV} (${PSUEDONAME})"
+			;;
+		CentOS)
+			echo "${DIST} ${REV} (${PSUEDONAME})"
+			;;
+		*)
+			echo "Unsupported (${DIST} | ${REV} | ${PSUEDONAME})"
+			_unknown_distrib
+			;;
+	esac
+}
+
+OS=$(uname -s)
+OS_ARCH=$(uname -m)
+echo -n "Detecting your OS: "
+case "${OS}" in
+	Linux*)
+		echo "Linux (${OS_ARCH})"
+		PLATFORM="linux"
+		DISTROBASEDON="Unknown"
+		DIST="Unknown"
+		PSUEDONAME="Unknown"
+		REV="Unknown"
+		if [ -f "/etc/redhat-release" ]; then
+			DISTROBASEDON="RedHat"
+			DIST=$(cat /etc/redhat-release | sed s/\ release.*//)
+			PSUEDONAME=$(cat /etc/redhat-release | sed s/.*\(// | sed s/\)//)
+			REV=$(cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//)
+		elif [ -f "/etc/SuSE-release" ]; then
+			DISTROBASEDON="SUSE"
+			DIST="SuSE"
+			PSUEDONAME=$(cat /etc/SuSE-release | tr "\n" ' '| sed s/VERSION.*//)
+			REV=$(cat /etc/SuSE-release | tr "\n" ' ' | sed s/.*=\ //)
+		elif [ -f "/etc/mandrake-release" ]; then
+			DISTROBASEDON="Mandrake"
+			DIST="Mandrake"
+			PSUEDONAME=$(cat /etc/mandrake-release | sed s/.*\(// | sed s/\)//)
+			REV=$(cat /etc/mandrake-release | sed s/.*release\ // | sed s/\ .*//)
+		elif [ -f "/etc/debian_version" ]; then
+			if [ -f "/etc/lsb-release" ]; then
+				DISTROBASEDON="Debian"
+				DIST=$(cat /etc/lsb-release | grep '^DISTRIB_ID' | awk -F=  '{ print $2 }')
+				PSUEDONAME=$(cat /etc/lsb-release | grep '^DISTRIB_CODENAME' | awk -F=  '{ print $2 }')
+				REV=$(cat /etc/lsb-release | grep '^DISTRIB_RELEASE' | awk -F=  '{ print $2 }')
+			elif [ -f "/etc/os-release" ]; then
+				DISTROBASEDON="Debian"
+				DIST=$(cat /etc/os-release | grep '^NAME' | awk -F=  '{ print $2 }' | grep -oP '(?<=\")(\w+)(?=\ )')
+				PSUEDONAME=$(cat /etc/os-release | grep '^VERSION=' | awk -F= '{ print $2 }' | grep -oP '(?<=\()(\w+)(?=\))')
+				REV=$(sed 's/\..*//' /etc/debian_version)
+			fi
+		fi
+		_detect_linux_distrib "${DIST}" "${REV}" "${PSUEDONAME}"
+		;;
+	*)
+		echo "Unknown"
+		_unknown_os
+		;;
+esac
+
+echo -n "Checking your privileges... "
+CURRENT_USER=$(whoami)
+if [[ "${CURRENT_USER}" = "root" ]]; then
+	echo "OK"
 else
-	echo -e "${RED}Unknown${NORMAL}"
-	unknown_os
+	echo "Error: root access is required"
+	exit 1
 fi
 
 if command_exists strings ; then
@@ -521,23 +609,19 @@ fi
 
 OS_INIT_SYSTEM=$(${STRINGS_BIN} /sbin/init | awk 'match($0, /(upstart|systemd|sysvinit)/) { print toupper(substr($0, RSTART, RLENGTH));exit; }')
 
-echo -en "${GREEN}Detecting ${os} distrib\t"
-if [ -f "/etc/debian_version" ]; then
-	DEBIAN_VERSION=$(sed 's/\..*//' /etc/debian_version)
-	OS_DISTRIB="Debian"
-	echo -e "${OS_DISTRIB} (${OS_INIT_SYSTEM})${NORMAL}"
-	if [[ "${DEBIAN_VERSION}" = "9" ]]; then
+case "${DIST}" in
+	Ubuntu)
 		echo -en "${GREEN}Detecting your php-fpm\t"
-		if command_exists php-fpm7.0 ; then
-			echo -e "Found php-fpm7.0${NORMAL}"
-			PHP_FPM_BIN=$(which php-fpm7.0)
-			PHP_FPM_POOL_DIR=/etc/php/7.0/fpm/pool.d
-			PHP_FPM_SOCK_DIR=/run/php
+		if command_exists php-fpm7.2 ; then
+			echo -e "Found php-fpm7.2${NORMAL}"
+			PHP_FPM_BIN=$(which php-fpm7.2)
+			PHP_FPM_POOL_DIR="/etc/php/7.2/fpm/pool.d"
+			PHP_FPM_SOCK_DIR="/run/php"
 			if [[ "${OS_INIT_SYSTEM}" = "SYSTEMD" ]]; then
-				PHP_FPM_RUN_SCRIPT="php7.0-fpm"
+				PHP_FPM_RUN_SCRIPT="php7.2-fpm"
 			else
-				if [ -f "/etc/init.d/php7.0-fpm" ]; then
-					PHP_FPM_RUN_SCRIPT=/etc/init.d/php7.0-fpm
+				if [ -f "/etc/init.d/php7.2-fpm" ]; then
+					PHP_FPM_RUN_SCRIPT="/etc/init.d/php7.2-fpm"
 				else
 					echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
 					exit 1;
@@ -547,84 +631,117 @@ if [ -f "/etc/debian_version" ]; then
 			echo -e "${RED}Error: php-fpm not found.${NORMAL}"
 			exit 1;
 		fi
-	elif [[ "${DEBIAN_VERSION}" = "8" ]]; then
-		echo -en "${GREEN}Detecting your php-fpm\t"
-		if command_exists php5-fpm ; then
-			echo -e "Found php5-fpm${NORMAL}"
-			PHP_FPM_BIN=$(which php5-fpm)
-			PHP_FPM_POOL_DIR=/etc/php5/fpm/pool.d
-			PHP_FPM_SOCK_DIR=/var/lib/php5-fpm
-			if [ -f "/etc/init.d/php5-fpm" ]; then
-				PHP_FPM_RUN_SCRIPT=/etc/init.d/php5-fpm
-			else
-				echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
-				exit 1;
-			fi
-		else
-			echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-			exit 1;
-		fi
-	else
-		unknown_debian
-	fi
-elif [ -f "/etc/oracle-release" ]; then
-	ORACLE_VERSION=$(cat "/etc/oracle-release" | sed s/.*release\ // | sed s/\ .*//)
-	OS_DISTRIB="Oracle"
-	echo -e "${OS_DISTRIB} ${ORACLE_VERSION} (${OS_INIT_SYSTEM})${NORMAL}"
-	case "${ORACLE_VERSION}" in
-		6.*)
+		;;
+	Debian)
+		DEBIAN_VERSION=$(sed 's/\..*//' /etc/debian_version)
+		OS_DISTRIB="Debian"
+		echo -e "${OS_DISTRIB} (${OS_INIT_SYSTEM})${NORMAL}"
+		if [[ "${DEBIAN_VERSION}" = "9" ]]; then
 			echo -en "${GREEN}Detecting your php-fpm\t"
-			if command_exists php-fpm ; then
-				PHP_FPM_BIN=$(which php-fpm)
-				echo -e "Found php-fpm${NORMAL}"
-				if [ -d "/etc/php-fpm.d" ]; then
-					PHP_FPM_POOL_DIR=/etc/php-fpm.d
-					PHP_FPM_SOCK_DIR=/var/run
-					if [ -f "/etc/init.d/php-fpm" ]; then
-						PHP_FPM_RUN_SCRIPT=/etc/init.d/php-fpm
+			if command_exists php-fpm7.0 ; then
+				echo -e "Found php-fpm7.0${NORMAL}"
+				PHP_FPM_BIN=$(which php-fpm7.0)
+				PHP_FPM_POOL_DIR=/etc/php/7.0/fpm/pool.d
+				PHP_FPM_SOCK_DIR=/run/php
+				if [[ "${OS_INIT_SYSTEM}" = "SYSTEMD" ]]; then
+					PHP_FPM_RUN_SCRIPT="php7.0-fpm"
+				else
+					if [ -f "/etc/init.d/php7.0-fpm" ]; then
+						PHP_FPM_RUN_SCRIPT=/etc/init.d/php7.0-fpm
 					else
 						echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
 						exit 1;
 					fi
+				fi
+			else
+				echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+				exit 1;
+			fi
+		elif [[ "${DEBIAN_VERSION}" = "8" ]]; then
+			echo -en "${GREEN}Detecting your php-fpm\t"
+			if command_exists php5-fpm ; then
+				echo -e "Found php5-fpm${NORMAL}"
+				PHP_FPM_BIN=$(which php5-fpm)
+				PHP_FPM_POOL_DIR=/etc/php5/fpm/pool.d
+				PHP_FPM_SOCK_DIR=/var/lib/php5-fpm
+				if [ -f "/etc/init.d/php5-fpm" ]; then
+					PHP_FPM_RUN_SCRIPT=/etc/init.d/php5-fpm
 				else
-					echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+					echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
 					exit 1;
 				fi
 			else
 				echo -e "${RED}Error: php-fpm not found.${NORMAL}"
 				exit 1;
 			fi
+		else
+			unknown_debian
+		fi
 		;;
-		7.*)
-			echo -en "${GREEN}Detecting your php-fpm\t"
-			if command_exists php-fpm ; then
-				PHP_FPM_BIN=$(which php-fpm)
-				echo -e "Found php-fpm${NORMAL}"
-				if [ -d "/etc/php-fpm.d" ]; then
-					PHP_FPM_POOL_DIR=/etc/php-fpm.d
-					PHP_FPM_SOCK_DIR=/run
-					if [ -f "/usr/lib/systemd/system/php-fpm.service" ]; then
-						PHP_FPM_RUN_SCRIPT=php-fpm
+	"RedHat"*)
+		if [ -f "/etc/oracle-release" ]; then
+			ORACLE_VERSION=$(cat "/etc/oracle-release" | sed s/.*release\ // | sed s/\ .*//)
+			OS_DISTRIB="Oracle"
+			echo -e "${OS_DISTRIB} ${ORACLE_VERSION} (${OS_INIT_SYSTEM})${NORMAL}"
+			case "${ORACLE_VERSION}" in
+				6.*)
+					echo -en "${GREEN}Detecting your php-fpm\t"
+					if command_exists php-fpm ; then
+						PHP_FPM_BIN=$(which php-fpm)
+						echo -e "Found php-fpm${NORMAL}"
+						if [ -d "/etc/php-fpm.d" ]; then
+							PHP_FPM_POOL_DIR=/etc/php-fpm.d
+							PHP_FPM_SOCK_DIR=/var/run
+							if [ -f "/etc/init.d/php-fpm" ]; then
+								PHP_FPM_RUN_SCRIPT=/etc/init.d/php-fpm
+							else
+								echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
+								exit 1;
+							fi
+						else
+							echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+							exit 1;
+						fi
 					else
-						echo -e "${RED}Error: php-fpm unit not found.${NORMAL}"
+						echo -e "${RED}Error: php-fpm not found.${NORMAL}"
 						exit 1;
 					fi
-				else
-					echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-					exit 1;
-				fi
-			else
-				echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-				exit 1;
-			fi
+				;;
+				7.*)
+					echo -en "${GREEN}Detecting your php-fpm\t"
+					if command_exists php-fpm ; then
+						PHP_FPM_BIN=$(which php-fpm)
+						echo -e "Found php-fpm${NORMAL}"
+						if [ -d "/etc/php-fpm.d" ]; then
+							PHP_FPM_POOL_DIR=/etc/php-fpm.d
+							PHP_FPM_SOCK_DIR=/run
+							if [ -f "/usr/lib/systemd/system/php-fpm.service" ]; then
+								PHP_FPM_RUN_SCRIPT=php-fpm
+							else
+								echo -e "${RED}Error: php-fpm unit not found.${NORMAL}"
+								exit 1;
+							fi
+						else
+							echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+							exit 1;
+						fi
+					else
+						echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+						exit 1;
+					fi
+				;;
+				*)
+					unknown_oracle
+				;;
+			esac
+		else
+			unknown_os
+		fi
 		;;
-		*)
-			unknown_oracle
+	*)
+		unknown_distrib
 		;;
-	esac
-else
-	unknown_distrib
-fi
+esac
 
 if command_exists nginx ; then
 	NGINX_BIN=$(which nginx)
@@ -642,21 +759,38 @@ echo -en "${GREEN}Detecting nginx owner\t"
 if user_exists ${NGINX_USER}; then
 	echo -e "Found ${NGINX_USER}${NORMAL}"
 else
-	if user_exists nginx; then
-		NGINX_USER=nginx
-		echo -e "Found ${NGINX_USER}${NORMAL}"
+	NGINX_OWNER=$(cat /etc/nginx/nginx.conf | grep -E '^user' | awk -F' ' '{print $2}' | tr -d ';')
+	if [ -n "${NGINX_OWNER}" ]; then
+		if user_exists ${NGINX_OWNER}; then
+			NGINX_USER=${NGINX_OWNER}
+			echo -e "Found ${NGINX_USER}${NORMAL}"
+		else
+			echo -e "${RED}Err${NORMAL}"
+			echo -e "${RED}Error: nginx owner '${NGINX_OWNER}' not found.${NORMAL}"
+			echo -e "${CYAN}Check parameter 'user' in file '"${NGINX_DIR}/nginx.conf"'${NORMAL}"
+			exit 1;
+		fi
 	else
 		echo -e "${RED}Err${NORMAL}"
-		echo -e "${RED}Error: nginx owner not found.${NORMAL}"
-		echo -e "${CYAN}See parameter 'user' in file '"${NGINX_DIR}/nginx.conf"'${NORMAL}"
-		exit 1;
+		echo -e "${RED}Error: nginx owner '${NGINX_OWNER}' not found.${NORMAL}"
+		echo -e "${CYAN}Check parameter 'user' in file '"${NGINX_DIR}/nginx.conf"'${NORMAL}"
 	fi
 fi
 
 if [ ! -e "${NGINX_DIR}/settings.conf" ]; then
-	echo -e "${CYAN}Warning: Main settings file ${NGINX_DIR}/settings.conf not found.${NORMAL}"
+	echo -e "${CYAN}Warning: Main settings file '${NGINX_DIR}/settings.conf' not found.${NORMAL}"
 	echo -en "${GREEN}Copy settings.conf to ${NGINX_DIR}...\t"
-	cp -- "${CUR_DIR}/settings.conf" "${NGINX_DIR}"
+	if [ -f "${CUR_DIR}/settings.conf" ]; then
+		cp -- "${CUR_DIR}/settings.conf" "${NGINX_DIR}"
+	else
+		(cat <<-EOF
+		SERVERIP=10.10.10.3
+		SERVERPORT=80
+		NEXTWEBUSER=web1
+		NEXTWEBGROUP=client1
+		EOF
+		) > "${NGINX_DIR}/settings.conf"
+	fi
 	if [ -f "${NGINX_DIR}/settings.conf" ]; then
 		echo -e "Done${NORMAL}"
 	else
@@ -667,11 +801,16 @@ fi
 
 if [ ! -d "${DEFAULT_TEMPLATE_DIR}" ]; then
 	echo -en "${GREEN}Copy default template directory...\t"
-	cp -R -- "${CUR_DIR}/template/" "${NGINX_DIR}"
-	if [ -d "${DEFAULT_TEMPLATE_DIR}" ]; then
-		echo -e "Done${NORMAL}"
+	if [ -d "${CUR_DIR}/template/" ]; then
+		cp -R -- "${CUR_DIR}/template/" "${NGINX_DIR}"
+		if [ -d "${DEFAULT_TEMPLATE_DIR}" ]; then
+			echo -e "Done${NORMAL}"
+		else
+			echo -e "${RED}Error: Failed to create the ${DEFAULT_TEMPLATE_DIR} directory.${NORMAL}"
+			exit 1;
+		fi
 	else
-		echo -e "${RED}Error: Failed to create the ${DEFAULT_TEMPLATE_DIR} directory.${NORMAL}"
+		echo -e "${RED}Error: Directory '${CUR_DIR}/template' not found.${NORMAL}"
 		exit 1;
 	fi
 fi
@@ -717,23 +856,26 @@ else
 fi
 
 if [ -f "${NGINX_DIR}/settings.conf" ]; then
-	SERVERIP=$(cat ${NGINX_DIR}/settings.conf | grep SERVERIP | cut -d "=" -f 2)
-	SERVERPORT=$(cat ${NGINX_DIR}/settings.conf | grep SERVERPORT | cut -d "=" -f 2)
+	SERVERIP=$(cat "${NGINX_DIR}/settings.conf" | grep SERVERIP | cut -d "=" -f 2)
+	SERVERPORT=$(cat "${NGINX_DIR}/settings.conf" | grep SERVERPORT | cut -d "=" -f 2)
 	AUTO_DETECT_SERVERIP=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
-	if valid_ip ${AUTO_DETECT_SERVERIP}; then
-		if [ "${SERVERIP}" != "${AUTO_DETECT_SERVERIP}" ]; then
-			SERVERIP=${AUTO_DETECT_SERVERIP}
-		fi
-		SETTINGS_SERVERIP=$(cat ${NGINX_DIR}/settings.conf | grep SERVERIP | cut -d "=" -f 2)
-		if [ "${SETTINGS_SERVERIP}" != "10.10.10.3" ]; then
-			SERVERIP=${SETTINGS_SERVERIP}
+	if [ -n "${AUTO_DETECT_SERVERIP}" ]; then
+		if valid_ip ${AUTO_DETECT_SERVERIP}; then
+			if [ "${SERVERIP}" != "${AUTO_DETECT_SERVERIP}" ]; then
+				SERVERIP=${AUTO_DETECT_SERVERIP}
+			fi
+			SETTINGS_SERVERIP=$(cat "${NGINX_DIR}/settings.conf" | grep SERVERIP | cut -d "=" -f 2)
+			if [ "${SETTINGS_SERVERIP}" != "10.10.10.3" ]; then
+				SERVERIP=${SETTINGS_SERVERIP}
+			fi
 		fi
 	fi
 	if [ -z "${SERVERIP}" ]; then
 		SERVERIP=${DEFAULT_SERVERIP}
 	fi
 fi
-echo -e "${GREEN}Set nginx vhost ip:\t${SERVERIP}:${SERVERPORT}${NORMAL}"
+echo -e "${GREEN}Set nginx vhost ip:\t${SERVERIP}${NORMAL}"
+echo -e "${GREEN}Set nginx vhost port:\t${SERVERPORT}${NORMAL}"
 
 if [ -n "${SITENAME}" ]; then
 	if [ -d "${SITEDIR}" ]; then

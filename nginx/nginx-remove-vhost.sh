@@ -4,11 +4,14 @@
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.4.3
+# Current Version: 1.4.4
 # 
 # Example: ./nginx-remove-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1
 #
 # Revision History:
+#
+#  Version 1.4.4
+#    Added Ubuntu support (php7.2)
 #
 #  Version 1.4.3
 #    Fixed php-fpm socket 
@@ -289,14 +292,101 @@ do
 	esac
 done
 
-os=$(uname -s)
-os_arch=$(uname -m)
-echo -en "${GREEN}Detecting your OS\t"
-if [ "${os}" = "Linux" ]; then
-	echo -e "Linux (${os_arch})${NORMAL}"
+_detect_linux_distrib() {
+	local DIST=$1
+	local REV=$2
+	local PSUEDONAME=$3
+	echo -n "Detecting your Linux distrib: "
+	case "${DIST}" in
+		Ubuntu)
+			echo -n "${DIST} ${REV}"
+			case "${REV}" in
+			14.04|16.04|17.10|18.04)
+				echo " (${PSUEDONAME})"
+				;;
+			*)
+				_unknown_distrib
+				;;
+			esac
+			;;
+		Debian)
+			echo -n "${DIST} ${REV}"
+			case "${REV}" in
+			8|9)
+				echo " (${PSUEDONAME})"
+				;;
+			*)
+				_unknown_distrib
+				;;
+			esac
+			;;
+		"Red Hat"*)
+			echo "${DIST} ${REV} (${PSUEDONAME})"
+			;;
+		CentOS)
+			echo "${DIST} ${REV} (${PSUEDONAME})"
+			;;
+		*)
+			echo "Unsupported (${DIST} | ${REV} | ${PSUEDONAME})"
+			_unknown_distrib
+			;;
+	esac
+}
+
+OS=$(uname -s)
+OS_ARCH=$(uname -m)
+echo -n "Detecting your OS: "
+case "${OS}" in
+	Linux*)
+		echo "Linux (${OS_ARCH})"
+		PLATFORM="linux"
+		DISTROBASEDON="Unknown"
+		DIST="Unknown"
+		PSUEDONAME="Unknown"
+		REV="Unknown"
+		if [ -f "/etc/redhat-release" ]; then
+			DISTROBASEDON="RedHat"
+			DIST=$(cat /etc/redhat-release | sed s/\ release.*//)
+			PSUEDONAME=$(cat /etc/redhat-release | sed s/.*\(// | sed s/\)//)
+			REV=$(cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//)
+		elif [ -f "/etc/SuSE-release" ]; then
+			DISTROBASEDON="SUSE"
+			DIST="SuSE"
+			PSUEDONAME=$(cat /etc/SuSE-release | tr "\n" ' '| sed s/VERSION.*//)
+			REV=$(cat /etc/SuSE-release | tr "\n" ' ' | sed s/.*=\ //)
+		elif [ -f "/etc/mandrake-release" ]; then
+			DISTROBASEDON="Mandrake"
+			DIST="Mandrake"
+			PSUEDONAME=$(cat /etc/mandrake-release | sed s/.*\(// | sed s/\)//)
+			REV=$(cat /etc/mandrake-release | sed s/.*release\ // | sed s/\ .*//)
+		elif [ -f "/etc/debian_version" ]; then
+			if [ -f "/etc/lsb-release" ]; then
+				DISTROBASEDON="Debian"
+				DIST=$(cat /etc/lsb-release | grep '^DISTRIB_ID' | awk -F=  '{ print $2 }')
+				PSUEDONAME=$(cat /etc/lsb-release | grep '^DISTRIB_CODENAME' | awk -F=  '{ print $2 }')
+				REV=$(cat /etc/lsb-release | grep '^DISTRIB_RELEASE' | awk -F=  '{ print $2 }')
+			elif [ -f "/etc/os-release" ]; then
+				DISTROBASEDON="Debian"
+				DIST=$(cat /etc/os-release | grep '^NAME' | awk -F=  '{ print $2 }' | grep -oP '(?<=\")(\w+)(?=\ )')
+				PSUEDONAME=$(cat /etc/os-release | grep '^VERSION=' | awk -F= '{ print $2 }' | grep -oP '(?<=\()(\w+)(?=\))')
+				REV=$(sed 's/\..*//' /etc/debian_version)
+			fi
+		fi
+		_detect_linux_distrib "${DIST}" "${REV}" "${PSUEDONAME}"
+		;;
+	*)
+		echo "Unknown"
+		_unknown_os
+		;;
+esac
+
+echo -n "Checking your privileges... "
+CURRENT_USER=$(whoami)
+if [[ "${CURRENT_USER}" = "root" ]]; then
+	echo "OK"
 else
-	echo -e "${RED}Unknown${NORMAL}"
-	unknown_os
+	echo "Error: root access is required"
+	exit 1
 fi
 
 if command_exists strings ; then
@@ -308,23 +398,19 @@ fi
 
 OS_INIT_SYSTEM=$(${STRINGS_BIN} /sbin/init | awk 'match($0, /(upstart|systemd|sysvinit)/) { print toupper(substr($0, RSTART, RLENGTH));exit; }')
 
-echo -en "${GREEN}Detecting ${os} distrib\t"
-if [ -f "/etc/debian_version" ]; then
-	DEBIAN_VERSION=$(sed 's/\..*//' /etc/debian_version)
-	OS_DISTRIB="Debian"
-	echo -e "${OS_DISTRIB} (${OS_INIT_SYSTEM})${NORMAL}"
-	if [[ "${DEBIAN_VERSION}" = "9" ]]; then
+case "${DIST}" in
+	Ubuntu)
 		echo -en "${GREEN}Detecting your php-fpm\t"
-		if command_exists php-fpm7.0 ; then
-			echo -e "Found php-fpm7.0${NORMAL}"
-			PHP_FPM_BIN=$(which php-fpm7.0)
-			PHP_FPM_POOL_DIR=/etc/php/7.0/fpm/pool.d
-			PHP_FPM_SOCK_DIR=/run/php
+		if command_exists php-fpm7.2 ; then
+			echo -e "Found php-fpm7.2${NORMAL}"
+			PHP_FPM_BIN=$(which php-fpm7.2)
+			PHP_FPM_POOL_DIR="/etc/php/7.2/fpm/pool.d"
+			PHP_FPM_SOCK_DIR="/run/php"
 			if [[ "${OS_INIT_SYSTEM}" = "SYSTEMD" ]]; then
-				PHP_FPM_RUN_SCRIPT="php7.0-fpm"
+				PHP_FPM_RUN_SCRIPT="php7.2-fpm"
 			else
-				if [ -f "/etc/init.d/php7.0-fpm" ]; then
-					PHP_FPM_RUN_SCRIPT=/etc/init.d/php7.0-fpm
+				if [ -f "/etc/init.d/php7.2-fpm" ]; then
+					PHP_FPM_RUN_SCRIPT="/etc/init.d/php7.2-fpm"
 				else
 					echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
 					exit 1;
@@ -334,89 +420,128 @@ if [ -f "/etc/debian_version" ]; then
 			echo -e "${RED}Error: php-fpm not found.${NORMAL}"
 			exit 1;
 		fi
-	elif [[ "${DEBIAN_VERSION}" = "8" ]]; then
-		echo -en "${GREEN}Detecting your php-fpm\t"
-		if command_exists php5-fpm ; then
-			echo -e "Found php5-fpm${NORMAL}"
-			PHP_FPM_BIN=$(which php5-fpm)
-			PHP_FPM_POOL_DIR=/etc/php5/fpm/pool.d
-			PHP_FPM_SOCK_DIR=/var/lib/php5-fpm
-			if [ -f "/etc/init.d/php5-fpm" ]; then
-				PHP_FPM_RUN_SCRIPT=/etc/init.d/php5-fpm
-			else
-				echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
-				exit 1;
-			fi
-		else
-			echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-			exit 1;
-		fi
-	else
-		unknown_debian
-	fi
-elif [ -f "/etc/oracle-release" ]; then
-	ORACLE_VERSION=$(cat "/etc/oracle-release" | sed s/.*release\ // | sed s/\ .*//)
-	OS_DISTRIB="Oracle"
-	echo -e "${OS_DISTRIB} ${ORACLE_VERSION} (${OS_INIT_SYSTEM})${NORMAL}"
-	case "${ORACLE_VERSION}" in
-		6.*)
+		;;
+	Debian)
+		DEBIAN_VERSION=$(sed 's/\..*//' /etc/debian_version)
+		OS_DISTRIB="Debian"
+		echo -e "${OS_DISTRIB} (${OS_INIT_SYSTEM})${NORMAL}"
+		if [[ "${DEBIAN_VERSION}" = "9" ]]; then
 			echo -en "${GREEN}Detecting your php-fpm\t"
-			if command_exists php-fpm ; then
-				PHP_FPM_BIN=$(which php-fpm)
-				echo -e "Found php-fpm${NORMAL}"
-				if [ -d "/etc/php-fpm.d" ]; then
-					PHP_FPM_POOL_DIR=/etc/php-fpm.d
-					PHP_FPM_SOCK_DIR=/var/run
-					if [ -f "/etc/init.d/php-fpm" ]; then
-						PHP_FPM_RUN_SCRIPT=/etc/init.d/php-fpm
+			if command_exists php-fpm7.0 ; then
+				echo -e "Found php-fpm7.0${NORMAL}"
+				PHP_FPM_BIN=$(which php-fpm7.0)
+				PHP_FPM_POOL_DIR=/etc/php/7.0/fpm/pool.d
+				PHP_FPM_SOCK_DIR=/run/php
+				if [[ "${OS_INIT_SYSTEM}" = "SYSTEMD" ]]; then
+					PHP_FPM_RUN_SCRIPT="php7.0-fpm"
+				else
+					if [ -f "/etc/init.d/php7.0-fpm" ]; then
+						PHP_FPM_RUN_SCRIPT=/etc/init.d/php7.0-fpm
 					else
 						echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
 						exit 1;
 					fi
+				fi
+			else
+				echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+				exit 1;
+			fi
+		elif [[ "${DEBIAN_VERSION}" = "8" ]]; then
+			echo -en "${GREEN}Detecting your php-fpm\t"
+			if command_exists php5-fpm ; then
+				echo -e "Found php5-fpm${NORMAL}"
+				PHP_FPM_BIN=$(which php5-fpm)
+				PHP_FPM_POOL_DIR=/etc/php5/fpm/pool.d
+				PHP_FPM_SOCK_DIR=/var/lib/php5-fpm
+				if [ -f "/etc/init.d/php5-fpm" ]; then
+					PHP_FPM_RUN_SCRIPT=/etc/init.d/php5-fpm
 				else
-					echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+					echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
 					exit 1;
 				fi
 			else
 				echo -e "${RED}Error: php-fpm not found.${NORMAL}"
 				exit 1;
 			fi
+		else
+			unknown_debian
+		fi
 		;;
-		7.*)
-			echo -en "${GREEN}Detecting your php-fpm\t"
-			if command_exists php-fpm ; then
-				PHP_FPM_BIN=$(which php-fpm)
-				echo -e "Found php-fpm${NORMAL}"
-				if [ -d "/etc/php-fpm.d" ]; then
-					PHP_FPM_POOL_DIR=/etc/php-fpm.d
-					PHP_FPM_SOCK_DIR=/run
-					if [ -f "/usr/lib/systemd/system/php-fpm.service" ]; then
-						PHP_FPM_RUN_SCRIPT=php-fpm
+	"RedHat"*)
+		if [ -f "/etc/oracle-release" ]; then
+			ORACLE_VERSION=$(cat "/etc/oracle-release" | sed s/.*release\ // | sed s/\ .*//)
+			OS_DISTRIB="Oracle"
+			echo -e "${OS_DISTRIB} ${ORACLE_VERSION} (${OS_INIT_SYSTEM})${NORMAL}"
+			case "${ORACLE_VERSION}" in
+				6.*)
+					echo -en "${GREEN}Detecting your php-fpm\t"
+					if command_exists php-fpm ; then
+						PHP_FPM_BIN=$(which php-fpm)
+						echo -e "Found php-fpm${NORMAL}"
+						if [ -d "/etc/php-fpm.d" ]; then
+							PHP_FPM_POOL_DIR=/etc/php-fpm.d
+							PHP_FPM_SOCK_DIR=/var/run
+							if [ -f "/etc/init.d/php-fpm" ]; then
+								PHP_FPM_RUN_SCRIPT=/etc/init.d/php-fpm
+							else
+								echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
+								exit 1;
+							fi
+						else
+							echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+							exit 1;
+						fi
 					else
-						echo -e "${RED}Error: php-fpm unit not found.${NORMAL}"
+						echo -e "${RED}Error: php-fpm not found.${NORMAL}"
 						exit 1;
 					fi
-				else
-					echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-					exit 1;
-				fi
-			else
-				echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-				exit 1;
-			fi
+				;;
+				7.*)
+					echo -en "${GREEN}Detecting your php-fpm\t"
+					if command_exists php-fpm ; then
+						PHP_FPM_BIN=$(which php-fpm)
+						echo -e "Found php-fpm${NORMAL}"
+						if [ -d "/etc/php-fpm.d" ]; then
+							PHP_FPM_POOL_DIR=/etc/php-fpm.d
+							PHP_FPM_SOCK_DIR=/run
+							if [ -f "/usr/lib/systemd/system/php-fpm.service" ]; then
+								PHP_FPM_RUN_SCRIPT=php-fpm
+							else
+								echo -e "${RED}Error: php-fpm unit not found.${NORMAL}"
+								exit 1;
+							fi
+						else
+							echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+							exit 1;
+						fi
+					else
+						echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+						exit 1;
+					fi
+				;;
+				*)
+					unknown_oracle
+				;;
+			esac
+		else
+			unknown_os
+		fi
 		;;
-		*)
-			unknown_oracle
+	*)
+		unknown_distrib
 		;;
-	esac
-else
-	unknown_distrib
-fi
+esac
 
 if command_exists nginx ; then
 	NGINX_BIN=$(which nginx)
 else
 	echo -e "${RED}Error: nginx not found.${NORMAL}"
+	exit 1;
+fi
+
+if [ -z "${SITENAME}" ]; then
+	echo -e "${RED}Error: You must enter a site name.${NORMAL}"
+	usage
 	exit 1;
 fi
 
