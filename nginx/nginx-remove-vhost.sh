@@ -4,11 +4,14 @@
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.4.4
+# Current Version: 1.4.5
 # 
 # Example: ./nginx-remove-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1
 #
 # Revision History:
+#
+#  Version 1.4.5
+#    Added custom nginx templates
 #
 #  Version 1.4.4
 #    Added Ubuntu support (php7.2)
@@ -571,7 +574,7 @@ if [ -n "${SITENAME}" ]; then
 	delete_logrotate "${USERLOGINNAME}"
 	if [ -d "${SITEDIR}" ]; then
 		echo -en "${GREEN}Unset protected attribute to directory...\t"
-		chattr -a "${SITEDIR}"
+		chattr -a "${SITEDIR}" >/dev/null 2>&1
 		if [ $? -eq 0 ]; then
 			echo -e "Done${NORMAL}"
 		else

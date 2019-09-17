@@ -1,0 +1,49 @@
+server {
+        listen !SERVERIP!:!SERVERPORT!;
+        server_name !SITENAME! www.!SITENAME!;
+        root !SITEDIR!/web;
+
+	index index.html index.htm;
+
+	error_log !SITEDIR!/log/error.log;
+	access_log !SITEDIR!/log/access.log main;
+
+        set $ssl off;
+        set $port 80;
+        if ($scheme = https) {
+                set $ssl on;
+                set $port 443;
+        }
+
+        location / {
+                proxy_connect_timeout 59s;
+                proxy_send_timeout 600s;
+                proxy_read_timeout 600s;
+                proxy_buffer_size 64k;
+                proxy_buffers 16 32k;
+                proxy_busy_buffers_size 64k;
+                proxy_temp_file_write_size 64k;
+                proxy_max_temp_file_size 0;
+                proxy_pass_header Set-Cookie;
+                proxy_redirect off;
+                proxy_hide_header Vary;
+                proxy_ignore_headers Cache-Control Expires;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection 'upgrade';
+                proxy_set_header Accept-Encoding '';
+                proxy_set_header Referer $http_referer;
+                proxy_set_header Host $host;
+                proxy_set_header Cookie $http_cookie;
+                proxy_set_header X-Real-IP $remote_addr:$remote_port;
+                proxy_set_header X-Forwarded-Host $host;
+                proxy_set_header X-Forwarded-Server $host;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_set_header X-Forwarded-Ssl $ssl;
+                proxy_set_header X-Forwarded-Port $port;
+                proxy_set_header Proxy "";
+                proxy_cache_bypass $http_upgrade;
+                proxy_http_version 1.1;
+                proxy_pass http://!REDIRECTSERVER!:!REDIRECTPORT!;
+        }
+}
