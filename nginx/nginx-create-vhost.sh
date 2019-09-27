@@ -107,7 +107,7 @@ create_linux_user_and_group ()
 		echo -e "Done${NORMAL}"
 		NEXTWEBUSER_NUM=$(cat "${NGINX_DIR}/settings.conf" | grep NEXTWEBUSER | cut -d "=" -f 2 | sed s/[^0-9]//g)
 		NEXTWEBUSER_NAME=$(cat "${NGINX_DIR}/settings.conf" | grep NEXTWEBUSER | cut -d "=" -f 2 | sed s/[^a-zA-Z]//g)
-		((NEXTWEBUSER_NUM_INC++))
+		NEXTWEBUSER_NUM_INC=$(expr ${NEXTWEBUSER_NUM} + 1)
 		sed -i "s@${USERLOGINNAME}@${NEXTWEBUSER_NAME}${NEXTWEBUSER_NUM_INC}@g" "${NGINX_DIR}/settings.conf"
 	else
 		echo -e "${RED}Error, the user ${USERLOGINNAME} does not exist${NORMAL}"
@@ -127,9 +127,9 @@ create_linux_user_and_group ()
 		GROUP_CNT=$(getent group | grep -c "${GROUPNAME}")
 		if [ ${GROUP_CNT} -ne 0 ]; then
 			echo -e "Done${NORMAL}"
-			local NEXTWEBGROUP_NUM=$(cat ${NGINX_DIR}/settings.conf | grep NEXTWEBGROUP | cut -d "=" -f 2 | sed s/[^0-9]//g)
-			local NEXTWEBGROUP_NAME=$(cat ${NGINX_DIR}/settings.conf | grep NEXTWEBGROUP | cut -d "=" -f 2 | sed s/[^a-zA-Z]//g)
-			((NEXTWEBGROUP_NUM_INC++))
+			local NEXTWEBGROUP_NUM=$(cat "${NGINX_DIR}/settings.conf" | grep NEXTWEBGROUP | cut -d "=" -f 2 | sed s/[^0-9]//g)
+			local NEXTWEBGROUP_NAME=$(cat "${NGINX_DIR}/settings.conf" | grep NEXTWEBGROUP | cut -d "=" -f 2 | sed s/[^a-zA-Z]//g)
+			NEXTWEBGROUP_NUM_INC=$(expr ${NEXTWEBGROUP_NUM} + 1)
 			sed -i "s@${GROUPNAME}@${NEXTWEBGROUP_NAME}${NEXTWEBGROUP_NUM_INC}@g" "${NGINX_DIR}/settings.conf" >/dev/null 2>&1
 		else
 			echo -e "${RED}Error, the group ${GROUPNAME} does not exist${NORMAL}"
@@ -137,7 +137,7 @@ create_linux_user_and_group ()
 		fi
 	fi
 
-	echo -en "${GREEN}Adding user ${USERLOGINNAME} to group ${GROUPNAME}...\t\t\t"
+	echo -en "${GREEN}Adding user ${USERLOGINNAME} to group ${GROUPNAME}...\t\t"
 	usermod -a -G ${GROUPNAME} ${USERLOGINNAME} >/dev/null 2>&1
 	if user_in_group "${USERLOGINNAME}" "${GROUPNAME}"; then
 		echo -e "Done${NORMAL}"
@@ -838,7 +838,7 @@ if [ ! -d "${DEFAULT_TEMPLATE_DIR}" ]; then
 		if [ -d "${DEFAULT_TEMPLATE_DIR}" ]; then
 			echo -e "Done${NORMAL}"
 		else
-			echo -e "${RED}Error: Failed to create the ${DEFAULT_TEMPLATE_DIR} directory.${NORMAL}"
+			echo -e "${RED}Error: Failed to create the '${DEFAULT_TEMPLATE_DIR}' directory.${NORMAL}"
 			exit 1;
 		fi
 	else
@@ -854,9 +854,9 @@ fi
 USE_REDIRECT=$(echo "${NGINX_TEMPLATE}" | grep -c "redirect")
 
 if [ -z "${USERLOGINNAME}" ]; then
-	USERLOGINNAME=$(cat ${NGINX_DIR}/settings.conf | grep NEXTWEBUSER | cut -d "=" -f 2)
+	USERLOGINNAME=$(cat "${NGINX_DIR}/settings.conf" | grep NEXTWEBUSER | cut -d "=" -f 2)
 	if [ "${USERLOGINNAME}" = "" ]; then
-		echo -e "${RED}Error: In file ${NGINX_DIR}/settings.conf not found parameter NEXTWEBUSER.${NORMAL}"
+		echo -e "${RED}Error: In file '${NGINX_DIR}/settings.conf' not found parameter NEXTWEBUSER.${NORMAL}"
 		usage
 		exit 1;
 	fi
@@ -864,9 +864,9 @@ fi
 echo -e "${GREEN}Set new username\t\t${USERLOGINNAME}${NORMAL}"
 
 if [ -z "${GROUPNAME}" ]; then
-	GROUPNAME=$(cat ${NGINX_DIR}/settings.conf | grep NEXTWEBGROUP | cut -d "=" -f 2)
+	GROUPNAME=$(cat "${NGINX_DIR}/settings.conf" | grep NEXTWEBGROUP | cut -d "=" -f 2)
 	if [ -z "${GROUPNAME}" ]; then
-		echo -e "${RED}Error: In file ${NGINX_DIR}/settings.conf not found parameter NEXTWEBGROUP.${NORMAL}"
+		echo -e "${RED}Error: In file '${NGINX_DIR}/settings.conf' not found parameter NEXTWEBGROUP.${NORMAL}"
 		usage
 		exit 1;
 	fi
