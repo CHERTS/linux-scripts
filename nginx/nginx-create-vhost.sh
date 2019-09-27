@@ -137,7 +137,7 @@ create_linux_user_and_group ()
 		fi
 	fi
 
-	echo -en "${GREEN}Adding user ${USERLOGINNAME} to group ${GROUPNAME}...\t\t"
+	echo -en "${GREEN}Adding user ${USERLOGINNAME} to group ${GROUPNAME}...\t\t\t"
 	usermod -a -G ${GROUPNAME} ${USERLOGINNAME} >/dev/null 2>&1
 	if user_in_group "${USERLOGINNAME}" "${GROUPNAME}"; then
 		echo -e "Done${NORMAL}"
@@ -529,13 +529,13 @@ _detect_linux_distrib() {
 	local DIST=$1
 	local REV=$2
 	local PSUEDONAME=$3
-	echo -n "Detecting your Linux distrib: "
+	echo -en "${GREEN}Detecting your Linux distrib\t"
 	case "${DIST}" in
 		Ubuntu)
 			echo -n "${DIST} ${REV}"
 			case "${REV}" in
 			14.04|16.04|17.10|18.04)
-				echo " (${PSUEDONAME})"
+				echo -e " (${PSUEDONAME})${NORMAL}"
 				;;
 			*)
 				_unknown_distrib
@@ -546,21 +546,21 @@ _detect_linux_distrib() {
 			echo -n "${DIST} ${REV}"
 			case "${REV}" in
 			8|9)
-				echo " (${PSUEDONAME})"
+				echo -e " (${PSUEDONAME})${NORMAL}"
 				;;
 			*)
 				_unknown_distrib
 				;;
 			esac
 			;;
-		"Red Hat"*)
-			echo "${DIST} ${REV} (${PSUEDONAME})"
+		"Red Hat"*|"RedHat"*)
+			echo -e "${DIST} ${REV} (${PSUEDONAME})${NORMAL}"
 			;;
 		CentOS)
-			echo "${DIST} ${REV} (${PSUEDONAME})"
+			echo -e "${DIST} ${REV} (${PSUEDONAME})${NORMAL}"
 			;;
 		*)
-			echo "Unsupported (${DIST} | ${REV} | ${PSUEDONAME})"
+			echo -e "Unsupported (${DIST} | ${REV} | ${PSUEDONAME})${NORMAL}"
 			_unknown_distrib
 			;;
 	esac
@@ -568,10 +568,10 @@ _detect_linux_distrib() {
 
 OS=$(uname -s)
 OS_ARCH=$(uname -m)
-echo -n "Detecting your OS: "
+echo -en "${GREEN}Detecting your OS\t\t"
 case "${OS}" in
 	Linux*)
-		echo "Linux (${OS_ARCH})"
+		echo -e "Linux (${OS_ARCH})${NORMAL}"
 		PLATFORM="linux"
 		DISTROBASEDON="Unknown"
 		DIST="Unknown"
@@ -608,17 +608,17 @@ case "${OS}" in
 		_detect_linux_distrib "${DIST}" "${REV}" "${PSUEDONAME}"
 		;;
 	*)
-		echo "Unknown"
+		echo -e "Unknown${NORMAL}"
 		_unknown_os
 		;;
 esac
 
-echo -n "Checking your privileges... "
+echo -en "${GREEN}Checking your privileges\t"
 CURRENT_USER=$(whoami)
 if [[ "${CURRENT_USER}" = "root" ]]; then
-	echo "OK"
+	echo -e "OK${NORMAL}"
 else
-	echo "Error: root access is required"
+	echo -e "${RED}Error: root access is required${NORMAL}"
 	exit 1
 fi
 
@@ -657,9 +657,9 @@ case "${DIST}" in
 	Debian)
 		DEBIAN_VERSION=$(sed 's/\..*//' /etc/debian_version)
 		OS_DISTRIB="Debian"
-		echo -e "${OS_DISTRIB} (${OS_INIT_SYSTEM})${NORMAL}"
+		echo -e "${GREEN}Detect Debian version\t\t${OS_DISTRIB} (${OS_INIT_SYSTEM})${NORMAL}"
 		if [[ "${DEBIAN_VERSION}" = "9" ]]; then
-			echo -en "${GREEN}Detecting your php-fpm\t"
+			echo -en "${GREEN}Detecting your php-fpm\t\t"
 			if command_exists php-fpm7.0 ; then
 				echo -e "Found php-fpm7.0${NORMAL}"
 				PHP_FPM_BIN=$(which php-fpm7.0)
@@ -680,7 +680,7 @@ case "${DIST}" in
 				exit 1;
 			fi
 		elif [[ "${DEBIAN_VERSION}" = "8" ]]; then
-			echo -en "${GREEN}Detecting your php-fpm\t"
+			echo -en "${GREEN}Detecting your php-fpm\t\t"
 			if command_exists php5-fpm ; then
 				echo -e "Found php5-fpm${NORMAL}"
 				PHP_FPM_BIN=$(which php5-fpm)
@@ -704,10 +704,10 @@ case "${DIST}" in
 		if [ -f "/etc/oracle-release" ]; then
 			ORACLE_VERSION=$(cat "/etc/oracle-release" | sed s/.*release\ // | sed s/\ .*//)
 			OS_DISTRIB="Oracle"
-			echo -e "${OS_DISTRIB} ${ORACLE_VERSION} (${OS_INIT_SYSTEM})${NORMAL}"
+			echo -e "${GREEN}Detect RedHat version\t\t${OS_DISTRIB} ${ORACLE_VERSION} (${OS_INIT_SYSTEM})${NORMAL}"
 			case "${ORACLE_VERSION}" in
 				6.*)
-					echo -en "${GREEN}Detecting your php-fpm\t"
+					echo -en "${GREEN}Detecting your php-fpm\t\t"
 					if command_exists php-fpm ; then
 						PHP_FPM_BIN=$(which php-fpm)
 						echo -e "Found php-fpm${NORMAL}"
@@ -729,8 +729,8 @@ case "${DIST}" in
 						exit 1;
 					fi
 				;;
-				7.*)
-					echo -en "${GREEN}Detecting your php-fpm\t"
+				7.*|8.*)
+					echo -en "${GREEN}Detecting your php-fpm\t\t"
 					if command_exists php-fpm ; then
 						PHP_FPM_BIN=$(which php-fpm)
 						echo -e "Found php-fpm${NORMAL}"
@@ -773,34 +773,40 @@ else
 fi
 
 if [ ! -d "${NGINX_DIR}" ]; then
-	echo -e "${RED}Error: nginx directory ${NGINX_DIR} not found.${NORMAL}"
+	echo -e "${RED}Error: nginx directory '${NGINX_DIR}' not found.${NORMAL}"
+	exit 1;
+fi
+
+if [ ! -f "${NGINX_DIR}/nginx.conf" ]; then
+	echo -e "${RED}Error: nginx config file '${NGINX_DIR}/nginx.conf' not found.${NORMAL}"
 	exit 1;
 fi
 
 if [ ! -d "${NGINX_SSL_DIR}" ]; then
-	mkdir "${NGINX_SSL_DIR}"
+	mkdir "${NGINX_SSL_DIR}" 2>/dev/null
 fi
 
-echo -en "${GREEN}Detecting nginx owner\t"
-if user_exists ${NGINX_USER}; then
-	echo -e "Found ${NGINX_USER}${NORMAL}"
-else
-	NGINX_OWNER=$(cat /etc/nginx/nginx.conf | grep -E '^user' | awk -F' ' '{print $2}' | tr -d ';')
-	if [ -n "${NGINX_OWNER}" ]; then
-		if user_exists ${NGINX_OWNER}; then
-			NGINX_USER=${NGINX_OWNER}
-			echo -e "Found ${NGINX_USER}${NORMAL}"
+echo -en "${GREEN}Detecting nginx owner\t\t"
+NGINX_OWNER=$(cat "${NGINX_DIR}/nginx.conf" | grep -E '^user' | awk -F' ' '{print $2}' | tr -d ';')
+if [ -n "${NGINX_OWNER}" ]; then
+	if user_exists ${NGINX_OWNER}; then
+		NGINX_USER=${NGINX_OWNER}
+		echo -e "${NGINX_USER}${NORMAL}"
+	else
+		if user_exists ${NGINX_USER}; then
+			echo -e "${NGINX_USER}${NORMAL}"
 		else
 			echo -e "${RED}Err${NORMAL}"
-			echo -e "${RED}Error: nginx owner '${NGINX_OWNER}' not found.${NORMAL}"
+			echo -e "${RED}Error: standart nginx owner '${NGINX_USER}' not found.${NORMAL}"
 			echo -e "${CYAN}Check parameter 'user' in file '"${NGINX_DIR}/nginx.conf"'${NORMAL}"
 			exit 1;
 		fi
-	else
-		echo -e "${RED}Err${NORMAL}"
-		echo -e "${RED}Error: nginx owner '${NGINX_OWNER}' not found.${NORMAL}"
-		echo -e "${CYAN}Check parameter 'user' in file '"${NGINX_DIR}/nginx.conf"'${NORMAL}"
 	fi
+else
+	echo -e "${RED}Err${NORMAL}"
+	echo -e "${RED}Error: nginx owner not found.${NORMAL}"
+	echo -e "${CYAN}Check parameter 'user' in file '"${NGINX_DIR}/nginx.conf"'${NORMAL}"
+	exit 1;
 fi
 
 if [ ! -e "${NGINX_DIR}/settings.conf" ]; then
@@ -855,7 +861,7 @@ if [ -z "${USERLOGINNAME}" ]; then
 		exit 1;
 	fi
 fi
-echo -e "${GREEN}Set new username:\t${USERLOGINNAME}${NORMAL}"
+echo -e "${GREEN}Set new username\t\t${USERLOGINNAME}${NORMAL}"
 
 if [ -z "${GROUPNAME}" ]; then
 	GROUPNAME=$(cat ${NGINX_DIR}/settings.conf | grep NEXTWEBGROUP | cut -d "=" -f 2)
@@ -865,7 +871,7 @@ if [ -z "${GROUPNAME}" ]; then
 		exit 1;
 	fi
 fi
-echo -e "${GREEN}Set new groupname:\t${GROUPNAME}${NORMAL}"
+echo -e "${GREEN}Set new groupname\t\t${GROUPNAME}${NORMAL}"
 
 if [ -z "${SITENAME}" ]; then
 	echo -e "${RED}Error: You must enter a domain name.${NORMAL}"
@@ -877,7 +883,7 @@ fi
 PATTERN="^([[:alnum:]]([[:alnum:]\-]{0,61}[[:alnum:]])?\.)+[[:alpha:]]{2,6}$"
 if [[ "${SITENAME}" =~ $PATTERN ]]; then
 	DOMAIN=$(echo ${SITENAME} | tr '[A-Z]' '[a-z]')
-	echo -e "${GREEN}Set nginx hostname:\t${SITENAME}${NORMAL}"
+	echo -e "${GREEN}Set nginx hostname:\t\t${SITENAME}${NORMAL}"
 else
 	echo -e "${RED}Error: Invalid domain name.${NORMAL}"
 	exit 1
@@ -904,8 +910,8 @@ if [ -f "${NGINX_DIR}/settings.conf" ]; then
 		SERVERIP=${DEFAULT_SERVERIP}
 	fi
 fi
-echo -e "${GREEN}Set nginx vhost ip:\t${SERVERIP}${NORMAL}"
-echo -e "${GREEN}Set nginx vhost port:\t${SERVERPORT}${NORMAL}"
+echo -e "${GREEN}Set nginx vhost ip\t\t${SERVERIP}${NORMAL}"
+echo -e "${GREEN}Set nginx vhost port\t\t${SERVERPORT}${NORMAL}"
 
 if [ -n "${SITENAME}" ]; then
 	if [ -d "${SITEDIR}" ]; then

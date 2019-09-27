@@ -302,13 +302,13 @@ _detect_linux_distrib() {
 	local DIST=$1
 	local REV=$2
 	local PSUEDONAME=$3
-	echo -n "Detecting your Linux distrib: "
+	echo -en "${GREEN}Detecting your Linux distrib\t"
 	case "${DIST}" in
 		Ubuntu)
 			echo -n "${DIST} ${REV}"
 			case "${REV}" in
 			14.04|16.04|17.10|18.04)
-				echo " (${PSUEDONAME})"
+				echo -e " (${PSUEDONAME})${NORMAL}"
 				;;
 			*)
 				_unknown_distrib
@@ -319,7 +319,7 @@ _detect_linux_distrib() {
 			echo -n "${DIST} ${REV}"
 			case "${REV}" in
 			8|9)
-				echo " (${PSUEDONAME})"
+				echo -e " (${PSUEDONAME})${NORMAL}"
 				;;
 			*)
 				_unknown_distrib
@@ -327,13 +327,13 @@ _detect_linux_distrib() {
 			esac
 			;;
 		"Red Hat"*)
-			echo "${DIST} ${REV} (${PSUEDONAME})"
+			echo -e "${DIST} ${REV} (${PSUEDONAME})${NORMAL}"
 			;;
 		CentOS)
-			echo "${DIST} ${REV} (${PSUEDONAME})"
+			echo -e "${DIST} ${REV} (${PSUEDONAME})${NORMAL}"
 			;;
 		*)
-			echo "Unsupported (${DIST} | ${REV} | ${PSUEDONAME})"
+			echo -e "Unsupported (${DIST} | ${REV} | ${PSUEDONAME})${NORMAL}"
 			_unknown_distrib
 			;;
 	esac
@@ -341,10 +341,10 @@ _detect_linux_distrib() {
 
 OS=$(uname -s)
 OS_ARCH=$(uname -m)
-echo -n "Detecting your OS: "
+echo -en "${GREEN}Detecting your OS\t\t"
 case "${OS}" in
 	Linux*)
-		echo "Linux (${OS_ARCH})"
+		echo -e "Linux (${OS_ARCH})${NORMAL}"
 		PLATFORM="linux"
 		DISTROBASEDON="Unknown"
 		DIST="Unknown"
@@ -381,17 +381,17 @@ case "${OS}" in
 		_detect_linux_distrib "${DIST}" "${REV}" "${PSUEDONAME}"
 		;;
 	*)
-		echo "Unknown"
+		echo -e "Unknown${NORMAL}"
 		_unknown_os
 		;;
 esac
 
-echo -n "Checking your privileges... "
+echo -en "${GREEN}Checking your privileges\t"
 CURRENT_USER=$(whoami)
 if [[ "${CURRENT_USER}" = "root" ]]; then
-	echo "OK"
+	echo -e "OK${NORMAL}"
 else
-	echo "Error: root access is required"
+	echo -e "${RED}Error: root access is required${NORMAL}"
 	exit 1
 fi
 
@@ -406,7 +406,7 @@ OS_INIT_SYSTEM=$(${STRINGS_BIN} /sbin/init | awk 'match($0, /(upstart|systemd|sy
 
 case "${DIST}" in
 	Ubuntu)
-		echo -en "${GREEN}Detecting your php-fpm\t"
+		echo -en "${GREEN}Detecting your php-fpm\t\t"
 		if command_exists php-fpm7.2 ; then
 			echo -e "Found php-fpm7.2${NORMAL}"
 			PHP_FPM_BIN=$(which php-fpm7.2)
@@ -430,9 +430,9 @@ case "${DIST}" in
 	Debian)
 		DEBIAN_VERSION=$(sed 's/\..*//' /etc/debian_version)
 		OS_DISTRIB="Debian"
-		echo -e "${OS_DISTRIB} (${OS_INIT_SYSTEM})${NORMAL}"
+		echo -e "${GREEN}Detect Debian version\t\t${OS_DISTRIB} (${OS_INIT_SYSTEM})${NORMAL}"
 		if [[ "${DEBIAN_VERSION}" = "9" ]]; then
-			echo -en "${GREEN}Detecting your php-fpm\t"
+			echo -en "${GREEN}Detecting your php-fpm\t\t"
 			if command_exists php-fpm7.0 ; then
 				echo -e "Found php-fpm7.0${NORMAL}"
 				PHP_FPM_BIN=$(which php-fpm7.0)
@@ -453,7 +453,7 @@ case "${DIST}" in
 				exit 1;
 			fi
 		elif [[ "${DEBIAN_VERSION}" = "8" ]]; then
-			echo -en "${GREEN}Detecting your php-fpm\t"
+			echo -en "${GREEN}Detecting your php-fpm\t\t"
 			if command_exists php5-fpm ; then
 				echo -e "Found php5-fpm${NORMAL}"
 				PHP_FPM_BIN=$(which php5-fpm)
@@ -477,10 +477,10 @@ case "${DIST}" in
 		if [ -f "/etc/oracle-release" ]; then
 			ORACLE_VERSION=$(cat "/etc/oracle-release" | sed s/.*release\ // | sed s/\ .*//)
 			OS_DISTRIB="Oracle"
-			echo -e "${OS_DISTRIB} ${ORACLE_VERSION} (${OS_INIT_SYSTEM})${NORMAL}"
+			echo -e "${GREEN}Detect RedHat version\t\t${OS_DISTRIB} ${ORACLE_VERSION} (${OS_INIT_SYSTEM})${NORMAL}"
 			case "${ORACLE_VERSION}" in
 				6.*)
-					echo -en "${GREEN}Detecting your php-fpm\t"
+					echo -en "${GREEN}Detecting your php-fpm\t\t"
 					if command_exists php-fpm ; then
 						PHP_FPM_BIN=$(which php-fpm)
 						echo -e "Found php-fpm${NORMAL}"
@@ -502,8 +502,8 @@ case "${DIST}" in
 						exit 1;
 					fi
 				;;
-				7.*)
-					echo -en "${GREEN}Detecting your php-fpm\t"
+				7.*|8.*)
+					echo -en "${GREEN}Detecting your php-fpm\t\t"
 					if command_exists php-fpm ; then
 						PHP_FPM_BIN=$(which php-fpm)
 						echo -e "Found php-fpm${NORMAL}"
