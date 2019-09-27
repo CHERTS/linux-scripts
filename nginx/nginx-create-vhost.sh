@@ -4,7 +4,7 @@
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.4.4
+# Current Version: 1.4.6
 # 
 # Example: ./nginx-create-vhost.sh -d "domain.com"
 # or
@@ -13,6 +13,9 @@
 # Example: ./nginx-create-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1
 #
 # Revision History:
+#
+#  Version 1.4.6
+#    Fixed RedHat detected
 #
 #  Version 1.4.5
 #    Added custom nginx templates
@@ -461,7 +464,7 @@ _unknown_distrib() {
 	exit 1
 }
 
-unknown_debian ()
+_unknown_debian ()
 {
 	echo
 	echo "Unfortunately, your Debian Linux operating system distribution and version are not supported by this script."
@@ -470,7 +473,7 @@ unknown_debian ()
 	exit 1
 }
 
-unknown_oracle ()
+_unknown_oracle ()
 {
 	echo
 	echo "Unfortunately, your Oracle Linux operating system distribution and version are not supported by this script."
@@ -694,10 +697,10 @@ case "${DIST}" in
 				exit 1;
 			fi
 		else
-			unknown_debian
+			_unknown_debian
 		fi
 		;;
-	"RedHat"*)
+	"Red Hat"*|"RedHat"*)
 		if [ -f "/etc/oracle-release" ]; then
 			ORACLE_VERSION=$(cat "/etc/oracle-release" | sed s/.*release\ // | sed s/\ .*//)
 			OS_DISTRIB="Oracle"
@@ -750,15 +753,15 @@ case "${DIST}" in
 					fi
 				;;
 				*)
-					unknown_oracle
+					_unknown_oracle
 				;;
 			esac
 		else
-			unknown_os
+			_unknown_os
 		fi
 		;;
 	*)
-		unknown_distrib
+		_unknown_distrib
 		;;
 esac
 
