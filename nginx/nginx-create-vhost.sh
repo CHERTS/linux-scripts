@@ -377,7 +377,7 @@ create_nginx_vhost ()
 	fi
 
 	echo -en "${GREEN}Create nginx config file...\t\t\t"
-	cp -- "${DEFAULT_TEMPLATE_DIR}/nginx_virtual_host.template" "${NGINX_VHOST_DIR}/${SITENAME}.vhost" >/dev/null 2>&1
+	cp -- "${DEFAULT_TEMPLATE_DIR}/${NGINX_TEMPLATE}" "${NGINX_VHOST_DIR}/${SITENAME}.vhost" >/dev/null 2>&1
 	if [ -f "${NGINX_VHOST_DIR}/${SITENAME}.vhost" ]; then
 		sed -i "s@!SERVERIP!@${SERVERIP}@g" "${NGINX_VHOST_DIR}/${SITENAME}.vhost" >/dev/null 2>&1
 		sed -i "s@!SERVERPORT!@${SERVERPORT}@g" "${NGINX_VHOST_DIR}/${SITENAME}.vhost" >/dev/null 2>&1
