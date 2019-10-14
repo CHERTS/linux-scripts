@@ -34,7 +34,7 @@ else
 fi
 
 # Checking the availability of necessary utilities
-COMMAND_EXIST_ARRAY=(DU SED AWK CUT EXPR RM CAT WC GREP DIRNAME HEAD LS MV FIND WGET TAR CHOWN CP)
+COMMAND_EXIST_ARRAY=(DU SED AWK CUT EXPR RM CAT WC GREP DIRNAME HEAD LS MV FIND WGET TAR CHOWN CP RSYNC)
 for ((i=0; i<${#COMMAND_EXIST_ARRAY[@]}; i++)); do
 	__CMDVAR=${COMMAND_EXIST_ARRAY[$i]}
 	CMD_FIND=$(echo "${__CMDVAR}" | ${TR_BIN} '[:upper:]' '[:lower:]')
@@ -110,6 +110,15 @@ _download_new_version() {
 	return ${EXIT_CODE}
 }
 
+_clean_zabbix_dist() {
+	if [ -d "${SCRIPT_DIR}/zabbix-${ZBX_VER}" ]; then
+		${RM_BIN} -rf "${SCRIPT_DIR}/zabbix-${ZBX_VER}" 2>/dev/null
+	fi
+	if [ -f "${SCRIPT_DIR}/zabbix-${ZBX_VER}.tar.gz" ]; then
+		${RM_BIN} -f "${SCRIPT_DIR}/zabbix-${ZBX_VER}.tar.gz" 2>/dev/null
+	fi
+}
+
 if [ ! -f "${SCRIPT_DIR}/zabbix-${ZBX_VER}.tar.gz" ]; then
 	_download_new_version
 	if [ $? -ne 0 ]; then
@@ -141,7 +150,7 @@ if [ -f "${SCRIPT_DIR}/zabbix-${ZBX_VER}.tar.gz" ]; then
 				echo "OK"
 			else
 				echo "ERR_BACKUP_CONF"
-				${RM_BIN} -rf "${SCRIPT_DIR}/zabbix-${ZBX_VER}" 2>/dev/null
+				_clean_zabbix_dist
 				exit 1
 			fi
 		fi
@@ -159,24 +168,16 @@ if [ -f "${SCRIPT_DIR}/zabbix-${ZBX_VER}.tar.gz" ]; then
 			echo "OK"
 		else
 			echo "ERR_DELETE_OLD_ZABBIX"
-			${RM_BIN} -rf "${SCRIPT_DIR}/zabbix-${ZBX_VER}" 2>/dev/null
+			_clean_zabbix_dist
 			exit 1
 		fi
 		echo -n "Copy new zabbix frontends... "
-		${CP_BIN} -ar "${SCRIPT_DIR}/zabbix-${ZBX_VER}/frontends/php/" "${ZBX_WEB_DIR}/" 2>/dev/null
+		${RSYNC_BIN} -av "${SCRIPT_DIR}/zabbix-${ZBX_VER}/frontends/php/" "${ZBX_WEB_DIR}/" >/dev/null 2>&1
 		if [ $? -eq 0 ]; then
-			${CP_BIN} -a "${ZBX_WEB_DIR}/php/." "${ZBX_WEB_DIR}/" 2>/dev/null
-			if [ $? -eq 0 ]; then
-				${RM_BIN} -rf "${ZBX_WEB_DIR}/php/" 2>/dev/null
-				echo "OK"
-			else
-				echo "ERR2"
-				${RM_BIN} -rf "${SCRIPT_DIR}/zabbix-${ZBX_VER}" 2>/dev/null
-				exit 1
-			fi
+			echo "OK"
 		else
-			echo "ERR1"
-			${RM_BIN} -rf "${SCRIPT_DIR}/zabbix-${ZBX_VER}" 2>/dev/null
+			echo "ERR_COPY_NEW_ZABBIX_FRONTEND"
+			_clean_zabbix_dist
 			exit 1
 		fi
 		echo -n "Set directory owner ${ZBX_WEB_DIR_OWNER}:${ZBX_WEB_DIR_GROUP}... "
@@ -184,13 +185,12 @@ if [ -f "${SCRIPT_DIR}/zabbix-${ZBX_VER}.tar.gz" ]; then
 		if [ $? -eq 0 ]; then
 			echo "OK"
 		else
-			echo "ERR"
+			echo "ERR_SET_WEBDIR_OWNER"
+			_clean_zabbix_dist
+			exit 1
 		fi
 	else
 		echo "WARNING: Directory '${ZBX_WEB_DIR}' not exist. Abort update..."
 	fi
-	if [ -d "${SCRIPT_DIR}/zabbix-${ZBX_VER}" ]; then
-		${RM_BIN} -rf "${SCRIPT_DIR}/zabbix-${ZBX_VER}" 2>/dev/null
-	fi
-	${RM_BIN} -f "${SCRIPT_DIR}/zabbix-${ZBX_VER}.tar.gz" 2>/dev/null
+	_clean_zabbix_dist
 fi
