@@ -13,7 +13,8 @@
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-ZBX_VER="4.2.2"
+ZBX_VER="4.4.0"
+#ZBX_VER="4.2.7"
 ZBX_WEB_DIR="/var/www/zabbix.mysite.ru"
 ZBX_WEB_DIR_OWNER=web1
 ZBX_WEB_DIR_GROUP=client1
@@ -193,4 +194,3 @@ if [ -f "${SCRIPT_DIR}/zabbix-${ZBX_VER}.tar.gz" ]; then
 	fi
 	${RM_BIN} -f "${SCRIPT_DIR}/zabbix-${ZBX_VER}.tar.gz" 2>/dev/null
 fi
-
