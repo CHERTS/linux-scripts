@@ -38,7 +38,7 @@ _installing_pack() {
 	if [ -f "${VBOX_PACK_NAME}" ]; then
 		echo -n "Installing Oracle VM VirtualBox Extension Pack... "
 		#${VBOXMANAGER_BIN} extpack uninstall "Oracle VM VirtualBox Extension Pack"
-		${VBOXMANAGER_BIN} extpack install "${VBOX_PACK_NAME}" --replace >/dev/null 2>&1
+		echo y | ${VBOXMANAGER_BIN} extpack install "${VBOX_PACK_NAME}" --replace >/dev/null 2>&1
 		if [ $? -eq 0 ]; then
 			echo "OK"
 		else
