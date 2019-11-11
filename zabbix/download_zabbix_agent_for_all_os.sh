@@ -24,99 +24,99 @@ DOWNLOAD_DIR="${SCRIPT_DIR}/${ZBX_VER}"
 ENABLE_DEBUG=0
 
 case ${ZBX_VER} in
-        "3.4")
-			ZBX_STABLE_VER=3.4.15
-			ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
-			ZBX_LINUX_MINOR_PKG_VER=1
-			# 3.4.0 -> non-openssl
-			ZBX_FULL_WINDOWS_VER=3.4.0
-			ZBX_WINDOWS_OPENSSL_PKG=0
-			ZBX_WINDOWS_AMD64_PKG=0
-			# 3.4.0 -> 7_1 (non-openssl)
-			ZBX_AIX_VER=7_1
-			ZBX_FULL_AIX_VER=3.4.0
-			ZBX_AIX_OPENSSL_PKG=0
-			# 3.4.15 -> 11.2 (openssl or non-openssl)
-			# 3.4.0 -> 11.1 (non-openssl)
-			ZBX_FREEBSD_VER=11.2
-			ZBX_FULL_FREEBSD_VER=${ZBX_STABLE_VER}
-			ZBX_FREEBSD_OPENSSL_PKG=1
-			# 3.4.15 -> 6.3 (openssl or non-openssl)
-			# 3.4.0 -> 5_9 or 6_1 (non-openssl)
-			ZBX_OPENBSD_VER=6.3
-			ZBX_FULL_OPENBSD_VER=${ZBX_STABLE_VER}
-			ZBX_OPENBSD_OPENSSL_PKG=0
-			;;
-        "4.0")
-			ZBX_STABLE_VER=4.0.14
-			ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
-			ZBX_LINUX_MINOR_PKG_VER=1
-			# 4.0.14 -> openssl or non-openssl
-			ZBX_FULL_WINDOWS_VER=${ZBX_STABLE_VER}
-			ZBX_WINDOWS_OPENSSL_PKG=1
-			ZBX_WINDOWS_AMD64_PKG=1
-			# 4.0.7 -> 7_2 (openssl or non-openssl)
-			# 4.0.7 -> 6_1 (openssl)
-			# 4.0.1 -> 6_1 (non-openssl)
-			ZBX_AIX_VER=7_2
-			ZBX_FULL_AIX_VER=4.0.7
-			ZBX_AIX_OPENSSL_PKG=1
-			# 4.0.14 -> openssl or non-openssl
-			ZBX_FREEBSD_VER=11.2
-			ZBX_FULL_FREEBSD_VER=${ZBX_STABLE_VER}
-			ZBX_FREEBSD_OPENSSL_PKG=1
-			# 4.0.14 -> openssl or non-openssl
-			ZBX_OPENBSD_VER=6.3
-			ZBX_FULL_OPENBSD_VER=${ZBX_STABLE_VER}
-			ZBX_OPENBSD_OPENSSL_PKG=1
-			;;
-        "4.2")
-			ZBX_STABLE_VER=4.2.8
-			ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
-			ZBX_LINUX_MINOR_PKG_VER=1
-			# 4.0.14 -> openssl or non-openssl
-			ZBX_FULL_WINDOWS_VER=${ZBX_STABLE_VER}
-			ZBX_WINDOWS_OPENSSL_PKG=1
-			ZBX_WINDOWS_AMD64_PKG=1
-			# 4.2.1 -> 7_2 (openssl or non-openssl)
-			# 4.2.1 -> 6_1 (openssl)
-			ZBX_AIX_VER=7_2
-			ZBX_FULL_AIX_VER=4.2.1
-			ZBX_AIX_OPENSSL_PKG=1
-			# 4.4.1 -> openssl or non-openssl
-			ZBX_FREEBSD_VER=11.2
-			ZBX_FULL_FREEBSD_VER=${ZBX_STABLE_VER}
-			ZBX_FREEBSD_OPENSSL_PKG=1
-			# 4.4.1 -> openssl or non-openssl
-			ZBX_OPENBSD_VER=6.3
-			ZBX_FULL_OPENBSD_VER=${ZBX_STABLE_VER}
-			ZBX_OPENBSD_OPENSSL_PKG=1
-			;;
-        "4.4")
-			ZBX_STABLE_VER=4.4.1
-			ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
-			ZBX_LINUX_MINOR_PKG_VER=1
-			# 4.0.14 -> openssl or non-openssl
-			ZBX_FULL_WINDOWS_VER=${ZBX_STABLE_VER}
-			ZBX_WINDOWS_OPENSSL_PKG=1
-			ZBX_WINDOWS_AMD64_PKG=1
-			# for AIX not build
-			ZBX_AIX_VER=7_2
-			ZBX_FULL_AIX_VER=4.4.1
-			ZBX_AIX_OPENSSL_PKG=1
-			# 4.4.1 -> openssl or non-openssl
-			ZBX_FREEBSD_VER=11.2
-			ZBX_FULL_FREEBSD_VER=${ZBX_STABLE_VER}
-			ZBX_FREEBSD_OPENSSL_PKG=1
-			# 4.4.1 -> openssl or non-openssl
-			ZBX_OPENBSD_VER=6.3
-			ZBX_FULL_OPENBSD_VER=${ZBX_STABLE_VER}
-			ZBX_OPENBSD_OPENSSL_PKG=1
-			;;
-        *)
-			echo "ERROR: Unsupperted Zabbix version ${ZBX_VER}."
-			exit 1;
-			;;
+	"3.4")
+		ZBX_STABLE_VER=3.4.15
+		ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
+		ZBX_LINUX_MINOR_PKG_VER=1
+		# 3.4.0 -> non-openssl
+		ZBX_FULL_WINDOWS_VER=3.4.0
+		ZBX_WINDOWS_OPENSSL_PKG=0
+		ZBX_WINDOWS_AMD64_PKG=0
+		# 3.4.0 -> 7_1 (non-openssl)
+		ZBX_AIX_VER=7_1
+		ZBX_FULL_AIX_VER=3.4.0
+		ZBX_AIX_OPENSSL_PKG=0
+		# 3.4.15 -> 11.2 (openssl or non-openssl)
+		# 3.4.0 -> 11.1 (non-openssl)
+		ZBX_FREEBSD_VER=11.2
+		ZBX_FULL_FREEBSD_VER=${ZBX_STABLE_VER}
+		ZBX_FREEBSD_OPENSSL_PKG=1
+		# 3.4.15 -> 6.3 (openssl or non-openssl)
+		# 3.4.0 -> 5_9 or 6_1 (non-openssl)
+		ZBX_OPENBSD_VER=6.3
+		ZBX_FULL_OPENBSD_VER=${ZBX_STABLE_VER}
+		ZBX_OPENBSD_OPENSSL_PKG=0
+		;;
+	"4.0")
+		ZBX_STABLE_VER=4.0.14
+		ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
+		ZBX_LINUX_MINOR_PKG_VER=1
+		# 4.0.14 -> openssl or non-openssl
+		ZBX_FULL_WINDOWS_VER=${ZBX_STABLE_VER}
+		ZBX_WINDOWS_OPENSSL_PKG=1
+		ZBX_WINDOWS_AMD64_PKG=1
+		# 4.0.7 -> 7_2 (openssl or non-openssl)
+		# 4.0.7 -> 6_1 (openssl)
+		# 4.0.1 -> 6_1 (non-openssl)
+		ZBX_AIX_VER=7_2
+		ZBX_FULL_AIX_VER=4.0.7
+		ZBX_AIX_OPENSSL_PKG=1
+		# 4.0.14 -> openssl or non-openssl
+		ZBX_FREEBSD_VER=11.2
+		ZBX_FULL_FREEBSD_VER=${ZBX_STABLE_VER}
+		ZBX_FREEBSD_OPENSSL_PKG=1
+		# 4.0.14 -> openssl or non-openssl
+		ZBX_OPENBSD_VER=6.3
+		ZBX_FULL_OPENBSD_VER=${ZBX_STABLE_VER}
+		ZBX_OPENBSD_OPENSSL_PKG=1
+		;;
+	"4.2")
+		ZBX_STABLE_VER=4.2.8
+		ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
+		ZBX_LINUX_MINOR_PKG_VER=1
+		# 4.0.14 -> openssl or non-openssl
+		ZBX_FULL_WINDOWS_VER=${ZBX_STABLE_VER}
+		ZBX_WINDOWS_OPENSSL_PKG=1
+		ZBX_WINDOWS_AMD64_PKG=1
+		# 4.2.1 -> 7_2 (openssl or non-openssl)
+		# 4.2.1 -> 6_1 (openssl)
+		ZBX_AIX_VER=7_2
+		ZBX_FULL_AIX_VER=4.2.1
+		ZBX_AIX_OPENSSL_PKG=1
+		# 4.4.1 -> openssl or non-openssl
+		ZBX_FREEBSD_VER=11.2
+		ZBX_FULL_FREEBSD_VER=${ZBX_STABLE_VER}
+		ZBX_FREEBSD_OPENSSL_PKG=1
+		# 4.4.1 -> openssl or non-openssl
+		ZBX_OPENBSD_VER=6.3
+		ZBX_FULL_OPENBSD_VER=${ZBX_STABLE_VER}
+		ZBX_OPENBSD_OPENSSL_PKG=1
+		;;
+	"4.4")
+		ZBX_STABLE_VER=4.4.1
+		ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
+		ZBX_LINUX_MINOR_PKG_VER=1
+		# 4.0.14 -> openssl or non-openssl
+		ZBX_FULL_WINDOWS_VER=${ZBX_STABLE_VER}
+		ZBX_WINDOWS_OPENSSL_PKG=1
+		ZBX_WINDOWS_AMD64_PKG=1
+		# for AIX not build
+		ZBX_AIX_VER=7_2
+		ZBX_FULL_AIX_VER=4.4.1
+		ZBX_AIX_OPENSSL_PKG=1
+		# 4.4.1 -> openssl or non-openssl
+		ZBX_FREEBSD_VER=11.2
+		ZBX_FULL_FREEBSD_VER=${ZBX_STABLE_VER}
+		ZBX_FREEBSD_OPENSSL_PKG=1
+		# 4.4.1 -> openssl or non-openssl
+		ZBX_OPENBSD_VER=6.3
+		ZBX_FULL_OPENBSD_VER=${ZBX_STABLE_VER}
+		ZBX_OPENBSD_OPENSSL_PKG=1
+		;;
+	*)
+		echo "ERROR: Unsupperted Zabbix version ${ZBX_VER}."
+		exit 1;
+		;;
 esac
 
 _command_exists() {
