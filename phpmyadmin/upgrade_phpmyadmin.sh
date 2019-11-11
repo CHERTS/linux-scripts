@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
+
 #
 # Program: Upgrade phpMyAdmin and migrate old settings to new version <upgrade_phpmyadmin.sh>
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.0.1
+# Current Version: 1.0.2
 #
 # Revision History:
 #
-#  Version 1.0.1
+#  Version 1.0.2
+#    Fixed code style
+#
+#  Version 1.0.2
 #    Added checking exist wget util
 #
 # License:
