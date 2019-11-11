@@ -280,7 +280,12 @@ _wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el7" "x86_64"
 _wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el7" "x86_64"
 _wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el7" "x86_64"
 
-# Download Zabbix for Debian 9 (stretch)
+# Download Zabbix for RedHat/OracleLinux/CentOS 8
+_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el8" "x86_64"
+_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el8" "x86_64"
+_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el8" "x86_64"
+
+# Download Zabbix for Debian 9 (Stretch)
 _wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "stretch" "amd64"
 _wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "stretch" "i386"
 _wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "stretch" "amd64"
@@ -288,7 +293,15 @@ _wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "stretch" "i386"
 _wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "stretch" "amd64"
 _wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "stretch" "i386"
 
-# Download Zabbix for Debian Ubuntu 18.04 (xenial)
+# Download Zabbix for Debian 10 (Buster)
+_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "buster" "amd64"
+_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "buster" "i386"
+_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "buster" "amd64"
+_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "buster" "i386"
+_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "buster" "amd64"
+_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "buster" "i386"
+
+# Download Zabbix for Debian Ubuntu 16.04 (Xenial)
 _wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "xenial" "amd64"
 _wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "xenial" "i386"
 _wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "xenial" "amd64"
@@ -296,3 +309,10 @@ _wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "xenial" "i386"
 _wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "xenial" "amd64"
 _wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "xenial" "i386"
 
+# Download Zabbix for Debian Ubuntu 18.04 (Bionic)
+_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "bionic" "amd64"
+_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "bionic" "i386"
+_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "bionic" "amd64"
+_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "bionic" "i386"
+_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "bionic" "amd64"
+_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "bionic" "i386"
