@@ -5,7 +5,7 @@
 #
 # Author: Mikhail Grigorev <sleuthound at gmail dot com>
 #
-# Current Version: 1.0
+# Current Version: 1.1
 #
 # License:
 #  This program is distributed in the hope that it will be useful,
@@ -13,7 +13,7 @@
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-# Latest agents (3.4 or 4.0 or 4.2 or 4.4)
+# Latest agents (3.4 or 4.0 or 4.4)
 ZBX_VER=4.4
 # Zabbix pkg repo
 ZBX_URL=http://repo.zabbix.com/zabbix/${ZBX_VER}
@@ -48,7 +48,7 @@ case ${ZBX_VER} in
 		ZBX_OPENBSD_OPENSSL_PKG=0
 		;;
 	"4.0")
-		ZBX_STABLE_VER=4.0.14
+		ZBX_STABLE_VER=4.0.18
 		ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
 		ZBX_LINUX_MINOR_PKG_VER=1
 		# 4.0.14 -> openssl or non-openssl
@@ -58,7 +58,7 @@ case ${ZBX_VER} in
 		# 4.0.7 -> 7_2 (openssl or non-openssl)
 		# 4.0.7 -> 6_1 (openssl)
 		# 4.0.1 -> 6_1 (non-openssl)
-		ZBX_AIX_VER=7_2
+		ZBX_AIX_VER=7.2
 		ZBX_FULL_AIX_VER=4.0.7
 		ZBX_AIX_OPENSSL_PKG=1
 		# 4.0.14 -> openssl or non-openssl
@@ -70,30 +70,8 @@ case ${ZBX_VER} in
 		ZBX_FULL_OPENBSD_VER=${ZBX_STABLE_VER}
 		ZBX_OPENBSD_OPENSSL_PKG=1
 		;;
-	"4.2")
-		ZBX_STABLE_VER=4.2.8
-		ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
-		ZBX_LINUX_MINOR_PKG_VER=1
-		# 4.0.14 -> openssl or non-openssl
-		ZBX_FULL_WINDOWS_VER=${ZBX_STABLE_VER}
-		ZBX_WINDOWS_OPENSSL_PKG=1
-		ZBX_WINDOWS_AMD64_PKG=1
-		# 4.2.1 -> 7_2 (openssl or non-openssl)
-		# 4.2.1 -> 6_1 (openssl)
-		ZBX_AIX_VER=7_2
-		ZBX_FULL_AIX_VER=4.2.1
-		ZBX_AIX_OPENSSL_PKG=1
-		# 4.4.1 -> openssl or non-openssl
-		ZBX_FREEBSD_VER=11.2
-		ZBX_FULL_FREEBSD_VER=${ZBX_STABLE_VER}
-		ZBX_FREEBSD_OPENSSL_PKG=1
-		# 4.4.1 -> openssl or non-openssl
-		ZBX_OPENBSD_VER=6.3
-		ZBX_FULL_OPENBSD_VER=${ZBX_STABLE_VER}
-		ZBX_OPENBSD_OPENSSL_PKG=1
-		;;
 	"4.4")
-		ZBX_STABLE_VER=4.4.1
+		ZBX_STABLE_VER=4.4.6
 		ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
 		ZBX_LINUX_MINOR_PKG_VER=1
 		# 4.0.14 -> openssl or non-openssl
@@ -101,8 +79,8 @@ case ${ZBX_VER} in
 		ZBX_WINDOWS_OPENSSL_PKG=1
 		ZBX_WINDOWS_AMD64_PKG=1
 		# for AIX not build
-		ZBX_AIX_VER=7_2
-		ZBX_FULL_AIX_VER=4.4.1
+		ZBX_AIX_VER=7.2
+		ZBX_FULL_AIX_VER=4.2.1
 		ZBX_AIX_OPENSSL_PKG=1
 		# 4.4.1 -> openssl or non-openssl
 		ZBX_FREEBSD_VER=11.2
@@ -147,7 +125,7 @@ _wget_zbx() {
 		aix|openbsd|freebsd)
 			ZBX_PKG_EXT="tar.gz"
 			;;
-		win)
+		windows)
 			ZBX_PKG_EXT="zip"
 			;;
 		*)
@@ -171,7 +149,7 @@ _wget_zbx() {
 			ZBX_FULL_PKG_NAME="${ZBX_PACKAGE_NAME}_${ZBX_LINUX_FULL_VER}-${ZBX_PACKAGE_MINOR_VER}+${ZBX_PLATFORM_VER}_${ZBX_X86_X64}.${ZBX_PKG_EXT}"
 			ZBX_FULL_URL="${ZBX_URL}/${ZBX_PLATFORM_VENDOR}/${ZBX_SUBDIR}"
 			;;
-		win)
+		windows)
 			ZBX_PKG_PREFIX="-"
 			ZBX_PKG_NAME_PREFIX="-"
 			ZBX_WIN_ARCH="${ZBX_PKG_PREFIX}${ZBX_X86_X64}"
@@ -192,8 +170,8 @@ _wget_zbx() {
 			ZBX_PKG_PREFIX="-"
 			ZBX_PKG_NAME_PREFIX="-"
 			if [[ "${ZBX_PLATFORM_VENDOR}" == "aix" ]]; then
-				ZBX_PKG_PREFIX="."
-				ZBX_PKG_NAME_PREFIX="_"
+				ZBX_PKG_PREFIX="-"
+				ZBX_PKG_NAME_PREFIX="-"
 			fi
 			if [[ "${ZBX_FULL_FREEBSD_VER}" == "3.4.0" ]]; then
 				ZBX_PKG_PREFIX="."
@@ -204,9 +182,9 @@ _wget_zbx() {
 				ZBX_PKG_NAME_PREFIX="_"
 			fi
 			if [ ${ZBX_OPENSSL} -eq 1 ]; then
-				ZBX_FULL_PKG_NAME="${ZBX_PACKAGE_NAME}${ZBX_PKG_NAME_PREFIX}${ZBX_PACKAGE_MINOR_VER}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VENDOR}${ZBX_PLATFORM_VER}${ZBX_PKG_PREFIX}${ZBX_X86_X64}${ZBX_PKG_PREFIX}openssl.${ZBX_PKG_EXT}"
+				ZBX_FULL_PKG_NAME="${ZBX_PACKAGE_NAME}${ZBX_PKG_NAME_PREFIX}${ZBX_PACKAGE_MINOR_VER}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VENDOR}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VER}${ZBX_PKG_PREFIX}${ZBX_X86_X64}${ZBX_PKG_PREFIX}openssl.${ZBX_PKG_EXT}"
 			else
-				ZBX_FULL_PKG_NAME="${ZBX_PACKAGE_NAME}${ZBX_PKG_NAME_PREFIX}${ZBX_PACKAGE_MINOR_VER}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VENDOR}${ZBX_PLATFORM_VER}${ZBX_PKG_PREFIX}${ZBX_X86_X64}.${ZBX_PKG_EXT}"
+				ZBX_FULL_PKG_NAME="${ZBX_PACKAGE_NAME}${ZBX_PKG_NAME_PREFIX}${ZBX_PACKAGE_MINOR_VER}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VENDOR}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VER}${ZBX_PKG_PREFIX}${ZBX_X86_X64}.${ZBX_PKG_EXT}"
 			fi
 			;;
 		*)
@@ -240,24 +218,24 @@ _wget_zbx() {
 
 _wget_windows_ver() {
 	if [ ${ZBX_WINDOWS_AMD64_PKG} -eq 1 ]; then
-		_wget_zbx "zabbix_agents" "${ZBX_FULL_WINDOWS_VER}" "win" "" "amd64" "${ZBX_WINDOWS_OPENSSL_PKG}"
+		_wget_zbx "zabbix_agent" "${ZBX_FULL_WINDOWS_VER}" "windows" "" "amd64" "${ZBX_WINDOWS_OPENSSL_PKG}"
 	fi
-	_wget_zbx "zabbix_agents" "${ZBX_FULL_WINDOWS_VER}" "win" "" "i386" "${ZBX_WINDOWS_OPENSSL_PKG}"
+	_wget_zbx "zabbix_agent" "${ZBX_FULL_WINDOWS_VER}" "windows" "" "i386" "${ZBX_WINDOWS_OPENSSL_PKG}"
 }
 
 # Download Zabbix for Windows
 _wget_windows_ver
 
 # Download Zabbix for AIX
-_wget_zbx "zabbix_agents" "${ZBX_FULL_AIX_VER}" "aix" "${ZBX_AIX_VER}" "power" "${ZBX_AIX_OPENSSL_PKG}"
+_wget_zbx "zabbix_agent" "${ZBX_FULL_AIX_VER}" "aix" "${ZBX_AIX_VER}" "powerpc" "${ZBX_AIX_OPENSSL_PKG}"
 
 # Download Zabbix for OpenBSD
-_wget_zbx "zabbix_agents" "${ZBX_FULL_OPENBSD_VER}" "openbsd" "${ZBX_OPENBSD_VER}" "amd64" "${ZBX_OPENBSD_OPENSSL_PKG}"
-_wget_zbx "zabbix_agents" "${ZBX_FULL_OPENBSD_VER}" "openbsd" "${ZBX_OPENBSD_VER}" "i386" "${ZBX_OPENBSD_OPENSSL_PKG}"
+_wget_zbx "zabbix_agent" "${ZBX_FULL_OPENBSD_VER}" "openbsd" "${ZBX_OPENBSD_VER}" "amd64" "${ZBX_OPENBSD_OPENSSL_PKG}"
+_wget_zbx "zabbix_agent" "${ZBX_FULL_OPENBSD_VER}" "openbsd" "${ZBX_OPENBSD_VER}" "i386" "${ZBX_OPENBSD_OPENSSL_PKG}"
 
 # Download Zabbix for FreeBSD
-_wget_zbx "zabbix_agents" "${ZBX_FULL_FREEBSD_VER}" "freebsd" "${ZBX_FREEBSD_VER}" "amd64" "${ZBX_FREEBSD_OPENSSL_PKG}"
-_wget_zbx "zabbix_agents" "${ZBX_FULL_FREEBSD_VER}" "freebsd" "${ZBX_FREEBSD_VER}" "i386" "${ZBX_FREEBSD_OPENSSL_PKG}"
+_wget_zbx "zabbix_agent" "${ZBX_FULL_FREEBSD_VER}" "freebsd" "${ZBX_FREEBSD_VER}" "amd64" "${ZBX_FREEBSD_OPENSSL_PKG}"
+_wget_zbx "zabbix_agent" "${ZBX_FULL_FREEBSD_VER}" "freebsd" "${ZBX_FREEBSD_VER}" "i386" "${ZBX_FREEBSD_OPENSSL_PKG}"
 
 # Download Zabbix for RedHat/OracleLinux/CentOS 5
 _wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el5" "x86_64"
