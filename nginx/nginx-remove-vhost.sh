@@ -4,11 +4,14 @@
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.4.6
+# Current Version: 1.4.7
 # 
 # Example: ./nginx-remove-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1
 #
 # Revision History:
+#
+#  Version 1.4.7
+#    Added Debian 10 and PHP-FPM 7.3 support
 #
 #  Version 1.4.6
 #    Fixed RedHat detected
@@ -318,7 +321,7 @@ _detect_linux_distrib() {
 		Debian)
 			echo -n "${DIST} ${REV}"
 			case "${REV}" in
-			8|9)
+			8|9|10)
 				echo -e " (${PSUEDONAME})${NORMAL}"
 				;;
 			*)
@@ -431,7 +434,28 @@ case "${DIST}" in
 		DEBIAN_VERSION=$(sed 's/\..*//' /etc/debian_version)
 		OS_DISTRIB="Debian"
 		echo -e "${GREEN}Detect Debian version\t\t${OS_DISTRIB} (${OS_INIT_SYSTEM})${NORMAL}"
-		if [[ "${DEBIAN_VERSION}" = "9" ]]; then
+		if [[ "${DEBIAN_VERSION}" = "10" ]]; then
+			echo -en "${GREEN}Detecting your php-fpm\t\t"
+			if command_exists php-fpm7.3 ; then
+				echo -e "Found php-fpm7.3${NORMAL}"
+				PHP_FPM_BIN=$(which php-fpm7.3)
+				PHP_FPM_POOL_DIR=/etc/php/7.3/fpm/pool.d
+				PHP_FPM_SOCK_DIR=/run/php
+				if [[ "${OS_INIT_SYSTEM}" = "SYSTEMD" ]]; then
+					PHP_FPM_RUN_SCRIPT="php7.3-fpm"
+				else
+					if [ -f "/etc/init.d/php7.3-fpm" ]; then
+						PHP_FPM_RUN_SCRIPT=/etc/init.d/php7.3-fpm
+					else
+						echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
+						exit 1;
+					fi
+				fi
+			else
+				echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+				exit 1;
+			fi
+		elif [[ "${DEBIAN_VERSION}" = "9" ]]; then
 			echo -en "${GREEN}Detecting your php-fpm\t\t"
 			if command_exists php-fpm7.0 ; then
 				echo -e "Found php-fpm7.0${NORMAL}"
