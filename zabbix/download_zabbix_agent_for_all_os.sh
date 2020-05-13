@@ -71,7 +71,7 @@ case ${ZBX_VER} in
 		ZBX_OPENBSD_OPENSSL_PKG=1
 		;;
 	"4.4")
-		ZBX_STABLE_VER=4.4.7
+		ZBX_STABLE_VER=4.4.8
 		ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
 		ZBX_LINUX_MINOR_PKG_VER=1
 		# 4.0.14 -> openssl or non-openssl
