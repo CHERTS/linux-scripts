@@ -5,7 +5,7 @@
 #
 # Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 #
-# Current Version: 1.0.5
+# Current Version: 1.0.6
 #
 # License:
 #  This program is distributed in the hope that it will be useful,
@@ -13,13 +13,15 @@
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-ZBX_VER="4.4.6"
-#ZBX_VER="4.0.18"
+ZBX_VER="5.0.0"
+#ZBX_VER="4.4.8"
 ZBX_WEB_DIR="/var/www/zabbix.mysite.ru"
 ZBX_WEB_DIR_OWNER=web1
 ZBX_WEB_DIR_GROUP=client1
-ZBX_URL="https://sourceforge.net/projects/zabbix/files/ZABBIX%20Latest%20Stable/${ZBX_VER}/zabbix-${ZBX_VER}.tar.gz/download"
 
+# Dont edit this lines
+ZBX_VER_MAJOR_MINOR=$(echo ${ZBX_VER} | awk -F'.' '{print $1 "." $2}')
+ZBX_URL="https://cdn.zabbix.com/zabbix/sources/stable/${ZBX_VER_MAJOR_MINOR}/zabbix-${ZBX_VER}.tar.gz"
 SCRIPT_DIR=$(dirname $0)
 
 _command_exists() {
@@ -142,10 +144,18 @@ if [ -f "${SCRIPT_DIR}/zabbix-${ZBX_VER}.tar.gz" ]; then
 		echo "ERR_EXTRACT"
 		exit 1
 	fi
+	case "${ZBX_VER_MAJOR_MINOR}" in
+		"5.0")
+			ZBX_FRONTEND_DIR="ui"
+			;;
+		*)
+			ZBX_FRONTEND_DIR="frontends/php"
+			;;
+	esac
 	if [ -d "${ZBX_WEB_DIR}" ]; then
 		if [ -f "${ZBX_WEB_DIR}/conf/zabbix.conf.php" ]; then
 			echo -n "Backup 'zabbix.conf.php' file... "
-			${CP_BIN} -- "${ZBX_WEB_DIR}/conf/zabbix.conf.php" "${SCRIPT_DIR}/zabbix-${ZBX_VER}/frontends/php/conf" 2>/dev/null
+			${CP_BIN} -- "${ZBX_WEB_DIR}/conf/zabbix.conf.php" "${SCRIPT_DIR}/zabbix-${ZBX_VER}/${ZBX_FRONTEND_DIR}/conf" 2>/dev/null
 			if [ $? -eq 0 ]; then
 				echo "OK"
 			else
@@ -172,7 +182,7 @@ if [ -f "${SCRIPT_DIR}/zabbix-${ZBX_VER}.tar.gz" ]; then
 			exit 1
 		fi
 		echo -n "Copy new zabbix frontends... "
-		${RSYNC_BIN} -av "${SCRIPT_DIR}/zabbix-${ZBX_VER}/frontends/php/" "${ZBX_WEB_DIR}/" >/dev/null 2>&1
+		${RSYNC_BIN} -av "${SCRIPT_DIR}/zabbix-${ZBX_VER}/${ZBX_FRONTEND_DIR}/" "${ZBX_WEB_DIR}/" >/dev/null 2>&1
 		if [ $? -eq 0 ]; then
 			echo "OK"
 		else
@@ -181,7 +191,7 @@ if [ -f "${SCRIPT_DIR}/zabbix-${ZBX_VER}.tar.gz" ]; then
 			exit 1
 		fi
 		echo -n "Set directory owner ${ZBX_WEB_DIR_OWNER}:${ZBX_WEB_DIR_GROUP}... "
-		${CHOWN_BIN} -R ${ZBX_WEB_DIR_OWNER}:${ZBX_WEB_DIR_GROUP} "${ZBX_WEB_DIR}/" 2>/dev/null
+		${CHOWN_BIN} -R ${ZBX_WEB_DIR_OWNER}:${ZBX_WEB_DIR_GROUP} "${ZBX_WEB_DIR}" 2>/dev/null
 		if [ $? -eq 0 ]; then
 			echo "OK"
 		else
