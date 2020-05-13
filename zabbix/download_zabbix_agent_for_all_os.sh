@@ -5,7 +5,7 @@
 #
 # Author: Mikhail Grigorev <sleuthound at gmail dot com>
 #
-# Current Version: 1.1
+# Current Version: 1.2
 #
 # License:
 #  This program is distributed in the hope that it will be useful,
@@ -13,8 +13,8 @@
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-# Latest agents (3.4 or 4.0 or 4.4)
-ZBX_VER=4.4
+# Latest agents (3.4 or 4.0 or 4.4 or 5.0)
+ZBX_VER=5.0
 # Zabbix pkg repo
 ZBX_URL=http://repo.zabbix.com/zabbix/${ZBX_VER}
 # Pre-compiled Zabbix agents
@@ -71,7 +71,7 @@ case ${ZBX_VER} in
 		ZBX_OPENBSD_OPENSSL_PKG=1
 		;;
 	"4.4")
-		ZBX_STABLE_VER=4.4.6
+		ZBX_STABLE_VER=4.4.7
 		ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
 		ZBX_LINUX_MINOR_PKG_VER=1
 		# 4.0.14 -> openssl or non-openssl
@@ -91,6 +91,27 @@ case ${ZBX_VER} in
 		ZBX_FULL_OPENBSD_VER=${ZBX_STABLE_VER}
 		ZBX_OPENBSD_OPENSSL_PKG=1
 		;;
+        "5.0")
+                ZBX_STABLE_VER=5.0.0
+                ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
+                ZBX_LINUX_MINOR_PKG_VER=1
+                # 5.0.0 -> openssl or non-openssl
+                ZBX_FULL_WINDOWS_VER=${ZBX_STABLE_VER}
+                ZBX_WINDOWS_OPENSSL_PKG=1
+                ZBX_WINDOWS_AMD64_PKG=1
+                # for AIX not build
+                ZBX_AIX_VER=7.2
+                ZBX_FULL_AIX_VER=4.2.1
+                ZBX_AIX_OPENSSL_PKG=1
+                # 5.0.0 -> openssl or non-openssl
+                ZBX_FREEBSD_VER=11.2
+                ZBX_FULL_FREEBSD_VER=${ZBX_STABLE_VER}
+                ZBX_FREEBSD_OPENSSL_PKG=1
+                # 5.0.0 -> openssl or non-openssl
+                ZBX_OPENBSD_VER=6.3
+                ZBX_FULL_OPENBSD_VER=${ZBX_STABLE_VER}
+                ZBX_OPENBSD_OPENSSL_PKG=1
+                ;;
 	*)
 		echo "ERROR: Unsupperted Zabbix version ${ZBX_VER}."
 		exit 1;
