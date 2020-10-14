@@ -5,9 +5,12 @@
 #
 # Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 # 
-# Current Version: 1.0
+# Current Version: 1.1
 #
 # Revision History:
+#
+#  Version 1.1
+#    Added MariaDB 10.4 adn 10.5 support
 #
 #  Version 1.0
 #    Initial Release
@@ -25,11 +28,13 @@
 #
 # Tested platforms:
 #  -- Debian 9 using /bin/bash
+#  -- Debian 10 using /bin/bash
 #  -- Ubuntu 16.04 using /bin/bash
+#  -- Ubuntu 18.04 using /bin/bash
 #
 # Tested MySQL:
 #  -- Oracle MySQL 5.7.22
-#  -- MariaDB 10.3.8
+#  -- MariaDB 10.1.41/10.3.8/10.4.13
 #  -- Percona Server for MySQL 5.6.40-84.0/5.7.22-22
 #
 # Usage:
@@ -213,7 +218,7 @@ if command_exists bc ; then
                 echo "================================================"
                 echo "Connected MySQL v${MYSQL_VER}"
                 echo "================================================"
-                if echo "${MYSQL_VER}" | grep -q -e "^5.6" -e "^10.1" -e "^10.2" -e "^10.3"; then
+                if echo "${MYSQL_VER}" | grep -q -e "^5.6" -e "^10.1" -e "^10.2" -e "^10.3" -e "^10.4" -e "^10.5"; then
                         MYSQL_SETTINGS_SCHEMA="information_schema"
                 elif echo "${MYSQL_VER}" | grep -q -e "^5.7"; then
                         MYSQL_SETTINGS_SCHEMA="performance_schema"
