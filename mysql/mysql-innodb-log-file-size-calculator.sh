@@ -10,7 +10,7 @@
 # Revision History:
 #
 #  Version 1.1
-#    Added MariaDB 10.4 adn 10.5 support
+#    Added MariaDB 10.4 and 10.5 support
 #
 #  Version 1.0
 #    Initial Release
