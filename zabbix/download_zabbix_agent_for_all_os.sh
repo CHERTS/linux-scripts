@@ -190,9 +190,13 @@ _wget_zbx() {
 			ZBX_FULL_URL="${ZBX_PRECOMPILED_AGENTS_URL}/${ZBX_PACKAGE_MINOR_VER}/"
 			ZBX_PKG_PREFIX="-"
 			ZBX_PKG_NAME_PREFIX="-"
+			ZBX_PKG_IS_STATIC=""
 			if [[ "${ZBX_PLATFORM_VENDOR}" == "aix" ]]; then
 				ZBX_PKG_PREFIX="-"
 				ZBX_PKG_NAME_PREFIX="-"
+				if [[ "${ZBX_VER}" == "5.0" ]]; then
+					ZBX_PKG_IS_STATIC="${ZBX_PKG_PREFIX}static"
+				fi
 			fi
 			if [[ "${ZBX_FULL_FREEBSD_VER}" == "3.4.0" ]]; then
 				ZBX_PKG_PREFIX="."
@@ -203,9 +207,9 @@ _wget_zbx() {
 				ZBX_PKG_NAME_PREFIX="_"
 			fi
 			if [ ${ZBX_OPENSSL} -eq 1 ]; then
-				ZBX_FULL_PKG_NAME="${ZBX_PACKAGE_NAME}${ZBX_PKG_NAME_PREFIX}${ZBX_PACKAGE_MINOR_VER}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VENDOR}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VER}${ZBX_PKG_PREFIX}${ZBX_X86_X64}${ZBX_PKG_PREFIX}openssl.${ZBX_PKG_EXT}"
+				ZBX_FULL_PKG_NAME="${ZBX_PACKAGE_NAME}${ZBX_PKG_NAME_PREFIX}${ZBX_PACKAGE_MINOR_VER}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VENDOR}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VER}${ZBX_PKG_PREFIX}${ZBX_X86_X64}${ZBX_PKG_PREFIX}openssl${ZBX_PKG_IS_STATIC}.${ZBX_PKG_EXT}"
 			else
-				ZBX_FULL_PKG_NAME="${ZBX_PACKAGE_NAME}${ZBX_PKG_NAME_PREFIX}${ZBX_PACKAGE_MINOR_VER}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VENDOR}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VER}${ZBX_PKG_PREFIX}${ZBX_X86_X64}.${ZBX_PKG_EXT}"
+				ZBX_FULL_PKG_NAME="${ZBX_PACKAGE_NAME}${ZBX_PKG_NAME_PREFIX}${ZBX_PACKAGE_MINOR_VER}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VENDOR}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VER}${ZBX_PKG_PREFIX}${ZBX_X86_X64}${ZBX_PKG_IS_STATIC}.${ZBX_PKG_EXT}"
 			fi
 			;;
 		*)
@@ -318,8 +322,5 @@ _wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "bionic" "i386"
 
 # Download Zabbix for Debian Ubuntu 20.04 (Focal)
 _wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "focal" "amd64"
-_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "focal" "i386"
 _wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "focal" "amd64"
-_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "focal" "i386"
 _wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "focal" "amd64"
-_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "focal" "i386"
