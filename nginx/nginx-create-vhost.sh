@@ -125,7 +125,7 @@ create_linux_user_and_group ()
 	if [ ${GROUP_CNT} -gt 0 ]; then
 	    echo -e "${CYAN}Warning, group ${GROUPNAME} already exists${NORMAL}"
 	else
-		if [[ "${OS_DISTRIB}" = "Oracle" ]]; then
+		if [[ "${OS_DISTRIB}" = "RedHat" ]]; then
 			groupadd "${GROUPNAME}" >/dev/null 2>&1
 		else
 			addgroup "${GROUPNAME}" >/dev/null 2>&1
@@ -199,7 +199,7 @@ create_logrotate ()
 
 	echo -en "${GREEN}Create logrotate rule...\t\t\t"
 
-	if [[ "${OS_DISTRIB}" = "Oracle" ]]; then
+	if [[ "${OS_DISTRIB}" = "RedHat" ]]; then
 cat <<EOT > /etc/logrotate.d/${USERLOGINNAME}.tmp
 ${SITEDIR}/log/access.log ${SITEDIR}/log/error.log {
     create 0644 ${NGINX_USER} root
@@ -739,8 +739,8 @@ case "${DIST}" in
 	"Red Hat"*|"RedHat"*)
 		if [ -f "/etc/oracle-release" ]; then
 			ORACLE_VERSION=$(cat "/etc/oracle-release" | sed s/.*release\ // | sed s/\ .*//)
-			OS_DISTRIB="Oracle"
-			echo -e "${GREEN}Detect RedHat version\t\t${OS_DISTRIB} ${ORACLE_VERSION} (${OS_INIT_SYSTEM})${NORMAL}"
+			OS_DISTRIB="RedHat"
+			echo -e "${GREEN}Detect OracleLinux version\t\t${OS_DISTRIB} ${ORACLE_VERSION} (${OS_INIT_SYSTEM})${NORMAL}"
 			case "${ORACLE_VERSION}" in
 				6.*)
 					echo -en "${GREEN}Detecting your php-fpm\t\t"
@@ -799,7 +799,7 @@ case "${DIST}" in
 	CentOS|"CentOS Linux")
 		if [ -f "/etc/centos-release" ]; then
 			CENTOS_VERSION=$(cat "/etc/centos-release" | sed s/.*release\ // | sed s/\ .*//)
-			OS_DISTRIB="CentOS"
+			OS_DISTRIB="RedHat"
 			echo -e "${GREEN}Detect CentOS version\t\t${OS_DISTRIB} ${CENTOS_VERSION} (${OS_INIT_SYSTEM})${NORMAL}"
 			case "${CENTOS_VERSION}" in
 				7.*|8.*)
