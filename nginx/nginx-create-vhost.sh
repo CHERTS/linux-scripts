@@ -4,7 +4,7 @@
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.4.7
+# Current Version: 1.4.8
 # 
 # Example: ./nginx-create-vhost.sh -d "domain.com"
 # or
@@ -13,6 +13,9 @@
 # Example: ./nginx-create-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1
 #
 # Revision History:
+#
+#  Version 1.4.8
+#    Added CentOS Linux and Ubuntu 20.04
 #
 #  Version 1.4.7
 #    Added Debian 10 and PHP-FPM 7.3 support
@@ -485,6 +488,15 @@ _unknown_oracle ()
 	exit 1
 }
 
+_unknown_centos ()
+{
+	echo
+	echo "Unfortunately, your CentOS Linux operating system distribution and version are not supported by this script."
+	echo
+	echo "Please email sleuthhound@gmail.com and let us know if you run into any issues."
+	exit 1
+}
+
 function valid_ip()
 {
     local  ip=$1
@@ -537,7 +549,7 @@ _detect_linux_distrib() {
 		Ubuntu)
 			echo -n "${DIST} ${REV}"
 			case "${REV}" in
-			14.04|16.04|17.10|18.04)
+			14.04|16.04|17.10|18.04|20.04)
 				echo -e " (${PSUEDONAME})${NORMAL}"
 				;;
 			*)
@@ -559,7 +571,7 @@ _detect_linux_distrib() {
 		"Red Hat"*|"RedHat"*)
 			echo -e "${DIST} ${REV} (${PSUEDONAME})${NORMAL}"
 			;;
-		CentOS)
+		CentOS|"CentOS Linux")
 			echo -e "${DIST} ${REV} (${PSUEDONAME})${NORMAL}"
 			;;
 		*)
@@ -778,6 +790,43 @@ case "${DIST}" in
 				;;
 				*)
 					_unknown_oracle
+				;;
+			esac
+		else
+			_unknown_os
+		fi
+		;;
+	CentOS|"CentOS Linux")
+		if [ -f "/etc/centos-release" ]; then
+			CENTOS_VERSION=$(cat "/etc/centos-release" | sed s/.*release\ // | sed s/\ .*//)
+			OS_DISTRIB="CentOS"
+			echo -e "${GREEN}Detect CentOS version\t\t${OS_DISTRIB} ${CENTOS_VERSION} (${OS_INIT_SYSTEM})${NORMAL}"
+			case "${CENTOS_VERSION}" in
+				7.*|8.*)
+					echo -en "${GREEN}Detecting your php-fpm\t\t"
+					if command_exists php-fpm ; then
+						PHP_FPM_BIN=$(which php-fpm)
+						echo -e "Found php-fpm${NORMAL}"
+						if [ -d "/etc/php-fpm.d" ]; then
+							PHP_FPM_POOL_DIR=/etc/php-fpm.d
+							PHP_FPM_SOCK_DIR=/run
+							if [ -f "/usr/lib/systemd/system/php-fpm.service" ]; then
+								PHP_FPM_RUN_SCRIPT=php-fpm
+							else
+								echo -e "${RED}Error: php-fpm unit not found.${NORMAL}"
+								exit 1;
+							fi
+						else
+							echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+							exit 1;
+						fi
+					else
+						echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+						exit 1;
+					fi
+				;;
+				*)
+					_unknown_centos
 				;;
 			esac
 		else
