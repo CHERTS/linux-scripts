@@ -5,9 +5,12 @@
 #
 # Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 # 
-# Current Version: 1.1
+# Current Version: 1.2
 #
 # Revision History:
+#
+#  Version 1.1
+#    Added MySQL 8.x support
 #
 #  Version 1.1
 #    Added MariaDB 10.4 and 10.5 support
@@ -220,7 +223,7 @@ if command_exists bc ; then
                 echo "================================================"
                 if echo "${MYSQL_VER}" | grep -q -e "^5.6" -e "^10.1" -e "^10.2" -e "^10.3" -e "^10.4" -e "^10.5"; then
                         MYSQL_SETTINGS_SCHEMA="information_schema"
-                elif echo "${MYSQL_VER}" | grep -q -e "^5.7"; then
+                elif echo "${MYSQL_VER}" | grep -q -e "^5.7" -e "^8.0"; then
                         MYSQL_SETTINGS_SCHEMA="performance_schema"
                 else
                         MYSQL_SETTINGS_SCHEMA="information_schema"
@@ -260,14 +263,24 @@ if command_exists bc ; then
         echo "Calculate InnoDB redo-log used:"
         INNODB_LOG_FILE_SIZE=$(_mysql_exec_one_query "SELECT VARIABLE_VALUE FROM ${MYSQL_SETTINGS_SCHEMA}.global_variables WHERE VARIABLE_NAME = 'innodb_log_file_size';")
         if [ $? -eq 0 ]; then
-                echo "innodb_log_file_size = ${INNODB_LOG_FILE_SIZE}"
+		if [ -n "${INNODB_LOG_FILE_SIZE}" ]; then
+	                echo "innodb_log_file_size = ${INNODB_LOG_FILE_SIZE}"
+		else
+			echo "innodb_log_file_size = NULL"
+			exit 1
+		fi
         else
                 echo "Error: ${INNODB_LOG_FILE_SIZE}"
                 exit
         fi
         INNODB_LOG_FILES_IN_GROUP=$(_mysql_exec_one_query "SELECT VARIABLE_VALUE FROM ${MYSQL_SETTINGS_SCHEMA}.global_variables WHERE VARIABLE_NAME = 'innodb_log_files_in_group';")
         if [ $? -eq 0 ]; then
-                echo "innodb_log_files_in_group = ${INNODB_LOG_FILES_IN_GROUP}"
+		if [ -n "${INNODB_LOG_FILES_IN_GROUP}" ]; then
+	                echo "innodb_log_files_in_group = ${INNODB_LOG_FILES_IN_GROUP}"
+		else
+			echo "innodb_log_files_in_group = NULL"
+			exit 1
+		fi
         else
                 echo "Error: ${INNODB_LOG_FILES_IN_GROUP}"
                 exit
@@ -298,7 +311,12 @@ if command_exists bc ; then
         echo "Calculate InnoDB redo-log write speed:"
         INNODB_LOG_WRITE_1=$(_mysql_exec_one_query "SELECT VARIABLE_VALUE FROM ${MYSQL_SETTINGS_SCHEMA}.global_status WHERE VARIABLE_NAME = 'Innodb_os_log_written';")
         if [ $? -eq 0 ]; then
-                echo "Innodb_os_log_written = ${INNODB_LOG_WRITE_1}"
+		if [ -n "${INNODB_LOG_WRITE_1}" ]; then
+	                echo "Innodb_os_log_written = ${INNODB_LOG_WRITE_1}"
+		else
+			echo "Innodb_os_log_written = NULL"
+			exit 1
+		fi
         else
                 echo "Error: ${INNODB_LOG_WRITE_1}"
                 exit
@@ -307,7 +325,11 @@ if command_exists bc ; then
         sleep 3600;
         INNODB_LOG_WRITE_2=$(_mysql_exec_one_query "SELECT VARIABLE_VALUE FROM ${MYSQL_SETTINGS_SCHEMA}.global_status WHERE VARIABLE_NAME = 'Innodb_os_log_written';")
         if [ $? -eq 0 ]; then
-                echo "Innodb_os_log_written = ${INNODB_LOG_WRITE_2}"
+		if [ -n "${INNODB_LOG_WRITE_2}" ]; then
+	                echo "Innodb_os_log_written = ${INNODB_LOG_WRITE_2}"
+		else
+			echo "Innodb_os_log_written = NULL"
+		fi
         else
                 echo "Error: ${INNODB_LOG_WRITE_2}"
                 exit
