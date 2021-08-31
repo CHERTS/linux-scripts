@@ -5,7 +5,9 @@
 #
 # Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 #
-# Current Version: 1.0.6
+# Current Version: 1.0.7
+#
+# Support zabbix version 4.x and 5.x
 #
 # License:
 #  This program is distributed in the hope that it will be useful,
@@ -13,12 +15,8 @@
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-ZBX_VER="5.0.5"
-#ZBX_VER="5.2.0"
-#ZBX_VER="4.4.10"
+ZBX_VER="5.0.15"
 ZBX_WEB_DIR="/var/www/zabbix.mysite.ru"
-ZBX_WEB_DIR_OWNER=web1
-ZBX_WEB_DIR_GROUP=client1
 
 # Dont edit this lines
 ZBX_VER_MAJOR_MINOR=$(echo ${ZBX_VER} | awk -F'.' '{print $1 "." $2}')
@@ -37,7 +35,7 @@ else
 fi
 
 # Checking the availability of necessary utilities
-COMMAND_EXIST_ARRAY=(DU SED AWK CUT EXPR RM CAT WC GREP DIRNAME HEAD LS MV FIND WGET TAR CHOWN CP RSYNC)
+COMMAND_EXIST_ARRAY=(DU SED AWK CUT EXPR RM CAT WC GREP DIRNAME HEAD LS MV FIND WGET TAR CHOWN CP RSYNC STAT)
 for ((i=0; i<${#COMMAND_EXIST_ARRAY[@]}; i++)); do
 	__CMDVAR=${COMMAND_EXIST_ARRAY[$i]}
 	CMD_FIND=$(echo "${__CMDVAR}" | ${TR_BIN} '[:upper:]' '[:lower:]')
@@ -164,6 +162,26 @@ if [ -f "${SCRIPT_DIR}/zabbix-${ZBX_VER}.tar.gz" ]; then
 				_clean_zabbix_dist
 				exit 1
 			fi
+		fi
+		if [[ "${ZBX_VER_MAJOR_MINOR}" = "5.0" ]]; then
+			if [ -d "${ZBX_WEB_DIR}/modules" ]; then
+				echo -n "Backup modules... "
+				${CP_BIN} -R "${ZBX_WEB_DIR}/modules" "${SCRIPT_DIR}/zabbix-${ZBX_VER}/${ZBX_FRONTEND_DIR}" 2>/dev/null
+				if [ $? -eq 0 ]; then
+					echo "OK"
+				else
+					echo "ERR_BACKUP_PLUGINS"
+					_clean_zabbix_dist
+					exit 1
+				fi
+			fi
+		fi
+		if [ -f "${ZBX_WEB_DIR}/index.php" ]; then
+			ZBX_WEB_DIR_OWNER=$(${STAT_BIN} -c '%U' "${ZBX_WEB_DIR}/index.php")
+			ZBX_WEB_DIR_GROUP=$(${STAT_BIN} -c '%G' "${ZBX_WEB_DIR}/index.php")
+		else
+			ZBX_WEB_DIR_OWNER="zabbix"
+			ZBX_WEB_DIR_GROUP="zabbix"
 		fi
 		echo -n "Backuping old zabbix frontends... "
 		NOW_DATETIME=$(date +%s)
