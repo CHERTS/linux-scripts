@@ -5,7 +5,7 @@
 #
 # Author: Mikhail Grigorev <sleuthound at gmail dot com>
 #
-# Current Version: 1.2
+# Current Version: 1.3
 #
 # License:
 #  This program is distributed in the hope that it will be useful,
@@ -13,12 +13,12 @@
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-# Latest agents (3.4 or 4.0 or 4.4 or 5.0)
+# Latest agents (3.4 or 4.0 or 4.4 or 5.0 or 5.4)
 ZBX_VER=5.0
 # Zabbix pkg repo
 ZBX_URL=http://repo.zabbix.com/zabbix/${ZBX_VER}
 # Pre-compiled Zabbix agents
-ZBX_PRECOMPILED_AGENTS_URL="https://www.zabbix.com/downloads"
+ZBX_PRECOMPILED_AGENTS_URL="https://cdn.zabbix.com/zabbix/binaries/stable"
 SCRIPT_DIR=$(dirname "$0")
 DOWNLOAD_DIR="${SCRIPT_DIR}/${ZBX_VER}"
 ENABLE_DEBUG=0
@@ -92,22 +92,43 @@ case ${ZBX_VER} in
 		ZBX_OPENBSD_OPENSSL_PKG=1
 		;;
         "5.0")
-                ZBX_STABLE_VER=5.0.5
+                ZBX_STABLE_VER=5.0.15
                 ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
                 ZBX_LINUX_MINOR_PKG_VER=1
                 # 5.0.5 -> openssl or non-openssl
                 ZBX_FULL_WINDOWS_VER=${ZBX_STABLE_VER}
                 ZBX_WINDOWS_OPENSSL_PKG=1
                 ZBX_WINDOWS_AMD64_PKG=1
-                # 5.0.3 -> openssl only
-                ZBX_AIX_VER=7.1
-                ZBX_FULL_AIX_VER=5.0.3
+                # 5.0.14 -> openssl only
+                ZBX_AIX_VER=7.2
+                ZBX_FULL_AIX_VER=5.0.14
                 ZBX_AIX_OPENSSL_PKG=1
-                # 5.0.0 -> openssl or non-openssl
+                # 5.0.15 -> openssl or non-openssl
                 ZBX_FREEBSD_VER=11.2
                 ZBX_FULL_FREEBSD_VER=${ZBX_STABLE_VER}
                 ZBX_FREEBSD_OPENSSL_PKG=1
                 # 5.0.0 -> openssl or non-openssl
+                ZBX_OPENBSD_VER=6.3
+                ZBX_FULL_OPENBSD_VER=${ZBX_STABLE_VER}
+                ZBX_OPENBSD_OPENSSL_PKG=1
+                ;;
+        "5.4")
+                ZBX_STABLE_VER=5.4.4
+                ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
+                ZBX_LINUX_MINOR_PKG_VER=1
+                # 5.4.4 -> openssl or non-openssl
+                ZBX_FULL_WINDOWS_VER=${ZBX_STABLE_VER}
+                ZBX_WINDOWS_OPENSSL_PKG=1
+                ZBX_WINDOWS_AMD64_PKG=1
+                # 5.4.3 -> openssl only
+                ZBX_AIX_VER=7.2
+                ZBX_FULL_AIX_VER=5.4.3
+                ZBX_AIX_OPENSSL_PKG=1
+                # 5.4.4 -> openssl or non-openssl
+                ZBX_FREEBSD_VER=11.2
+                ZBX_FULL_FREEBSD_VER=${ZBX_STABLE_VER}
+                ZBX_FREEBSD_OPENSSL_PKG=1
+                # 5.4.4 -> openssl or non-openssl
                 ZBX_OPENBSD_VER=6.3
                 ZBX_FULL_OPENBSD_VER=${ZBX_STABLE_VER}
                 ZBX_OPENBSD_OPENSSL_PKG=1
@@ -179,7 +200,7 @@ _wget_zbx() {
 				ZBX_PKG_NAME_PREFIX="_"
 				ZBX_WIN_ARCH=""
 			fi
-			ZBX_FULL_URL="${ZBX_PRECOMPILED_AGENTS_URL}/${ZBX_PACKAGE_MINOR_VER}"
+			ZBX_FULL_URL="${ZBX_PRECOMPILED_AGENTS_URL}/${ZBX_VER}/${ZBX_PACKAGE_MINOR_VER}"
 			if [ ${ZBX_OPENSSL} -eq 1 ]; then
 				ZBX_FULL_PKG_NAME="${ZBX_PACKAGE_NAME}${ZBX_PKG_NAME_PREFIX}${ZBX_PACKAGE_MINOR_VER}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VENDOR}${ZBX_WIN_ARCH}${ZBX_PKG_PREFIX}openssl.${ZBX_PKG_EXT}"
 			else
@@ -187,16 +208,12 @@ _wget_zbx() {
 			fi
 			;;
 		aix|openbsd|freebsd)
-			ZBX_FULL_URL="${ZBX_PRECOMPILED_AGENTS_URL}/${ZBX_PACKAGE_MINOR_VER}/"
+			ZBX_FULL_URL="${ZBX_PRECOMPILED_AGENTS_URL}/${ZBX_VER}/${ZBX_PACKAGE_MINOR_VER}/"
 			ZBX_PKG_PREFIX="-"
 			ZBX_PKG_NAME_PREFIX="-"
-			ZBX_PKG_IS_STATIC=""
 			if [[ "${ZBX_PLATFORM_VENDOR}" == "aix" ]]; then
 				ZBX_PKG_PREFIX="-"
 				ZBX_PKG_NAME_PREFIX="-"
-				if [[ "${ZBX_VER}" == "5.0" ]]; then
-					ZBX_PKG_IS_STATIC="${ZBX_PKG_PREFIX}static"
-				fi
 			fi
 			if [[ "${ZBX_FULL_FREEBSD_VER}" == "3.4.0" ]]; then
 				ZBX_PKG_PREFIX="."
@@ -207,9 +224,9 @@ _wget_zbx() {
 				ZBX_PKG_NAME_PREFIX="_"
 			fi
 			if [ ${ZBX_OPENSSL} -eq 1 ]; then
-				ZBX_FULL_PKG_NAME="${ZBX_PACKAGE_NAME}${ZBX_PKG_NAME_PREFIX}${ZBX_PACKAGE_MINOR_VER}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VENDOR}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VER}${ZBX_PKG_PREFIX}${ZBX_X86_X64}${ZBX_PKG_PREFIX}openssl${ZBX_PKG_IS_STATIC}.${ZBX_PKG_EXT}"
+				ZBX_FULL_PKG_NAME="${ZBX_PACKAGE_NAME}${ZBX_PKG_NAME_PREFIX}${ZBX_PACKAGE_MINOR_VER}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VENDOR}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VER}${ZBX_PKG_PREFIX}${ZBX_X86_X64}${ZBX_PKG_PREFIX}openssl.${ZBX_PKG_EXT}"
 			else
-				ZBX_FULL_PKG_NAME="${ZBX_PACKAGE_NAME}${ZBX_PKG_NAME_PREFIX}${ZBX_PACKAGE_MINOR_VER}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VENDOR}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VER}${ZBX_PKG_PREFIX}${ZBX_X86_X64}${ZBX_PKG_IS_STATIC}.${ZBX_PKG_EXT}"
+				ZBX_FULL_PKG_NAME="${ZBX_PACKAGE_NAME}${ZBX_PKG_NAME_PREFIX}${ZBX_PACKAGE_MINOR_VER}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VENDOR}${ZBX_PKG_PREFIX}${ZBX_PLATFORM_VER}${ZBX_PKG_PREFIX}${ZBX_X86_X64}.${ZBX_PKG_EXT}"
 			fi
 			;;
 		*)
