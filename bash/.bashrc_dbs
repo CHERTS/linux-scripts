@@ -1,0 +1,682 @@
+#
+# Program: Show database instance info and set short alias <.bashrc_dbs>
+#
+# Author: Mikhail Grigorev <sleuthhound at gmail dot com>
+# 
+# Current Version: 1.0.8
+#
+# License:
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#
+# Supported database:
+#  - Oracle MySQL (all version)
+#  - Percona Server for MySQL (all version)
+#  - MariaDB (all version)
+#  - PostgreSQL (all version)
+#  - Oracle 11g/12c/18c/19c
+#
+# Install instruction:
+# Add next string into file ~/.bash_profile:
+# [ -r ~/.bashrc_dbs ] && source ~/.bashrc_dbs
+#
+# If use PostgreSQL on your server, to add into file /etc/sudoers.d/dbs next string(s):
+# myuserlogin ALL=(postgres) NOPASSWD: /usr/lib/postgresql/12/bin/psql
+# or
+# myuserlogin ALL=(postgres) NOPASSWD: /usr/lib/postgresql/14/bin/psql
+# and
+# run check sudoers: chmod 440 /etc/sudoers.d/dbs && visudo -c
+# and
+# add myserlogin to group postgres: usermod -a -G postgres myuserlogin
+#
+
+# Script version and vendor name
+DBS_SCRIPT_VERSION="1.0.7"
+DBS_SCRIPT_VENDOR="Database Info"
+
+# Main settings
+DBS_REWRITE_ALIAS=1
+DBS_SHOW_HELP=1
+
+# Standart oratab file for Oracle
+DBS_ORA_TAB_PATH="/etc/oratab"
+# Standart config file for MySQL
+DBS_MYSQL_CONF_PATH=(/etc/my.cnf /etc/mysql/my.cnf)
+# Standart config file for MariaDB
+DBS_MARIADB_CONF_PATH=(/etc/my.cnf /etc/mysql/mariadb.cnf)
+# Standart config file for PostgreSQL
+DBS_PG_CONF_DIR_PATH=(/etc/postgresql /var/lib/postgresql /var/lib/pgsql)
+DBS_PG_CONF_FILE_NAME="postgresql.conf"
+DBS_PG_BIN_DIR_PATH="/usr/lib/postgresql"
+# Custom config file PostgreSQL (ex: postgresq-10 1c edition)
+DBS_PG_CONF_DIR_PATH_CUSTOM="/pgdata/pgsql"
+DBS_PG_BIN_DIR_PATH_CUSTOM="/usr/pgsql-10/bin"
+
+# Color settings
+DBS_RED='\033[0;31m'	# RED
+DBS_GREEN='\033[0;32m'	# GREEN
+DBS_BLUE='\033[0;34m'	# BLUE
+DBS_CYAN='\033[0;36m'	# CYAN
+DBS_YELLOW='\033[0;33m'	# YELLOW
+DBS_NORMAL='\033[0m'	# Default color
+
+# Detect OS
+DBS_OS=$(uname -s)
+case "${DBS_OS}" in
+	Linux*)
+		DBS_PLATFORM="linux"
+		;;
+	AIX|Darwin)
+		DBS_PLATFORM="aix"
+		;;
+	*)
+		DBS_PLATFORM="unknown"
+		;;
+esac
+
+# Detect Oracle
+DBS_FOUND_ORACLE=0
+if [ -f "${DBS_ORA_TAB_PATH}" ]; then
+	DBS_FOUND_ORACLE=1
+fi
+DBS_ORA_INSTANCE=()
+
+DBS_FOUND_MYSQL=0
+for ((B=0; B<${#DBS_MYSQL_CONF_PATH[@]}; B++)); do
+	if [ -f "${DBS_MYSQL_CONF_PATH[$B]}" ]; then
+		if [ ! -L "${DBS_MYSQL_CONF_PATH[$C]}" ]; then
+			DBS_FOUND_MYSQL=1
+			DBS_MYSQL_CONFIG_FIND="${DBS_MYSQL_CONF_PATH[$B]}"
+		fi
+	fi
+done
+
+DBS_FOUND_MARIADB=0
+for ((C=0; C<${#DBS_MARIADB_CONF_PATH[@]}; C++)); do
+	if [ -f "${DBS_MARIADB_CONF_PATH[$C]}" ]; then
+		if [ ! -L "${DBS_MARIADB_CONF_PATH[$C]}" ]; then
+			DBS_FOUND_MARIADB=1
+			DBS_MARIADB_CONFIG_FIND="${DBS_MARIADB_CONF_PATH[$C]}"
+		fi
+	fi
+done
+
+DBS_FOUND_PG=0
+DBS_FOUND_PG_CUSTOM=0
+DBS_PG_CONFIG_FIND=()
+for ((D=0; D<${#DBS_PG_CONF_DIR_PATH[@]}; D++)); do
+	if [ -d "${DBS_PG_CONF_DIR_PATH[$D]}" ]; then
+		PG_CONF_LIST=($(find "${DBS_PG_CONF_DIR_PATH[$D]}" -type f -iname "${DBS_PG_CONF_FILE_NAME}" -print 2>/dev/null))
+		for ((E=0; E<${#PG_CONF_LIST[@]}; E++)); do
+			if [ -f "${PG_CONF_LIST[$E]}" ]; then
+				DBS_PG_CONFIG_FIND+=(${PG_CONF_LIST[$E]})
+			fi
+		done
+	fi
+done
+DBS_PG_CONF_FIND_NUM=${#DBS_PG_CONFIG_FIND[*]}
+if [ ${DBS_PG_CONF_FIND_NUM} -ge 0 ]; then
+	DBS_FOUND_PG=1
+fi
+DBS_PG_CUSTOM_CONFIG_FIND=()
+if [ -d "${DBS_PG_CONF_DIR_PATH_CUSTOM}" ]; then
+	PG_CONF_CUSTOM_LIST=($(find "${DBS_PG_CONF_DIR_PATH_CUSTOM}" -type f -iname "${DBS_PG_CONF_FILE_NAME}" -print 2>/dev/null))
+	for ((F=0; F<${#PG_CONF_CUSTOM_LIST[@]}; F++)); do
+		if [ -f "${PG_CONF_CUSTOM_LIST[$F]}" ]; then
+			DBS_PG_CUSTOM_CONFIG_FIND+=(${PG_CONF_CUSTOM_LIST[$F]})
+		fi
+	done
+fi
+DBS_PG_CUSTOM_CONF_FIND_NUM=${#DBS_PG_CUSTOM_CONFIG_FIND[*]}
+if [ ${DBS_PG_CUSTOM_CONF_FIND_NUM} -ge 0 ]; then
+     DBS_FOUND_PG_CUSTOM=1
+fi
+
+_command_exists() {
+	type "$1" &> /dev/null
+}
+
+_dbs_echo() {
+	local DBS_MSG=$1
+	local DBS_COLOR=$2
+	if [[ $- == *i* ]]; then
+		echo -e "${DBS_COLOR}${DBS_MSG}${DBS_NORMAL}"
+	else
+		echo "${DBS_MSG}"
+	fi
+}
+
+_dbs_set_path() {
+	if [[ "${DBS_PLATFORM}" = "aix" ]]; then
+		export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin
+	else
+		export PATH=/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/home/oracle/.local/bin:/home/oracle/bin
+	fi
+}
+
+_dbs_set_ora_instance_alias() {
+	local ORA_INSTANCE=$1
+	local ORA_HOME=$2
+	local FIND_ALIAS_CNT=0
+	if _command_exists oraenv ; then
+		FIND_ALIAS_CNT=$(alias | grep -c "${ORA_INSTANCE}")
+		if [ ${DBS_REWRITE_ALIAS} -eq 1 ]; then
+			FIND_ALIAS_CNT=0
+		fi
+		if [ ${FIND_ALIAS_CNT} -eq 0 ]; then
+			if [[ "${DBS_PLATFORM}" = "aix" ]]; then
+				alias ${ORA_INSTANCE}="export ORACLE_SID=${ORA_INSTANCE};export ORACLE_HOME=${ORA_HOME};export ORAENV_ASK=NO;. oraenv 2>/dev/null;_dbs_check_oracle_env;_dbs_get_oracle_dir"
+			else
+				alias ${ORA_INSTANCE}="_dbs_set_path;export ORACLE_SID=${ORA_INSTANCE};export ORACLE_HOME=${ORA_HOME};export ORAENV_ASK=NO;. oraenv 2>/dev/null;_dbs_check_oracle_env;_dbs_get_oracle_dir"
+			fi
+			if [ ${DBS_SHOW_HELP} -eq 1 ]; then
+				_dbs_echo "HELP: alias ${ORA_INSTANCE} - Set ORACLE_SID=${ORA_INSTANCE} and run oraenv" "${DBS_YELLOW}"
+			fi
+		fi
+	fi
+}
+
+_dbs_check_running_instance() {
+	local ORA_INSTANCE=$1
+	local ORA_USER=$2
+	local ORA_HOME=${3:-"${ORACLE_HOME}"}
+	local PS_FIND=""
+	local ORA_INST_USER=""
+	local ORA_INST_NAME=""
+	local ORA_TAB_FIND=""
+	local ORA_TAB_HOME=""
+	local OLD_IFS=""
+	OLD_IFS=$IFS
+	IFS=$'\n'
+	if [[ "${DBS_PLATFORM}" = "aix" ]]; then
+		ORA_TAB_FIND=$(cat "${DBS_ORA_TAB_PATH}" | egrep -v '^#|^$' | awk -F':' '{print $1}' | grep -E "^${ORA_INSTANCE}$")
+		ORA_TAB_HOME=$(cat "${DBS_ORA_TAB_PATH}" | egrep -v '^#|^$' | grep -E "^${ORA_INSTANCE}:" | awk -F':' '{print $2}')
+	else
+		ORA_TAB_FIND=$(cat "${DBS_ORA_TAB_PATH}" | egrep -Ev '^\s*(;|#|$)' | awk -F':' '{print $1}' | grep -E "^${ORA_INSTANCE}$")
+		ORA_TAB_HOME=$(cat "${DBS_ORA_TAB_PATH}" | egrep -Ev '^\s*(;|#|$)' | grep -E "^${ORA_INSTANCE}:" | awk -F':' '{print $2}')
+	fi
+	if [ -n "${ORA_TAB_FIND}" ]; then
+		if [[ "${DBS_PLATFORM}" = "aix" ]]; then
+			PS_FIND=$(ps -eo user,args | grep -E "ora_smon_${ORA_TAB_FIND}$" | sed 's/^[ \t]*//;s/[ ]*$//' 2>/dev/null)
+		else
+			PS_FIND=$(ps -eo user,cmd | grep -E "ora_smon_${ORA_TAB_FIND}$" | sed 's/^[ \t]*//;s/[ \t]*$//' 2>/dev/null)
+		fi
+		if [ -n "${PS_FIND}" ]; then
+			ORA_INST_USER=$(echo "${PS_FIND}" | awk -F' ' '{print $1}')
+			ORA_INST_NAME=$(echo "${PS_FIND}" | awk -F' ' '{print $2}' | cut -d "_" -f 3)
+			DBS_ORA_INSTANCE+=("${ORA_INST_NAME}:${ORA_TAB_HOME}")
+			_dbs_echo "Found Oracle instance \"${ORA_INST_NAME}\", owner \"${ORA_INST_USER}\" - RUNNING (instance found in ${DBS_ORA_TAB_PATH})" "${DBS_GREEN}"
+			return 0
+		else
+			DBS_ORA_INSTANCE+=("${ORA_INSTANCE}:${ORA_TAB_HOME}")
+			_dbs_echo "Found Oracle instance \"${ORA_INSTANCE}\" NOT RUNNING (instance found in ${DBS_ORA_TAB_PATH})" "${DBS_RED}"
+			return 1
+		fi
+	else
+		DBS_ORA_INSTANCE+=("${ORA_INSTANCE}:${ORA_HOME}")
+		_dbs_echo "Found Oracle instance \"${ORA_INSTANCE}\", owner \"${ORA_USER}\" - RUNNING (instance NOT found in ${DBS_ORA_TAB_PATH})" "${DBS_YELLOW}"
+		return 2
+	fi
+}
+
+_dbs_get_running_oracle_instance() {
+	local ORA_INST_USER=""
+	local ORA_INST_NAME=""
+	local PS_FIND=()
+	local PS_FIND_RUN_INSTANCE=""
+	local ORA_TAB_FIND=()
+	local OLD_IFS=""
+	if [ -f "${DBS_ORA_TAB_PATH}" ]; then
+		# Find all running instance
+		OLD_IFS=$IFS
+		IFS=$'\n'
+		if [[ "${DBS_PLATFORM}" = "aix" ]]; then
+			PS_FIND=($(ps -eo user,args | grep "[o]ra_smon_" | sed 's/^[ \t]*//;s/[ ]*$//' 2>/dev/null))
+		else
+			PS_FIND=($(ps -eo user,cmd | grep "[o]ra_smon_" | sed 's/^[ \t]*//;s/[ \t]*$//' 2>/dev/null))
+		fi
+		for ((i=0; i<${#PS_FIND[@]}; i++)); do
+			if [ -n "${PS_FIND[$i]}" ]; then
+				ORA_INST_USER=$(echo "${PS_FIND[$i]}" | awk -F' ' '{print $1}')
+				ORA_INST_NAME=$(echo "${PS_FIND[$i]}" | awk -F' ' '{print $2}' | cut -d "_" -f 3)
+				_dbs_check_running_instance "${ORA_INST_NAME}" "${ORA_INST_USER}" ""
+			fi
+		done
+        	if [[ "${DBS_PLATFORM}" = "aix" ]]; then
+			ORA_TAB_FIND=($(cat "${DBS_ORA_TAB_PATH}" | egrep -v '^#|^$' | awk -F':' '{print $1}'))
+	        else
+			ORA_TAB_FIND=($(cat "${DBS_ORA_TAB_PATH}" | egrep -Ev '^\s*(;|#|$)' | awk -F':' '{print $1}'))
+		fi
+		for ((i=0; i<${#ORA_TAB_FIND[@]}; i++)); do
+			if [ -n "${ORA_TAB_FIND[$i]}" ]; then
+				if [[ "${DBS_PLATFORM}" = "aix" ]]; then
+					PS_FIND_RUN_INSTANCE=$(ps -eo args | grep -E "^ora_smon_${ORA_TAB_FIND[$i]}$" | cut -d "_" -f 3 | sed 's/^[ \t]*//;s/[ ]*$//' 2>/dev/null)
+				else
+					PS_FIND_RUN_INSTANCE=$(ps -eo cmd | grep -E "^ora_smon_${ORA_TAB_FIND[$i]}$" | cut -d "_" -f 3 | sed 's/^[ \t]*//;s/[ \t]*$//' 2>/dev/null)
+				fi
+				if [ -z "${PS_FIND_RUN_INSTANCE}" ]; then
+					DBS_ORA_INSTANCE+=("${ORA_TAB_FIND[$i]}:${ORACLE_HOME}")
+					_dbs_echo "Found Oracle instance \"${ORA_TAB_FIND[$i]}\" - NOT RUNNING (instance found in ${DBS_ORA_TAB_PATH})" "${DBS_RED}"
+				fi
+			fi
+		done
+		IFS=$OLD_IFS
+	fi
+}
+
+_dbs_check_oracle_env() {
+	if [ -z "${ORACLE_SID}" ]; then
+		_dbs_echo "WARNING: Environment variable \$ORACLE_SID not set." "${DBS_RED}"
+	else
+		_dbs_echo "Current ORACLE_SID = $ORACLE_SID" "${DBS_GREEN}"
+	fi
+
+	if [ -z "${ORACLE_HOME}" ]; then
+		_dbs_echo "WARNING: Environment variable \$ORACLE_HOME not set." "${DBS_RED}"
+	else
+		_dbs_echo "Current ORACLE_HOME = $ORACLE_HOME" "${DBS_GREEN}"
+	fi
+}
+
+_dbs_set_oracle_alias() {
+	local ORA_INST_USER=""
+	local ORA_INST_HOME=""
+	local OLD_IFS=""
+	local J=0
+	alias p='_dbs_get_running_oracle_instance'
+	if [ ${DBS_SHOW_HELP} -eq 1 ]; then
+		_dbs_echo "HELP: alias p - Show Oracle instance status." "${DBS_YELLOW}"
+	fi
+	if _command_exists sqlplus ; then
+		alias s='sqlplus / as sysdba'
+		if [ ${DBS_SHOW_HELP} -eq 1 ]; then
+			_dbs_echo "HELP: alias s - Run sqlplus" "${DBS_YELLOW}"
+		fi
+	else
+		_dbs_echo "WARNING: Binary sqlplus not found." "${DBS_RED}"
+	fi
+	if _command_exists lsnrctl ; then
+		alias l='lsnrctl'
+		if [ ${DBS_SHOW_HELP} -eq 1 ]; then
+			_dbs_echo "HELP: alias l - Run lsnrctl" "${DBS_YELLOW}"
+		fi
+	else
+		_dbs_echo "WARNING: Binary lsnrctl not found." "${DBS_RED}"
+	fi
+	if _command_exists rman ; then
+		alias r='rman target=/'
+		if [ ${DBS_SHOW_HELP} -eq 1 ]; then
+			_dbs_echo "HELP: alias r - Run rman" "${DBS_YELLOW}"
+		fi
+	else
+		_dbs_echo "WARNING: Binary rman not found." "${DBS_RED}"
+	fi
+	OLD_IFS=$IFS
+	IFS=$'\n'
+	for ((J=0; J<${#DBS_ORA_INSTANCE[@]}; J++)); do
+		ORA_INST_NAME=$(echo "${DBS_ORA_INSTANCE[$J]}" | awk -F':' '{print $1}')
+		ORA_INST_HOME=$(echo "${DBS_ORA_INSTANCE[$J]}" | awk -F':' '{print $2}')
+		_dbs_set_ora_instance_alias "${ORA_INST_NAME}" "${ORA_INST_HOME}"
+	done
+	IFS=$OLD_IFS
+}
+
+_dbs_get_oracle_dir() {
+	local DBS_ADR_BASE=""
+	local DBS_ADR_HOME=""
+	if [ -f "$ORACLE_HOME/bin/adrci" ]; then
+		DBS_ADR_BASE=$($ORACLE_HOME/bin/adrci EXEC="SHOW BASE" | awk '{print $4}' | sed 's/\"//g' | sed 's/\/$//')
+		DBS_ADR_HOME=$($ORACLE_HOME/bin/adrci EXEC="SHOW HOMES;" | grep "$ORACLE_SID" | head -1 | sed 's/\/$//')
+		if [ -n "${DBS_ADR_HOME}" ]; then
+			if [ -d "${DBS_ADR_BASE}/${DBS_ADR_HOME}/diag" ]; then
+				_dbs_echo "Current diag dir = ${DBS_ADR_BASE}/${DBS_ADR_HOME}/diag" "${DBS_GREEN}"
+			fi
+			if [ -d "${DBS_ADR_BASE}/${DBS_ADR_HOME}/trace" ]; then
+				_dbs_echo "Current trace dir = ${DBS_ADR_BASE}/${DBS_ADR_HOME}/trace" "${DBS_GREEN}"
+			fi
+			if [ -d "${DBS_ADR_BASE}/${DBS_ADR_HOME}/cdump" ]; then
+				_dbs_echo "Current cdump dir = ${DBS_ADR_BASE}/${DBS_ADR_HOME}/cdump" "${DBS_GREEN}"
+			fi
+			if [ -d "${DBS_ADR_BASE}/${DBS_ADR_HOME}/adump" ]; then
+				_dbs_echo "Current adump dir = ${DBS_ADR_BASE}/${DBS_ADR_HOME}/adump" "${DBS_GREEN}"
+			fi
+		fi
+	fi
+}
+
+_dbs_get_running_mysql_instance() {
+	local MYSQL_INST_FULL_BIN=""
+	local MYSQL_INST_BIN_NAME=""
+	local MYSQL_INST_PID=""
+	local MYSQL_INST_USER=""
+	local MYSQL_INST_BIN=""
+	local PS_FIND=()
+	local PS_FIND_NUM=0
+	local PIDOF_FIND=""
+	OLD_IFS=$IFS
+	IFS=$'\n'
+	if [[ "${DBS_PLATFORM}" = "aix" ]]; then
+		PS_FIND=($(ps -eo pid,user,args | grep "[m]ysqld" | sed 's/^[ \t]*//;s/[ ]*$//' 2>/dev/null))
+	else
+		if _command_exists pidof ; then
+			PIDOF_FIND=$(pidof mysqld)
+		else
+			PIDOF_FIND="[m]ysqld"
+		fi
+		if [ -n "${PIDOF_FIND}" ]; then
+			PS_FIND=($(ps -eo pid,user,cmd | grep "${PIDOF_FIND}" | grep -v "grep" | sed 's/^[ \t]*//;s/[ \t]*$//' 2>/dev/null))
+		fi
+	fi
+	PS_FIND_NUM=${#PS_FIND[*]}
+	for ((i=0; i<${#PS_FIND[@]}; i++)); do
+		if [ -n "${PS_FIND[$i]}" ]; then
+			MYSQL_INST_FULL_BIN="$(echo "${PS_FIND[$i]}" | awk -F' ' '{print $3}')"
+			MYSQL_INST_BIN_NAME=$(basename ${MYSQL_INST_FULL_BIN})
+			if [[ "${MYSQL_INST_BIN_NAME}" = "mysqld" ]]; then
+				MYSQL_INST_PID=$(echo "${PS_FIND[$i]}" | awk -F' ' '{print $1}')
+				MYSQL_INST_USER=$(echo "${PS_FIND[$i]}" | awk -F' ' '{print $2}')
+				MYSQL_INST_BIN=$(dirname ${MYSQL_INST_FULL_BIN})/$(basename ${MYSQL_INST_FULL_BIN})
+				_dbs_echo "Found MySQL instance, PID: ${MYSQL_INST_PID}, PATH: \"${MYSQL_INST_BIN}\", USER: \"${MYSQL_INST_USER}\", CFG: \"${DBS_MYSQL_CONFIG_FIND}\" - RUNNING" "${DBS_GREEN}"
+			fi
+		fi
+	done
+	IFS=$OLD_IFS
+	if [ ${PS_FIND_NUM} -eq 0 ]; then
+		if _command_exists mysqld ; then
+			_dbs_echo "Found MySQL instance, CFG: \"${DBS_MYSQL_CONFIG_FIND}\" - NOT RUNNING" "${DBS_RED}"
+			return 0
+		else
+			return 1
+		fi
+	else
+		return 0
+	fi
+}
+
+_dbs_get_running_mariadb_instance() {
+	local MARIADB_INST_FULL_BIN=""
+	local MARIADB_INST_BIN_NAME=""
+	local MARIADB_INST_PID=""
+	local MARIADB_INST_USER=""
+	local MARIADB_INST_BIN=""
+	local PS_FIND=()
+	local PS_FIND_NUM=0
+	local PIDOF_FIND=""
+	OLD_IFS=$IFS
+	IFS=$'\n'
+	if [[ "${DBS_PLATFORM}" = "aix" ]]; then
+		PS_FIND=($(ps -eo pid,user,args | grep "[m]ariadbd" | sed 's/^[ \t]*//;s/[ ]*$//' 2>/dev/null))
+	else
+		if _command_exists pidof ; then
+			PIDOF_FIND=$(pidof mariadbd)
+		else
+			PIDOF_FIND="[m]ariadbd"
+		fi
+		if [ -n "${PIDOF_FIND}" ]; then
+			PS_FIND=($(ps -eo pid,user,cmd | grep -E "${PIDOF_FIND}" | grep -v "grep" | sed 's/^[ \t]*//;s/[ \t]*$//' 2>/dev/null))
+		fi
+	fi
+	PS_FIND_NUM=${#PS_FIND[*]}
+	for ((i=0; i<${#PS_FIND[@]}; i++)); do
+		if [ -n "${PS_FIND[$i]}" ]; then
+			MARIADB_INST_FULL_BIN="$(echo "${PS_FIND[$i]}" | awk -F' ' '{print $3}')"
+			MARIADB_INST_BIN_NAME=$(basename ${MARIADB_INST_FULL_BIN})
+			if [[ "${MARIADB_INST_BIN_NAME}" = "mariadbd" ]]; then
+				MARIADB_INST_PID=$(echo "${PS_FIND[$i]}" | awk -F' ' '{print $1}')
+				MARIADB_INST_USER=$(echo "${PS_FIND[$i]}" | awk -F' ' '{print $2}')
+				MARIADB_INST_BIN=$(dirname ${MARIADB_INST_FULL_BIN})/$(basename ${MARIADB_INST_FULL_BIN})
+				_dbs_echo "Found MariaDB instance, PID: ${MARIADB_INST_PID}, PATH: \"${MARIADB_INST_BIN}\", USER: \"${MARIADB_INST_USER}\", CFG: \"${DBS_MARIADB_CONFIG_FIND}\" - RUNNING" "${DBS_GREEN}"
+			fi
+		fi
+	done
+	IFS=$OLD_IFS
+	if [ ${PS_FIND_NUM} -eq 0 ]; then
+		if _command_exists mariadbd ; then
+			_dbs_echo "Found MariaDB instance, CFG: \"${DBS_MARIADB_CONFIG_FIND}\" - NOT RUNNING" "${DBS_RED}"
+			return 0
+		else
+			return 1
+		fi
+	else
+		return 0
+	fi
+}
+
+_dbs_set_mysql_alias() {
+	alias pm='_dbs_get_running_mysql_instance'
+	if [ ${DBS_SHOW_HELP} -eq 1 ]; then
+		_dbs_echo "HELP: alias pm - Show MySQL instance status." "${DBS_YELLOW}"
+	fi
+	if _command_exists mysql ; then
+		alias m='mysql'
+		if [ ${DBS_SHOW_HELP} -eq 1 ]; then
+			_dbs_echo "HELP: alias m - Run mysql client" "${DBS_YELLOW}"
+		fi
+	else
+		_dbs_echo "ERROR: Binary mysql not found." "${DBS_RED}"
+	fi
+}
+
+_dbs_set_mariadb_alias() {
+	alias pm='_dbs_get_running_mariadb_instance'
+	if [ ${DBS_SHOW_HELP} -eq 1 ]; then
+		_dbs_echo "HELP: alias pm - Show MariaDB instance status." "${DBS_YELLOW}"
+	fi
+	if _command_exists mariadb ; then
+		alias m='mariadb'
+		if [ ${DBS_SHOW_HELP} -eq 1 ]; then
+			_dbs_echo "HELP: alias m - Run mariadb client" "${DBS_YELLOW}"
+		fi
+	else
+		_dbs_echo "ERROR: Binary mariadb not found." "${DBS_RED}"
+	fi
+}
+
+_dbs_get_running_pg_instance() {
+	local PG_INST_FULL_BIN=""
+	local PG_INST_BIN_NAME=""
+	local PG_INST_PID=""
+	local PG_INST_USER=""
+	local PG_INST_BIN=""
+	local PG_INST_CONF_FILE=""
+	local PS_FIND=()
+	local PS_FIND_NUM=0
+	local PIDOF_FIND=""
+	local OLD_IFS=""
+	OLD_IFS=$IFS
+	IFS=$'\n'
+	if [[ "${DBS_PLATFORM}" = "aix" ]]; then
+		PS_FIND=($(ps -eo pid,user,args | grep "[p]ostgres" | grep -E "(config[_-]file|-D)" | sed 's/^[ \t]*//;s/[ ]*$//' 2>/dev/null))
+	else
+		PS_FIND=($(ps -eo pid,user,cmd | grep "[p]ostgres" | grep -E "(config[_-]file|-D)" | sed 's/^[ \t]*//;s/[ \t]*$//' 2>/dev/null))
+	fi
+	PS_FIND_NUM=${#PS_FIND[*]}
+	for ((p=0; p<${#PS_FIND[@]}; p++)); do
+		if [ -n "${PS_FIND[$p]}" ]; then
+			PG_INST_FULL_BIN="$(echo "${PS_FIND[$p]}" | awk -F' ' '{print $3}')"
+			PG_INST_BIN_NAME=$(basename ${PG_INST_FULL_BIN})
+			PG_INST_PID=$(echo "${PS_FIND[$p]}" | awk -F' ' '{print $1}')
+			PG_INST_USER=$(echo "${PS_FIND[$p]}" | awk -F' ' '{print $2}')
+			PG_INST_BIN=$(dirname ${PG_INST_FULL_BIN})/$(basename ${PG_INST_FULL_BIN})
+			if [ "${PG_INST_BIN_NAME}" = "postgres" ]; then
+				PG_INST_CONF_FILE_NUM=$(echo "${PS_FIND[$p]}" | grep -E "(config[_-]file)" | wc -l)
+				if [ ${PG_INST_CONF_FILE_NUM} -gt 0 ]; then
+					if [[ "${DBS_PLATFORM}" = "aix" ]]; then
+						PG_INST_CONF_FILE="$(echo "${PS_FIND[$p]}" | sed -n "s/.*config[_-]file=\([^ ]*\).*/\1/p")"
+					else
+						PG_INST_CONF_FILE="$(echo "${PS_FIND[$p]}" | sed -r "s/.*config[_-]file=([^ ]+).*/\1/")"
+					fi
+					_dbs_echo "Found PostgreSQL instance, PID: ${PG_INST_PID}, PATH: \"${PG_INST_BIN}\", USER: \"${PG_INST_USER}\", CFG: \"${PG_INST_CONF_FILE}\" - RUNNING" "${DBS_GREEN}"
+				else
+					_dbs_echo "Found PostgreSQL instance, PID: ${PG_INST_PID}, PATH: \"${PG_INST_BIN}\", USER: \"${PG_INST_USER}\" - RUNNING" "${DBS_GREEN}"
+				fi
+			elif [ "${PG_INST_BIN_NAME}" = "postmaster" ]; then
+				_dbs_echo "Found PostgreSQL instance, PID: ${PG_INST_PID}, PATH: \"${PG_INST_BIN}\", USER: \"${PG_INST_USER}\" - RUNNING" "${DBS_GREEN}"
+			fi
+		fi
+	done
+	IFS=$OLD_IFS
+	if [ ${PS_FIND_NUM} -eq 0 ]; then
+		for ((G=0; G<${#DBS_PG_CONFIG_FIND[@]}; G++)); do
+			if [ -f "${DBS_PG_CONFIG_FIND[$G]}" ]; then
+				_dbs_echo "Found PostgreSQL instance, CFG: \"${DBS_PG_CONFIG_FIND[$G]}\" - NOT RUNNING" "${DBS_RED}"
+			fi
+		done
+		for ((H=0; H<${#DBS_PG_CUSTOM_CONFIG_FIND[@]}; H++)); do
+			if [ -f "${DBS_PG_CUSTOM_CONFIG_FIND[$H]}" ]; then
+				_dbs_echo "Found PostgreSQL instance, CFG: \"${DBS_PG_CUSTOM_CONFIG_FIND[$H]}\" - NOT RUNNING" "${DBS_RED}"
+			fi
+		done
+	else
+		return 0
+	fi
+}
+
+_dbs_set_pg_alias() {
+	local PG_ALIAS=""
+	local PG_INST_FULL_BIN=""
+        local PG_INST_BIN_NAME=""
+        local PG_INST_PID=""
+        local PG_INST_USER=""
+        local PG_INST_BIN_DIR=""
+        local PG_INST_CONF_FILE=""
+	local PS_FIND=()
+	local PS_FIND_NUM=0
+	alias pg='_dbs_get_running_pg_instance'
+	if [ ${DBS_SHOW_HELP} -eq 1 ]; then
+		_dbs_echo "HELP: alias pg - Show PostgreSQL instance status." "${DBS_YELLOW}"
+	fi
+
+        IFS=$'\n'
+        if [[ "${DBS_PLATFORM}" = "aix" ]]; then
+                PS_FIND=($(ps -eo pid,user,args | grep "[p]ostgres" | grep -E "(conf|-D)" | sed 's/^[ \t]*//;s/[ ]*$//' 2>/dev/null))
+        else
+                PS_FIND=($(ps -eo pid,user,cmd | grep "[p]ostgres" | grep -E "(conf|-D)" | sed 's/^[ \t]*//;s/[ \t]*$//' 2>/dev/null))
+        fi
+        PS_FIND_NUM=${#PS_FIND[*]}
+        for ((p=0; p<${#PS_FIND[@]}; p++)); do
+                if [ -n "${PS_FIND[$p]}" ]; then
+                        PG_INST_FULL_BIN="$(echo "${PS_FIND[$p]}" | awk -F' ' '{print $3}')"
+                        PG_INST_BIN_NAME=$(basename ${PG_INST_FULL_BIN})
+			PG_INST_PID=$(echo "${PS_FIND[$p]}" | awk -F' ' '{print $1}')
+			PG_INST_USER=$(echo "${PS_FIND[$p]}" | awk -F' ' '{print $2}')
+			PG_INST_BIN_DIR=$(dirname ${PG_INST_FULL_BIN})
+                        if [ "${PG_INST_BIN_NAME}" = "postgres" ]; then
+                        	if [[ "${DBS_PLATFORM}" = "aix" ]]; then
+                                	PG_INST_CONF_FILE="$(echo "${PS_FIND[$p]}" | sed -n "s/.*config[_-]file=\([^ ]*\).*/\1/p")"
+                	        else
+        	                        PG_INST_CONF_FILE="$(echo "${PS_FIND[$p]}" | sed -r "s/.*config[_-]file=([^ ]+).*/\1/")"
+	                        fi
+				PG_IS_ETC=$(echo "${PG_INST_CONF_FILE}" | grep -c "etc")
+				if [ ${PG_IS_ETC} -eq 1 ]; then
+					PG_ALIAS=$(echo "${PG_INST_CONF_FILE}" | cut -f4 -d'/' | tr -d '.')
+				else
+					PG_ALIAS=${PG_INST_PID}
+				fi
+				alias p${PG_ALIAS}="sudo -u postgres ${PG_INST_BIN_DIR}/psql"
+				if [ ${DBS_SHOW_HELP} -eq 1 ]; then
+					_dbs_echo "HELP: alias p${PG_ALIAS} - Run psql client for PostgreSQL" "${DBS_YELLOW}"
+				fi
+			elif [ "${PG_INST_BIN_NAME}" = "postmaster" ]; then
+				PG_ALIAS=${PG_INST_PID}
+				alias p${PG_ALIAS}="sudo -u postgres ${PG_INST_BIN_DIR}/psql"
+				if [ ${DBS_SHOW_HELP} -eq 1 ]; then
+					_dbs_echo "HELP: alias p${PG_ALIAS} - Run psql client for PostgreSQL" "${DBS_YELLOW}"
+				fi
+                        fi
+                fi
+        done
+        IFS=$OLD_IFS
+}
+
+function allcrontab() {
+	local CURRENT_USER=$(whoami)
+	local DBS_USER=()
+	local DBS_CROND=()
+	local DBS_USER_CRONTAB=""
+	local DBS_CROND_TAB=""
+	if [[ "${CURRENT_USER}" = "root" ]]; then
+		for DBS_USER in $(cut -d':' -f1 /etc/passwd); do
+			DBS_USER_CRONTAB=$(crontab -l -u ${DBS_USER} 2>/dev/null)
+			if [ -n "${DBS_USER_CRONTAB}" ]; then
+				_dbs_echo "====== Start crontab for user ${DBS_NORMAL}${DBS_GREEN}${DBS_USER}${DBS_NORMAL} ${DBS_RED}======" "${DBS_RED}"
+				crontab -l -u ${DBS_USER} | sed '/ *#/d; /^ *$/d'
+				_dbs_echo "====== End crontab for user ${DBS_NORMAL}${DBS_GREEN}${DBS_USER}${DBS_NORMAL} ${DBS_RED}========\n" "${DBS_RED}"
+			fi
+		done
+	else
+		DBS_USER_CRONTAB=$(crontab -l 2>/dev/null)
+		if [ -n "${DBS_USER_CRONTAB}" ]; then
+			_dbs_echo "====== Start crontab for user ${DBS_NORMAL}${DBS_GREEN}${CURRENT_USER}${DBS_NORMAL} ${DBS_RED}======" "${DBS_RED}"
+			crontab -l | sed '/ *#/d; /^ *$/d'
+			_dbs_echo "====== End crontab for user ${DBS_NORMAL}${DBS_GREEN}${CURRENT_USER}${DBS_NORMAL} ${DBS_RED}========\n" "${DBS_RED}"
+		fi
+	fi
+	for DBS_CROND in $(ls -L1 /etc/cron.d); do
+		DBS_CROND_TAB=$(cat "/etc/cron.d/${DBS_CROND}" 2>/dev/null | egrep -Ev "^\s*(;|#|$)")
+		if [ -n "${DBS_CROND_TAB}" ]; then
+			_dbs_echo "====== Start cron.d ${DBS_NORMAL}${DBS_GREEN}/etc/cron.d/${DBS_CROND}${DBS_NORMAL} ${DBS_RED}======" "${DBS_RED}"
+			echo "${DBS_CROND_TAB}" | egrep -Ev "^\s*(SHELL|PATH)"
+			_dbs_echo "====== End cron.d ${DBS_NORMAL}${DBS_GREEN}/etc/cron.d${DBS_CROND}${DBS_NORMAL} ${DBS_RED}======\n" "${DBS_RED}"
+		fi
+	done
+}
+
+function qcat() {
+	[[ $1 = '' ]] || [[ $1 = '-h' ]] || [[ $1 = '--help' ]] && echo "usage: qcat <filename>" && return 1
+	if ! _command_exists egrep ; then
+		_dbs_echo "ERR: Command 'egrep' not found your system." "${DBS_RED}"
+		return 1
+	fi
+	if [ -f "$1" ]; then
+		cat "$1" | egrep -Ev "^\s*(;|#|$)"
+	else
+		_dbs_echo "ERR: File '"$1"' not found." "${DBS_RED}"
+	fi
+}
+
+function path(){
+    old=$IFS
+    IFS=:
+    printf "%s\n" $PATH
+    IFS=$old
+}
+
+# Run only interactive mode
+if [[ $- == *i* ]]; then
+	_dbs_echo "======================== ${DBS_SCRIPT_VENDOR} v${DBS_SCRIPT_VERSION} ========================" "${DBS_CYAN}"
+	echo "OS: ${DBS_PLATFORM}"
+	echo "Hostname: $(hostname)"
+
+	if [[ "${DBS_PLATFORM}" != "unknown" ]]; then
+		if [ ${DBS_FOUND_ORACLE} -eq 1 ]; then
+			export NLS_DATE_FORMAT='dd.mm.yy hh24:mi:ss'
+			_dbs_get_running_oracle_instance
+			_dbs_check_oracle_env
+			_dbs_get_oracle_dir
+			_dbs_set_oracle_alias
+		fi
+		if [ ${DBS_FOUND_MYSQL} -eq 1 ]; then
+			_dbs_get_running_mysql_instance
+			if [ $? -eq 0 ]; then
+				_dbs_set_mysql_alias
+			fi
+		fi
+		if [ ${DBS_FOUND_MARIADB} -eq 1 ]; then
+			_dbs_get_running_mariadb_instance
+			if [ $? -eq 0 ]; then
+				_dbs_set_mariadb_alias
+			fi
+		fi
+		if [ ${DBS_FOUND_PG} -eq 1 -a ${DBS_FOUND_PG_CUSTOM} -eq 1 ]; then
+			_dbs_get_running_pg_instance
+			if [ $? -eq 0 ]; then
+				_dbs_set_pg_alias
+			fi
+		fi
+	fi
+
+	_dbs_echo "======================== ${DBS_SCRIPT_VENDOR} v${DBS_SCRIPT_VERSION} ========================" "${DBS_CYAN}"
+	PS1='\n\[\e[0;33m\][\D{%d.%m.%Y %H:%M:%S}] \[\e[01;31m\]\u@\h \[\e[1;34m\]\w\n\$ \[\e[0;32m\]\[\e[0m\]'
+fi
