@@ -5,9 +5,12 @@
 #
 # Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 # 
-# Current Version: 1.3
+# Current Version: 1.4
 #
 # Revision History:
+#
+#  Version 1.4
+#    Fixed parsing user and password in .my.cnf file
 #
 #  Version 1.3
 #    Added port option
@@ -40,7 +43,7 @@
 #  -- Ubuntu 14.04.1 using /bin/bash
 #
 # Usage:
-#  Refer to the usage() sub-routine, or invoke mysql-stat.sh
+#  Refer to the _usage() sub-routine, or invoke mysql-stat.sh
 #  with the "-h" option.
 #
 # Example:
@@ -51,8 +54,8 @@
 #  or
 #  $ ./mysql-stat.sh --user root --password XXXXXXX
 #
-#  Simple MySQL database server statistics v1.0.0
-#  Written by Mikhail Grigorev (sleuthhound@gmail.com, http://www.programs74.ru)
+#  Simple MySQL database server statistics v1.4
+#  Written by Mikhail Grigorev (sleuthhound@gmail.com, https://blog.programs74.ru)
 #  +------------------------------------------+--------------------+
 #  |                                   Uptime |       226h:30m:38s |
 #  +------------------------------------------+--------------------+
@@ -88,27 +91,42 @@
 #  +------------------------------------------+--------------------+
 #
 
-VERSION="1.3"
+VERSION="1.4"
+
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+    DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+SCRIPT_NAME=$(basename "$0")
 
 echo ""
 echo "Simple MySQL database server statistics v$VERSION"
-echo "Written by Mikhail Grigorev (sleuthhound@gmail.com, http://blog.programs74.ru)"
+echo "Written by Mikhail Grigorev (sleuthhound@gmail.com, https://blog.programs74.ru)"
 echo ""
 
-command_exists () {
-        command -v "$1" >/dev/null 2>&1 || {
-                return 1
-        }
+# trap ctrl-c and call ctrl_c()
+trap ctrl_c INT
+
+function ctrl_c() {
+	echo "** Trapped CTRL-C"
+	exit 1
 }
 
-if ! command_exists mysql ; then
-	echo "ERROR: Command mysql not found."
-	exit 1;
+_command_exists() {
+	type "$1" &> /dev/null
+}
+
+if _command_exists "mysql"; then
+	MYSQL_BIN=$(which mysql)
 else
-	MYSQL=`which mysql`
+	echo "ERROR: Command 'mysql' not found."
+	exit 1
 fi
 
-showHelp() {
+_usage() {
 	echo -e "\t--help -h\t\tthis menu"
 	echo -e "\t--user username\t\tspecify mysql username to use, the script will prompt for a password during runtime, unless you supply a password"
 	echo -e "\t--password \"yourpass\""
@@ -118,71 +136,86 @@ showHelp() {
 
 # Parse arguments
 while [[ $1 == -* ]]; do
-	case "$1" in
-		--user)      mysqlUser="$2"; shift 2;;
-		--password)  mysqlPass="$2"; shift 2;;
-		--host)      mysqlHost="$2"; shift 2;;
-		--port)      mysqlPort="$2"; shift 2;;
-		--help|-h)   showHelp; exit 0;;
-		--*)         shift; break;;
-	esac
+        case "$1" in
+                --user)         MYSQL_USER="$2"; shift 2;;
+                --password)     MYSQL_PASSWD="$2"; shift 2;;
+                --host)         MYSQL_HOST="$2"; shift 2;;
+                --port)         MYSQL_PORT="$2"; shift 2;;
+                --help|-h)      _show_help; exit 0;;
+                --*)            shift; break;;
+        esac
 done
 
-CUR_DIR=$(dirname "$0")
-
-if [[ ! "${log}" ]]; then
-	log="${CUR_DIR}/mysql_stat.log"
-fi
-if [[ ! -f "${log}" ]]; then
-        touch "${log}"
+if [[ ! "${LOG_FILE}" ]]; then
+	LOG_FILE="${SCRIPT_DIR}/mysql_stat.log"
 fi
 
-# prevent overwriting the commandline args with the ones in .my.cnf, and check that .my.cnf exists
-if [[ ! ${mysqlUser}  && -f "$HOME/.my.cnf" ]]; then
-        if grep "host=" "$HOME/.my.cnf" >/dev/null 2>&1; then
-                mysqlHost=$(grep -m 1 "host=" "$HOME/.my.cnf" | sed -e 's/^[^=]\+=//g');
+if [[ ! -f "${LOG_FILE}" ]]; then
+        touch "${LOG_FILE}" >/dev/null 2>&1
+fi
+
+# Prevent overwriting the commandline args with the ones in .my.cnf, and check that .my.cnf exists
+if [[ ! ${MYSQL_USER} && -f "$HOME/.my.cnf" ]]; then
+        if egrep -E "host.*=" "$HOME/.my.cnf" >/dev/null 2>&1; then
+                MYSQL_HOST=$(egrep -m 1 -E "host.*=" "$HOME/.my.cnf" | sed -e 's/^[^=]\+=//g' | sed 's/^[ \t]*//;s/[ \t]*$//');
         fi
-        if grep "port=" "$HOME/.my.cnf" >/dev/null 2>&1; then
-                mysqlPort=$(grep -m 1 "port=" "$HOME/.my.cnf" | sed -e 's/^[^=]\+=//g');
+        if egrep -E "port.*=" "$HOME/.my.cnf" >/dev/null 2>&1; then
+                MYSQL_PORT=$(egrep -m 1 -E "port.*=" "$HOME/.my.cnf" | sed -e 's/^[^=]\+=//g' | sed 's/^[ \t]*//;s/[ \t]*$//');
         fi
-        if grep "user=" "$HOME/.my.cnf" >/dev/null 2>&1; then
-                mysqlUser=$(grep -m 1 "user=" "$HOME/.my.cnf" | sed -e 's/^[^=]\+=//g');
-                if grep "password=" "$HOME/.my.cnf" >/dev/null 2>&1; then
-                        mysqlPass=$(grep -m 1 "password=" "$HOME/.my.cnf" | sed -e 's/^[^=]\+=//g');
+        if egrep -E "user.*=" "$HOME/.my.cnf" >/dev/null 2>&1; then
+                MYSQL_USER=$(egrep -m 1 -E "user.*=" "$HOME/.my.cnf" | sed -e 's/^[^=]\+=//g' | sed 's/^[ \t]*//;s/[ \t]*$//');
+                if egrep -E "password.*=" "$HOME/.my.cnf" >/dev/null 2>&1; then
+                        MYSQL_PASSWD=$(egrep -m 1 -E "password.*=" "$HOME/.my.cnf" | sed -e 's/^[^=]\+=//g' | sed 's/^[ \t]*//;s/[ \t]*$//');
                 else
-                        echo "Found no pass line in your .my.cnf, fix this or specify with --password"
+                        echo "Not found password line in your '$HOME/.my.cnf', fix this or specify with --password"
                 fi
         else
-                echo "Found no user line in your .my.cnf, fix this or specify with --user"
+                echo "Not found user line in your '$HOME/.my.cnf', fix this or specify with --user"
                 exit 1;
         fi
 fi
 
-MYSQL="${MYSQL} -u${mysqlUser} -p${mysqlPass}"
-
-# If set, add -h parameter to mysqlHost
-if [[ ${mysqlHost} ]]; then
-	MYSQL=${MYSQL}" -h${mysqlHost}"
+if [ -z "${MYSQL_USER}" ]; then
+	MYSQL_USER="root"
 fi
 
-# If set, add -p parameter to mysqlHost
-if [[ ${mysqlPort} ]]; then
-        MYSQL=${MYSQL}" -P${mysqlPort}"
+MYSQL="${MYSQL_BIN} -u${MYSQL_USER}"
+
+# If set, add -h parameter to MYSQL_HOST
+if [ -n "${MYSQL_HOST}" ]; then
+	MYSQL=${MYSQL}" -h${MYSQL_HOST}"
 fi
 
-# Error out if no auth details are found for the user
-if [[ ! ${mysqlUser} ]]; then
-	echo "ERROR: Authentication information not found as arguments, nor in $HOME/.my.cnf"
+# If set, add -P parameter to MYSQL_PORT
+if [ -n "${MYSQL_PORT}" ]; then
+        MYSQL=${MYSQL}" -P${MYSQL_PORT}"
+fi
+
+if [ -n "${MYSQL_PASSWD}" ]; then
+	export MYSQL_PWD="${MYSQL_PASSWD}"
+else
+	echo "Error: MySQL password for user '${MYSQL_USER}' is empty, please change password and create settings file '$HOME/.my.cnf'."
 	echo
-	showHelp
-	exit 1;
+	_usage
+	exit 1
+fi
+
+if [ -f "$HOME/.my.cnf" ]; then
+        if ! `echo 'exit' | ${MYSQL_BIN} --defaults-file="$HOME/.my.cnf" -s >/dev/null 2>&1` ; then
+                if ! `echo 'exit' | ${MYSQL} -s >/dev/null 2>&1` ; then
+                        echo "Error[0]: Supplied mysql username or password appears to be incorrect."
+                        exit
+                fi
+        else
+                MYSQL="${MYSQL_BIN} --defaults-file=$HOME/.my.cnf"
+        fi
 fi
 
 # Test connecting to the database:
-${MYSQL} --skip-column-names --batch -e "show status" >/dev/null 2>>"${log}"
+${MYSQL} --skip-column-names --batch -e "SELECT 1;" >/dev/null 2>>"${LOG_FILE}"
 
-if [[ $? -gt 0 ]]; then
-	echo "ERROR: An error occured, check ${log} for more information.";
+if [ $? -ne 0 ]; then
+	echo "ERROR: An error occured, check log file '${LOG_FILE}' for more information.";
 	exit 1;
 fi
 
@@ -240,6 +273,6 @@ printf "| %40s | %17.1f% |\n", " QUERY_CACHE_HIT_RATE (%)", QUERY_CACHE_HIT_RATE
 printf "+------------------------------------------+--------------------+\n"
 }'
 
-if [[ ! -s "${log}" ]]; then
-	rm -f "${log}"
+if [[ ! -s "${LOG_FILE}" ]]; then
+	rm -f "${LOG_FILE}" >/dev/null 2>&1
 fi
