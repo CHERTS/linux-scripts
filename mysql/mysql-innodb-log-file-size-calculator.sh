@@ -5,9 +5,15 @@
 #
 # Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 # 
-# Current Version: 1.2
+# Current Version: 1.3
 #
 # Revision History:
+#
+#  Version 1.3
+#    Fixed parsing user and password in .my.cnf file
+#
+#  Version 1.2
+#    Small fix
 #
 #  Version 1.1
 #    Added MySQL 8.x support
@@ -80,8 +86,8 @@
 #  Recomended set parameter innodb_log_file_size = 7574M
 #  ================================================
 
-command_exists () {
-        type "$1" &> /dev/null;
+_command_exists() {
+	type "$1" &> /dev/null
 }
 
 VERSION="1.0"
@@ -110,28 +116,26 @@ while [[ $1 == -* ]]; do
         esac
 done
 
-if command_exists mysql ; then
-        MYSQL_BIN=$(which mysql)
+if _command_exists "mysql"; then
+	MYSQL_BIN=$(which mysql)
 else
-        echo "Error: mysql not found."
-        exit
+	echo "ERROR: Command 'mysql' not found."
+	exit 1
 fi
 
-CURRENT_USER=$(whoami)
-CURRENT_USER_HOME_DIR=$(getent passwd ${CURRENT_USER} | awk -F':' '{print $6}')
-MYSQL_CNF="${CURRENT_USER_HOME_DIR}/.my.cnf"
+MYSQL_CNF="$HOME/.my.cnf"
 
 if [ -f "${MYSQL_CNF}" ]; then
-        if grep "host=" "${MYSQL_CNF}" >/dev/null 2>&1; then
-                MYSQL_HOST=$(grep -m 1 "host=" "${MYSQL_CNF}" | sed -e 's/^[^=]\+=//g');
+        if egrep -E "host.*=" "${MYSQL_CNF}" >/dev/null 2>&1; then
+                MYSQL_HOST=$(egrep -m 1 -E "host.*=" "${MYSQL_CNF}" | sed -e 's/^[^=]\+=//g' | sed 's/^[ \t]*//;s/[ \t]*$//');
         fi
-        if grep "port=" "${MYSQL_CNF}" >/dev/null 2>&1; then
-                MYSQL_PORT=$(grep -m 1 "port=" "${MYSQL_CNF}" | sed -e 's/^[^=]\+=//g');
+        if egrep -E "port.*=" "${MYSQL_CNF}" >/dev/null 2>&1; then
+                MYSQL_PORT=$(egrep -m 1 -E "port.*=" "${MYSQL_CNF}" | sed -e 's/^[^=]\+=//g' | sed 's/^[ \t]*//;s/[ \t]*$//');
         fi
-        if grep "user=" "${MYSQL_CNF}" >/dev/null 2>&1; then
-                MYSQL_USER=$(grep -m 1 "user=" "${MYSQL_CNF}" | sed -e 's/^[^=]\+=//g');
-                if grep "password=" "${MYSQL_CNF}" >/dev/null 2>&1; then
-                        MYSQL_PASSWD=$(grep -m 1 "password=" "${MYSQL_CNF}" | sed -e 's/^[^=]\+=//g');
+        if egrep -E "user.*=" "${MYSQL_CNF}" >/dev/null 2>&1; then
+                MYSQL_USER=$(egrep -m 1 -E "user.*=" "${MYSQL_CNF}" | sed -e 's/^[^=]\+=//g' | sed 's/^[ \t]*//;s/[ \t]*$//');
+                if egrep -E "password.*=" "${MYSQL_CNF}" >/dev/null 2>&1; then
+                        MYSQL_PASSWD=$(egrep -m 1 -E "password.*=" "${MYSQL_CNF}" | sed -e 's/^[^=]\+=//g' | sed 's/^[ \t]*//;s/[ \t]*$//');
                 else
                         echo "Not found password line in your '${MYSQL_CNF}', fix this or specify with --password"
                 fi
@@ -215,7 +219,7 @@ _mysql_exec_one_query() {
         return ${EXIT_CODE}
 }
 
-if command_exists bc ; then
+if _command_exists "bc"; then
 	MYSQL_VER=$(_mysql_exec_one_query "select version();")
         if [ $? -eq 0 ]; then
                 echo "================================================"
