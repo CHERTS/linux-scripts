@@ -4,7 +4,7 @@
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.4.8
+# Current Version: 1.4.9
 # 
 # Example: ./nginx-create-vhost.sh -d "domain.com"
 # or
@@ -13,6 +13,9 @@
 # Example: ./nginx-create-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1
 #
 # Revision History:
+#
+#  Version 1.4.9
+#    Added php version vars (PHP_DEFAULT_VERSION_DEBIAN9 and PHP_DEFAULT_VERSION_DEBIAN10) in Debian systems
 #
 #  Version 1.4.8
 #    Added CentOS Linux and Ubuntu 20.04
@@ -70,6 +73,8 @@ NGINX_TEMPLATE="nginx_virtual_host.template"
 PHP_FPM_POOL_DIR=/etc/php5/fpm/pool.d
 PHP_FPM_SOCK_DIR=/var/lib/php5-fpm
 PHP_FPM_RUN_SCRIPT=/etc/init.d/php5-fpm
+PHP_DEFAULT_VERSION_DEBIAN10=7.3
+PHP_DEFAULT_VERSION_DEBIAN9=7.0
 DEFAULT_SITE_DIR=/var/www
 DEFAULT_TEMPLATE_DIR=/etc/nginx/template
 CUR_DIR=$(dirname "$0")
@@ -675,44 +680,44 @@ case "${DIST}" in
 		echo -e "${GREEN}Detect Debian version\t\t${OS_DISTRIB} (${OS_INIT_SYSTEM})${NORMAL}"
 		if [[ "${DEBIAN_VERSION}" = "10" ]]; then
 			echo -en "${GREEN}Detecting your php-fpm\t\t"
-			if command_exists php-fpm7.3 ; then
-				echo -e "Found php-fpm7.3${NORMAL}"
-				PHP_FPM_BIN=$(which php-fpm7.3)
-				PHP_FPM_POOL_DIR=/etc/php/7.3/fpm/pool.d
+			if command_exists php-fpm${PHP_DEFAULT_VERSION_DEBIAN10} ; then
+				echo -e "Found php-fpm${PHP_DEFAULT_VERSION_DEBIAN10}${NORMAL}"
+				PHP_FPM_BIN=$(which php-fpm${PHP_DEFAULT_VERSION_DEBIAN10})
+				PHP_FPM_POOL_DIR=/etc/php/${PHP_DEFAULT_VERSION_DEBIAN10}/fpm/pool.d
 				PHP_FPM_SOCK_DIR=/run/php
 				if [[ "${OS_INIT_SYSTEM}" = "SYSTEMD" ]]; then
-					PHP_FPM_RUN_SCRIPT="php7.3-fpm"
+					PHP_FPM_RUN_SCRIPT="php${PHP_DEFAULT_VERSION_DEBIAN10}-fpm"
 				else
-					if [ -f "/etc/init.d/php7.3-fpm" ]; then
-						PHP_FPM_RUN_SCRIPT=/etc/init.d/php7.3-fpm
+					if [ -f "/etc/init.d/php${PHP_DEFAULT_VERSION_DEBIAN10}-fpm" ]; then
+						PHP_FPM_RUN_SCRIPT=/etc/init.d/php${PHP_DEFAULT_VERSION_DEBIAN10}-fpm
 					else
-						echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
+						echo -e "${RED}Error: php${PHP_DEFAULT_VERSION_DEBIAN10}-fpm init script not found.${NORMAL}"
 						exit 1;
 					fi
 				fi
 			else
-				echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+				echo -e "${RED}Error: php-fpm${PHP_DEFAULT_VERSION_DEBIAN10} not found.${NORMAL}"
 				exit 1;
 			fi
 		elif [[ "${DEBIAN_VERSION}" = "9" ]]; then
 			echo -en "${GREEN}Detecting your php-fpm\t\t"
-			if command_exists php-fpm7.0 ; then
-				echo -e "Found php-fpm7.0${NORMAL}"
-				PHP_FPM_BIN=$(which php-fpm7.0)
-				PHP_FPM_POOL_DIR=/etc/php/7.0/fpm/pool.d
+			if command_exists php-fpm${PHP_DEFAULT_VERSION_DEBIAN9} ; then
+				echo -e "Found php-fpm${PHP_DEFAULT_VERSION_DEBIAN9}${NORMAL}"
+				PHP_FPM_BIN=$(which php-fpm${PHP_DEFAULT_VERSION_DEBIAN9})
+				PHP_FPM_POOL_DIR=/etc/php/${PHP_DEFAULT_VERSION_DEBIAN9}/fpm/pool.d
 				PHP_FPM_SOCK_DIR=/run/php
 				if [[ "${OS_INIT_SYSTEM}" = "SYSTEMD" ]]; then
-					PHP_FPM_RUN_SCRIPT="php7.0-fpm"
+					PHP_FPM_RUN_SCRIPT="php${PHP_DEFAULT_VERSION_DEBIAN9}-fpm"
 				else
-					if [ -f "/etc/init.d/php7.0-fpm" ]; then
-						PHP_FPM_RUN_SCRIPT=/etc/init.d/php7.0-fpm
+					if [ -f "/etc/init.d/php${PHP_DEFAULT_VERSION_DEBIAN9}-fpm" ]; then
+						PHP_FPM_RUN_SCRIPT=/etc/init.d/php${PHP_DEFAULT_VERSION_DEBIAN9}-fpm
 					else
-						echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
+						echo -e "${RED}Error: php${PHP_DEFAULT_VERSION_DEBIAN9}-fpm init script not found.${NORMAL}"
 						exit 1;
 					fi
 				fi
 			else
-				echo -e "${RED}Error: php-fpm not found.${NORMAL}"
+				echo -e "${RED}Error: php-fpm${PHP_DEFAULT_VERSION_DEBIAN9} not found.${NORMAL}"
 				exit 1;
 			fi
 		elif [[ "${DEBIAN_VERSION}" = "8" ]]; then
