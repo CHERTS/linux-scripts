@@ -4,11 +4,14 @@
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.4.9
+# Current Version: 1.4.10
 # 
 # Example: ./nginx-remove-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1
 #
 # Revision History:
+#
+#  Version 1.4.10
+#    Added configuration file (nginx-remove-vhost.conf)
 #
 #  Version 1.4.9
 #    Added php version vars (PHP_DEFAULT_VERSION_DEBIAN9 and PHP_DEFAULT_VERSION_DEBIAN10) in Debian systems
@@ -66,6 +69,19 @@ PHP_FPM_RUN_SCRIPT=/etc/init.d/php5-fpm
 PHP_DEFAULT_VERSION_DEBIAN10=7.3
 PHP_DEFAULT_VERSION_DEBIAN9=7.0
 DEFAULT_SITE_DIR=/var/www
+
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+    DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+SCRIPT_NAME=$(basename $0)
+
+if [ -f "${SCRIPT_DIR}/${SCRIPT_NAME%.*}.conf" ]; then
+	source "${SCRIPT_DIR}/${SCRIPT_NAME%.*}.conf"
+fi
 
 RED='\033[0;31m'        # RED
 GREEN='\033[0;32m'      # GREEN

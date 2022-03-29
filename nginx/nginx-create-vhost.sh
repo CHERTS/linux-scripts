@@ -4,7 +4,7 @@
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.4.9
+# Current Version: 1.4.10
 # 
 # Example: ./nginx-create-vhost.sh -d "domain.com"
 # or
@@ -13,6 +13,9 @@
 # Example: ./nginx-create-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1
 #
 # Revision History:
+#
+#  Version 1.4.10
+#    Added configuration file (nginx-create-vhost.conf)
 #
 #  Version 1.4.9
 #    Added php version vars (PHP_DEFAULT_VERSION_DEBIAN9 and PHP_DEFAULT_VERSION_DEBIAN10) in Debian systems
@@ -77,7 +80,19 @@ PHP_DEFAULT_VERSION_DEBIAN10=7.3
 PHP_DEFAULT_VERSION_DEBIAN9=7.0
 DEFAULT_SITE_DIR=/var/www
 DEFAULT_TEMPLATE_DIR=/etc/nginx/template
-CUR_DIR=$(dirname "$0")
+
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+    DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+SCRIPT_NAME=$(basename $0)
+
+if [ -f "${SCRIPT_DIR}/${SCRIPT_NAME%.*}.conf" ]; then
+	source "${SCRIPT_DIR}/${SCRIPT_NAME%.*}.conf"
+fi
 
 RED='\033[0;31m'        # RED
 GREEN='\033[0;32m'      # GREEN
@@ -890,8 +905,8 @@ fi
 if [ ! -e "${NGINX_DIR}/settings.conf" ]; then
 	echo -e "${CYAN}Warning: Main settings file '${NGINX_DIR}/settings.conf' not found.${NORMAL}"
 	echo -en "${GREEN}Copy settings.conf to ${NGINX_DIR}...\t"
-	if [ -f "${CUR_DIR}/settings.conf" ]; then
-		cp -- "${CUR_DIR}/settings.conf" "${NGINX_DIR}" >/dev/null 2>&1
+	if [ -f "${SCRIPT_DIR}/settings.conf" ]; then
+		cp -- "${SCRIPT_DIR}/settings.conf" "${NGINX_DIR}" >/dev/null 2>&1
 	else
 		(cat <<-EOF
 		SERVERIP=10.10.10.2
@@ -911,8 +926,8 @@ fi
 
 if [ ! -d "${DEFAULT_TEMPLATE_DIR}" ]; then
 	echo -en "${GREEN}Copy default template directory...\t"
-	if [ -d "${CUR_DIR}/template/" ]; then
-		cp -R -- "${CUR_DIR}/template/" "${NGINX_DIR}" >/dev/null 2>&1
+	if [ -d "${SCRIPT_DIR}/template/" ]; then
+		cp -R -- "${SCRIPT_DIR}/template/" "${NGINX_DIR}" >/dev/null 2>&1
 		if [ -d "${DEFAULT_TEMPLATE_DIR}" ]; then
 			echo -e "Done${NORMAL}"
 		else
@@ -920,7 +935,7 @@ if [ ! -d "${DEFAULT_TEMPLATE_DIR}" ]; then
 			exit 1;
 		fi
 	else
-		echo -e "${RED}Error: Directory '${CUR_DIR}/template' not found.${NORMAL}"
+		echo -e "${RED}Error: Directory '${SCRIPT_DIR}/template' not found.${NORMAL}"
 		exit 1;
 	fi
 fi
