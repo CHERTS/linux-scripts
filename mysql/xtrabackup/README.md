@@ -1,4 +1,4 @@
-### Скрипты для быстрого создания реплик MySQL с использованием xtrabackup или mariabackup
+## Скрипты для быстрого создания реплик MySQL с использованием xtrabackup или mariabackup
 
 Автор: Михаил Григорьев <sleuthhound@gmail.com>
 
@@ -12,6 +12,8 @@ CREATE USER 'replica'@'%' IDENTIFIED WITH mysql_native_password BY 'XXXXX';
 GRANT REPLICATION SLAVE ON *.* TO 'replica'@'%';
 FLUSH PRIVILEGES;
 ```
+
+*ВАЖНО!* Для передачи резервной копии с MASTER на SLAVE используется протокол TCP и порт 9999, который открывается на приемнике - там где будет запускаться скрипт xtrabackup_reciver.sh. Поэтому позаботьтесь о том, чтобы этот порт бул открыт для входящих соединений на межсетевом экране, либо укажите другой порт через опцию -p
 
 На MASTER отредактируйте файл xtrabackup_sender.conf, как правило, нужно только указать пароль пользователя root в опции XTRABACKUP_ADDITIONS_OPTS или MARIABACKUP_ADDITIONS_OPTS
 
