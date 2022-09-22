@@ -5,9 +5,12 @@
 #
 # Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 # 
-# Current Version: 1.4
+# Current Version: 1.5
 #
 # Revision History:
+#
+#  Version 1.5
+#    Fixed base memory calculate
 #
 #  Version 1.4
 #    Fixed parsing user and password in .my.cnf file
@@ -54,44 +57,46 @@
 #  or
 #  $ ./mysql-stat.sh --user root --password XXXXXXX
 #
-#  Simple MySQL database server statistics v1.4
+#  Simple MySQL database server statistics v1.5
 #  Written by Mikhail Grigorev (sleuthhound@gmail.com, https://blog.programs74.ru)
+#  
 #  +------------------------------------------+--------------------+
-#  |                                   Uptime |       226h:30m:38s |
+#  |                                  Version |            10.5.17 |
+#  |                                   Uptime |       431h:44m:10s |
 #  +------------------------------------------+--------------------+
-#  |                          key_buffer_size |         512.000 MB |
-#  |                         query_cache_size |         256.000 MB |
-#  |                  innodb_buffer_pool_size |        2048.000 MB |
-#  |          innodb_additional_mem_pool_size |           8.000 MB |
-#  |                   innodb_log_buffer_size |           4.000 MB |
+#  |                          key_buffer_size |           4.000 MB |
+#  |                         query_cache_size |           0.000 MB |
+#  |                           tmp_table_size |          64.000 MB |
+#  |                  innodb_buffer_pool_size |         128.000 MB |
+#  |          innodb_additional_mem_pool_size |           0.000 MB |
+#  |                   innodb_log_buffer_size |          16.000 MB |
 #  +------------------------------------------+--------------------+
-#  |                              BASE MEMORY |        2828.000 MB |
+#  |                              BASE MEMORY |         212.000 MB |
 #  +------------------------------------------+--------------------+
-#  |                         sort_buffer_size |           8.000 MB |
-#  |                         read_buffer_size |           0.250 MB |
-#  |                     read_rnd_buffer_size |          16.000 MB |
-#  |                         join_buffer_size |          32.000 MB |
-#  |                             thread_stack |           0.281 MB |
+#  |                         sort_buffer_size |           4.000 MB |
+#  |                         read_buffer_size |           2.000 MB |
+#  |                     read_rnd_buffer_size |           1.000 MB |
+#  |                         join_buffer_size |           4.000 MB |
+#  |                             thread_stack |           0.285 MB |
 #  |                        binlog_cache_size |           0.031 MB |
 #  +------------------------------------------+--------------------+
-#  |                    MEMORY PER CONNECTION |          56.562 MB |
+#  |                    MEMORY PER CONNECTION |          11.316 MB |
 #  +------------------------------------------+--------------------+
 #  |                  myisam_sort_buffer_size |           8.000 MB |
-#  |                           tmp_table_size |        1024.000 MB |
 #  +------------------------------------------+--------------------+
-#  |                     Max_used_connections |                 26 |
-#  |                          max_connections |                400 |
+#  |                     Max_used_connections |                  8 |
+#  |                          max_connections |                 60 |
 #  +------------------------------------------+--------------------+
-#  |                              TOTAL (MIN) |        4298.625 MB |
-#  |                              TOTAL (MAX) |       25453.000 MB |
+#  |                              TOTAL (MIN) |         302.531 MB |
+#  |                              TOTAL (MAX) |         890.984 MB |
 #  +------------------------------------------+--------------------+
-#  |                    QUERY_CACHE_USAGE (%) |              26.2% |
-#  |                     QUERY_CACHE_FREE (%) |              73.8% |
-#  |                 QUERY_CACHE_HIT_RATE (%) |              92.1% |
+#  |                    QUERY_CACHE_USAGE (%) |               0.0% |
+#  |                     QUERY_CACHE_FREE (%) |               0.0% |
+#  |                 QUERY_CACHE_HIT_RATE (%) |               0.0% |
 #  +------------------------------------------+--------------------+
 #
 
-VERSION="1.4"
+VERSION="1.5"
 
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do
@@ -228,7 +233,7 @@ split(VAR["version"],VERSION,"-")
 UPTIME = VAR["Uptime"]
 MAX_CONN = VAR["max_connections"]
 MAX_USED_CONN = VAR["Max_used_connections"]
-BASE_MEM=VAR["key_buffer_size"] + VAR["query_cache_size"] + VAR["innodb_buffer_pool_size"] + VAR["innodb_additional_mem_pool_size"] + VAR["innodb_log_buffer_size"]
+BASE_MEM=VAR["key_buffer_size"] + VAR["query_cache_size"] + VAR["tmp_table_size"] + VAR["innodb_buffer_pool_size"] + VAR["innodb_additional_mem_pool_size"] + VAR["innodb_log_buffer_size"]
 MEM_PER_CONN=VAR["read_buffer_size"] + VAR["read_rnd_buffer_size"] + VAR["sort_buffer_size"] + VAR["join_buffer_size"] + VAR["binlog_cache_size"] + VAR["thread_stack"]
 MEM_TOTAL_MIN=BASE_MEM + MEM_PER_CONN*MAX_USED_CONN
 MEM_TOTAL_MAX=BASE_MEM + MEM_PER_CONN*MAX_CONN
@@ -243,6 +248,7 @@ printf "| %40s | %9dh:%dm:%ds |\n", "Uptime", UPTIME/3600, UPTIME%3600/60, UPTIM
 printf "+------------------------------------------+--------------------+\n"
 printf "| %40s | %15.3f MB |\n", "key_buffer_size", VAR["key_buffer_size"]/1048576
 printf "| %40s | %15.3f MB |\n", "query_cache_size", VAR["query_cache_size"]/1048576
+printf "| %40s | %15.3f MB |\n", "tmp_table_size", VAR["tmp_table_size"]/1048576
 printf "| %40s | %15.3f MB |\n", "innodb_buffer_pool_size", VAR["innodb_buffer_pool_size"]/1048576
 printf "| %40s | %15.3f MB |\n", "innodb_additional_mem_pool_size", VAR["innodb_additional_mem_pool_size"]/1048576
 printf "| %40s | %15.3f MB |\n", "innodb_log_buffer_size", VAR["innodb_log_buffer_size"]/1048576
@@ -259,7 +265,6 @@ printf "+------------------------------------------+--------------------+\n"
 printf "| %40s | %15.3f MB |\n", "MEMORY PER CONNECTION", MEM_PER_CONN/1048576
 printf "+------------------------------------------+--------------------+\n"
 printf "| %40s | %15.3f MB |\n", "myisam_sort_buffer_size", VAR["myisam_sort_buffer_size"]/1048576
-printf "| %40s | %15.3f MB |\n", "tmp_table_size", VAR["tmp_table_size"]/1048576
 printf "+------------------------------------------+--------------------+\n"
 printf "| %40s | %18d |\n", "Max_used_connections", MAX_USED_CONN
 printf "| %40s | %18d |\n", "max_connections", MAX_CONN
