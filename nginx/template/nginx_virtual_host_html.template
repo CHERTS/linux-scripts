@@ -1,0 +1,58 @@
+server {
+        listen !SERVERIP!:!SERVERPORT!;
+        server_name !SITENAME! www.!SITENAME!;
+        root !SITEDIR!/web;
+
+	index index.html index.htm;
+
+	error_log !SITEDIR!/log/error.log;
+	access_log !SITEDIR!/log/access.log main;
+
+	if ( $args ~ "_SERVER|_GLOBALS|DOCUMENT_ROOT|INCLUDE_FOLDER|ROOT_FOLDER|FILES_FOLDER|MODULE_FOLDER|ADMIN_FOLDER|TMP_FOLDER" ) { return 500; }
+
+	location ~* /\.(ht|svn|hg) {
+		deny all;
+		access_log off;
+		log_not_found off;
+	}
+
+	location ~ (/\.gitignore|/\.git) {
+		deny all;
+		access_log off;
+		log_not_found off;
+	}
+
+	location ~ (/lost\+found) {
+		deny all;
+		access_log off;
+		log_not_found off;
+	}
+
+	location ~* ^.+\.(jpg|jpeg|gif|png|ico|css|zip|tgz|gz|rar|bz2|doc|xls|exe|pdf|ppt|txt|tar|mid|midi|wav|bmp|rtf|mov)$ {
+		charset utf-8;
+		expires 14d;
+		access_log off;
+		log_not_found off;
+	}
+
+	location = /favicon.ico {
+		log_not_found off;
+		access_log off;
+	}
+
+	location = /robots.txt {
+		allow all;
+		log_not_found off;
+		access_log off;
+	}
+
+	location /ng1nx_statuz {
+		stub_status on;
+		access_log off;
+		allow all;
+	}
+
+	location / {
+        	try_files $uri $uri/ =404;
+	}
+}

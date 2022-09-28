@@ -4,7 +4,7 @@
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.4.10
+# Current Version: 1.4.11
 # 
 # Example: ./nginx-create-vhost.sh -d "domain.com"
 # or
@@ -13,6 +13,9 @@
 # Example: ./nginx-create-vhost.sh -s "/var/www/domain.com" -d "domain.com" -u web1 -g client1
 #
 # Revision History:
+#
+#  Version 1.4.11
+#    Added Rocky Linux and Ubuntu 22.04
 #
 #  Version 1.4.10
 #    Added configuration file (nginx-create-vhost.conf)
@@ -101,20 +104,22 @@ CYAN='\033[0;36m'	# CYAN
 YELLOW='\033[0;33m'     # YELLOW
 NORMAL='\033[0m'        # Default color
 
-command_exists () {
+_command_exists ()
+{
 	type "${1}" &> /dev/null ;
 }
 
-user_in_group()
+_user_in_group()
 {
 	groups "${1}" | grep "$2" >/dev/null 2>&1
 }
 
-user_exists() {
+_user_exists ()
+{
 	id -u "${1}" &> /dev/null;
 }
 
-create_linux_user_and_group ()
+_create_linux_user_and_group ()
 {
 	local USERLOGINNAME="${1}"
 	local GROUPNAME="${2}"
@@ -165,7 +170,7 @@ create_linux_user_and_group ()
 
 	echo -en "${GREEN}Adding user ${USERLOGINNAME} to group ${GROUPNAME}...\t\t"
 	usermod -a -G ${GROUPNAME} ${USERLOGINNAME} >/dev/null 2>&1
-	if user_in_group "${USERLOGINNAME}" "${GROUPNAME}"; then
+	if _user_in_group "${USERLOGINNAME}" "${GROUPNAME}"; then
 		echo -e "Done${NORMAL}"
 	else
 		echo -e "${RED}Error: User ${USERLOGINNAME} not adding in group ${GROUPNAME}${NORMAL}"
@@ -174,7 +179,7 @@ create_linux_user_and_group ()
 
 	echo -en "${GREEN}Adding user ${NGINX_USER} to group ${GROUPNAME}...\t"
 	usermod -a -G ${GROUPNAME} ${NGINX_USER} >/dev/null 2>&1
-	if user_in_group "${NGINX_USER}" "${GROUPNAME}"; then
+	if _user_in_group "${NGINX_USER}" "${GROUPNAME}"; then
 		echo -e "Done${NORMAL}"
 	else
 		echo -e "${RED}Error: User ${NGINX_USER} not adding in group ${GROUPNAME}${NORMAL}"
@@ -182,7 +187,7 @@ create_linux_user_and_group ()
 	fi
 }
 
-create_simple_index_page ()
+_create_simple_index_page ()
 {
 	local SITEDIR=${1}
 	local SITENAME=${2}
@@ -198,7 +203,7 @@ create_simple_index_page ()
 	fi
 }
 
-create_robots_file ()
+_create_robots_file ()
 {
 	local SITEDIR=${1}
 
@@ -212,7 +217,7 @@ create_robots_file ()
 	fi
 }
 
-create_logrotate ()
+_create_logrotate ()
 {
 	local SITEDIR=${1}
 	local USERLOGINNAME=${2}
@@ -265,7 +270,7 @@ fi
 
 }
 
-phpfpm_reload ()
+_phpfpm_reload ()
 {
 	local USERLOGINNAME=${1}
 
@@ -303,7 +308,7 @@ phpfpm_reload ()
 	fi
 }
 
-nginx_reload ()
+_nginx_reload ()
 {
 	echo -en "${GREEN}Nginx configtest...\t\t\t\t"
 	${NGINX_BIN} -t > "/tmp/nginx_configtest" 2>&1
@@ -321,7 +326,7 @@ nginx_reload ()
 	fi
 }
 
-create_site_dir ()
+_create_site_dir ()
 {
 	local SITENAME=${1}
 	local SITEDIR=${2}
@@ -343,9 +348,9 @@ create_site_dir ()
 	mkdir -p "${SITEDIR}/tmp" >/dev/null 2>&1
 	if [ -d "${SITEDIR}/web" ]; then
 		echo -e "Done${NORMAL}"
-		if [ ${USE_REDIRECT} -eq 0 ]; then
-			create_simple_index_page "${SITEDIR}" "${SITENAME}"
-			create_robots_file "${SITEDIR}"
+		if [[ ${USE_REDIRECT} -eq 0 ]] || [[ ${USE_HTML} -eq 0 ]]; then
+			_create_simple_index_page "${SITEDIR}" "${SITENAME}"
+			_create_robots_file "${SITEDIR}"
 		fi
 	else
 		echo -e "${RED}Error${NORMAL}"
@@ -354,7 +359,7 @@ create_site_dir ()
 	echo -en "${GREEN}Set permition to directory...\t\t\t"
 	chmod -R 755 "${SITEDIR}" >/dev/null 2>&1
 	chmod -R 770 "${SITEDIR}/tmp" >/dev/null 2>&1
-	chmod -R 755 "${SITEDIR}/web" >/dev/null 2>&1
+	chmod -R 750 "${SITEDIR}/web" >/dev/null 2>&1
 	chmod -R 710 "${SITEDIR}/private" >/dev/null 2>&1
 	chown -R ${USERLOGINNAME}:${GROUPNAME} "${SITEDIR}"
 	chown root:root "${SITEDIR}" >/dev/null 2>&1
@@ -374,7 +379,7 @@ create_site_dir ()
 	fi
 }
 
-create_nginx_vhost ()
+_create_nginx_vhost ()
 {
 	local SITENAME=${1}
 	local SITEDIR=${2}
@@ -421,7 +426,7 @@ create_nginx_vhost ()
 		local LINKTEST=$(readlink ${NGINX_VHOST_SITE_ENABLED_DIR}/100-${SITENAME}.vhost)
 		if [ -n "${LINKTEST}" ]; then
 			echo -e "Done${NORMAL}"
-			nginx_reload
+			_nginx_reload
 		else
 			echo -e "${RED}Error, link ${NGINX_VHOST_SITE_ENABLED_DIR}/100-${SITENAME}.vhost not exist${NORMAL}"
 		fi
@@ -430,7 +435,7 @@ create_nginx_vhost ()
 	fi
 }
 
-create_phpfpm_conf ()
+_create_phpfpm_conf ()
 {
 	local SITEDIR=${1}
 	local USERLOGINNAME=${2}
@@ -468,13 +473,14 @@ create_phpfpm_conf ()
 		sed -i "s@!GROUPNAME!@${GROUPNAME}@g" "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf" >/dev/null 2>&1
 		sed -i "s@!PHPFPMSOCKDIR!@${PHP_FPM_SOCK_DIR}@g" "${PHP_FPM_POOL_DIR}/${USERLOGINNAME}.conf" >/dev/null 2>&1
 		echo -e "Done${NORMAL}"
-		phpfpm_reload ${USERLOGINNAME}
+		_phpfpm_reload ${USERLOGINNAME}
 	else
 		echo -e "${RED}Error${NORMAL}"
 	fi
 }
 
-_unknown_os() {
+_unknown_os ()
+{
 	echo
 	echo "Unfortunately, your operating system distribution and version are not supported by this script."
 	echo
@@ -482,7 +488,8 @@ _unknown_os() {
 	exit 1
 }
 
-_unknown_distrib() {
+_unknown_distrib ()
+{
 	echo
 	echo "Unfortunately, your Linux distribution or distribution version are not supported by this script."
 	echo
@@ -517,7 +524,7 @@ _unknown_centos ()
 	exit 1
 }
 
-function valid_ip()
+_valid_ip ()
 {
     local  ip=$1
     local  stat=1
@@ -534,7 +541,7 @@ function valid_ip()
     return $stat
 }
 
-usage()
+_usage ()
 {
 	echo "Usage: $0 [ -d domain_name -s site_directory -u user_name -g group_name]"
 	echo ""
@@ -555,12 +562,13 @@ do
 		u) USERLOGINNAME=${OPTARG};;
 		g) GROUPNAME=${OPTARG};;
 		s) SITEDIR=${OPTARG};;
-		\?) usage
+		\?) _usage
 		exit 1;;
 	esac
 done
 
-_detect_linux_distrib() {
+_detect_linux_distrib ()
+{
 	local DIST=$1
 	local REV=$2
 	local PSUEDONAME=$3
@@ -569,7 +577,7 @@ _detect_linux_distrib() {
 		Ubuntu)
 			echo -n "${DIST} ${REV}"
 			case "${REV}" in
-			14.04|16.04|17.10|18.04|20.04)
+			14.04|16.04|18.04|20.04|22.04)
 				echo -e " (${PSUEDONAME})${NORMAL}"
 				;;
 			*)
@@ -580,7 +588,7 @@ _detect_linux_distrib() {
 		Debian)
 			echo -n "${DIST} ${REV}"
 			case "${REV}" in
-			8|9|10)
+			8|9|10|11)
 				echo -e " (${PSUEDONAME})${NORMAL}"
 				;;
 			*)
@@ -591,7 +599,7 @@ _detect_linux_distrib() {
 		"Red Hat"*|"RedHat"*)
 			echo -e "${DIST} ${REV} (${PSUEDONAME})${NORMAL}"
 			;;
-		CentOS|"CentOS Linux")
+		CentOS|"CentOS Linux"|"Rocky Linux")
 			echo -e "${DIST} ${REV} (${PSUEDONAME})${NORMAL}"
 			;;
 		*)
@@ -657,28 +665,37 @@ else
 	exit 1
 fi
 
-if command_exists strings ; then
+if _command_exists strings ; then
 	STRINGS_BIN=$(which strings)
 else
-	echo -e "${RED}Error: Command strings not found.${NORMAL}"
+	echo -e "${RED}Error: Command 'strings' not found. Install binutils package.${NORMAL}"
 	exit 1;
 fi
 
 OS_INIT_SYSTEM=$(${STRINGS_BIN} /sbin/init | awk 'match($0, /(upstart|systemd|sysvinit)/) { print toupper(substr($0, RSTART, RLENGTH));exit; }')
 
-case "${DIST}" in
-	Ubuntu)
+USE_REDIRECT=$(echo "${NGINX_TEMPLATE}" | grep -c "redirect")
+USE_HTML=$(echo "${NGINX_TEMPLATE}" | grep -c "html")
+
+_detect_php_fpm ()
+{
+	local PHP_FPM_BIN=${1:-"php-fpm7.2"}
+	local PHP_FPM_POOL_DIR=${2:-"/etc/php/7.2/fpm/pool.d"}
+	local PHP_FPM_SOCK_DIR=${3:-"/run/php"}
+	local PHP_FPM_RUN_SCRIPT=${4:-"php7.2-fpm"}
+
+	if [[ ${USE_REDIRECT} -eq 0 ]] && [[ ${USE_HTML} -eq 0 ]]; then
 		echo -en "${GREEN}Detecting your php-fpm\t"
-		if command_exists php-fpm7.2 ; then
-			echo -e "Found php-fpm7.2${NORMAL}"
-			PHP_FPM_BIN=$(which php-fpm7.2)
-			PHP_FPM_POOL_DIR="/etc/php/7.2/fpm/pool.d"
-			PHP_FPM_SOCK_DIR="/run/php"
+		if _command_exists ${PHP_FPM_BIN} ; then
+			echo -e "Found ${PHP_FPM_BIN}${NORMAL}"
+			PHP_FPM_BIN=$(which ${PHP_FPM_BIN})
+			PHP_FPM_POOL_DIR=${PHP_FPM_POOL_DIR}
+			PHP_FPM_SOCK_DIR=${PHP_FPM_SOCK_DIR}
 			if [[ "${OS_INIT_SYSTEM}" = "SYSTEMD" ]]; then
-				PHP_FPM_RUN_SCRIPT="php7.2-fpm"
+				PHP_FPM_RUN_SCRIPT=${PHP_FPM_BIN}
 			else
-				if [ -f "/etc/init.d/php7.2-fpm" ]; then
-					PHP_FPM_RUN_SCRIPT="/etc/init.d/php7.2-fpm"
+				if [ -f "/etc/init.d/${PHP_FPM_BIN}" ]; then
+					PHP_FPM_RUN_SCRIPT="/etc/init.d/${PHP_FPM_BIN}"
 				else
 					echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
 					exit 1;
@@ -688,70 +705,23 @@ case "${DIST}" in
 			echo -e "${RED}Error: php-fpm not found.${NORMAL}"
 			exit 1;
 		fi
+	fi
+}
+
+case "${DIST}" in
+	Ubuntu)
+		_detect_php_fpm "php-fpm7.2" "/etc/php/7.2/fpm/pool.d" "/run/php" "php7.2-fpm"
 		;;
 	Debian)
 		DEBIAN_VERSION=$(sed 's/\..*//' /etc/debian_version)
 		OS_DISTRIB="Debian"
 		echo -e "${GREEN}Detect Debian version\t\t${OS_DISTRIB} (${OS_INIT_SYSTEM})${NORMAL}"
 		if [[ "${DEBIAN_VERSION}" = "10" ]]; then
-			echo -en "${GREEN}Detecting your php-fpm\t\t"
-			if command_exists php-fpm${PHP_DEFAULT_VERSION_DEBIAN10} ; then
-				echo -e "Found php-fpm${PHP_DEFAULT_VERSION_DEBIAN10}${NORMAL}"
-				PHP_FPM_BIN=$(which php-fpm${PHP_DEFAULT_VERSION_DEBIAN10})
-				PHP_FPM_POOL_DIR=/etc/php/${PHP_DEFAULT_VERSION_DEBIAN10}/fpm/pool.d
-				PHP_FPM_SOCK_DIR=/run/php
-				if [[ "${OS_INIT_SYSTEM}" = "SYSTEMD" ]]; then
-					PHP_FPM_RUN_SCRIPT="php${PHP_DEFAULT_VERSION_DEBIAN10}-fpm"
-				else
-					if [ -f "/etc/init.d/php${PHP_DEFAULT_VERSION_DEBIAN10}-fpm" ]; then
-						PHP_FPM_RUN_SCRIPT=/etc/init.d/php${PHP_DEFAULT_VERSION_DEBIAN10}-fpm
-					else
-						echo -e "${RED}Error: php${PHP_DEFAULT_VERSION_DEBIAN10}-fpm init script not found.${NORMAL}"
-						exit 1;
-					fi
-				fi
-			else
-				echo -e "${RED}Error: php-fpm${PHP_DEFAULT_VERSION_DEBIAN10} not found.${NORMAL}"
-				exit 1;
-			fi
+			_detect_php_fpm "php-fpm${PHP_DEFAULT_VERSION_DEBIAN10}" "/etc/php/${PHP_DEFAULT_VERSION_DEBIAN10}/fpm/pool.d" "/run/php" "php${PHP_DEFAULT_VERSION_DEBIAN10}-fpm"
 		elif [[ "${DEBIAN_VERSION}" = "9" ]]; then
-			echo -en "${GREEN}Detecting your php-fpm\t\t"
-			if command_exists php-fpm${PHP_DEFAULT_VERSION_DEBIAN9} ; then
-				echo -e "Found php-fpm${PHP_DEFAULT_VERSION_DEBIAN9}${NORMAL}"
-				PHP_FPM_BIN=$(which php-fpm${PHP_DEFAULT_VERSION_DEBIAN9})
-				PHP_FPM_POOL_DIR=/etc/php/${PHP_DEFAULT_VERSION_DEBIAN9}/fpm/pool.d
-				PHP_FPM_SOCK_DIR=/run/php
-				if [[ "${OS_INIT_SYSTEM}" = "SYSTEMD" ]]; then
-					PHP_FPM_RUN_SCRIPT="php${PHP_DEFAULT_VERSION_DEBIAN9}-fpm"
-				else
-					if [ -f "/etc/init.d/php${PHP_DEFAULT_VERSION_DEBIAN9}-fpm" ]; then
-						PHP_FPM_RUN_SCRIPT=/etc/init.d/php${PHP_DEFAULT_VERSION_DEBIAN9}-fpm
-					else
-						echo -e "${RED}Error: php${PHP_DEFAULT_VERSION_DEBIAN9}-fpm init script not found.${NORMAL}"
-						exit 1;
-					fi
-				fi
-			else
-				echo -e "${RED}Error: php-fpm${PHP_DEFAULT_VERSION_DEBIAN9} not found.${NORMAL}"
-				exit 1;
-			fi
+			_detect_php_fpm "php-fpm${PHP_DEFAULT_VERSION_DEBIAN9}" "/etc/php/${PHP_DEFAULT_VERSION_DEBIAN9}/fpm/pool.d" "/run/php" "php${PHP_DEFAULT_VERSION_DEBIAN9}-fpm"
 		elif [[ "${DEBIAN_VERSION}" = "8" ]]; then
-			echo -en "${GREEN}Detecting your php-fpm\t\t"
-			if command_exists php5-fpm ; then
-				echo -e "Found php5-fpm${NORMAL}"
-				PHP_FPM_BIN=$(which php5-fpm)
-				PHP_FPM_POOL_DIR=/etc/php5/fpm/pool.d
-				PHP_FPM_SOCK_DIR=/var/lib/php5-fpm
-				if [ -f "/etc/init.d/php5-fpm" ]; then
-					PHP_FPM_RUN_SCRIPT=/etc/init.d/php5-fpm
-				else
-					echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
-					exit 1;
-				fi
-			else
-				echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-				exit 1;
-			fi
+			_detect_php_fpm "php5-fpm" "/etc/php5/fpm/pool.d" "/var/lib/php5-fpm" "php5-fpm"
 		else
 			_unknown_debian
 		fi
@@ -763,91 +733,38 @@ case "${DIST}" in
 			echo -e "${GREEN}Detect OracleLinux version\t\t${OS_DISTRIB} ${ORACLE_VERSION} (${OS_INIT_SYSTEM})${NORMAL}"
 			case "${ORACLE_VERSION}" in
 				6.*)
-					echo -en "${GREEN}Detecting your php-fpm\t\t"
-					if command_exists php-fpm ; then
-						PHP_FPM_BIN=$(which php-fpm)
-						echo -e "Found php-fpm${NORMAL}"
-						if [ -d "/etc/php-fpm.d" ]; then
-							PHP_FPM_POOL_DIR=/etc/php-fpm.d
-							PHP_FPM_SOCK_DIR=/var/run
-							if [ -f "/etc/init.d/php-fpm" ]; then
-								PHP_FPM_RUN_SCRIPT=/etc/init.d/php-fpm
-							else
-								echo -e "${RED}Error: php-fpm init script not found.${NORMAL}"
-								exit 1;
-							fi
-						else
-							echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-							exit 1;
-						fi
-					else
-						echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-						exit 1;
-					fi
-				;;
+					_detect_php_fpm "php-fpm" "/etc/php-fpm.d" "/var/run" "php-fpm"
+					;;
 				7.*|8.*)
-					echo -en "${GREEN}Detecting your php-fpm\t\t"
-					if command_exists php-fpm ; then
-						PHP_FPM_BIN=$(which php-fpm)
-						echo -e "Found php-fpm${NORMAL}"
-						if [ -d "/etc/php-fpm.d" ]; then
-							PHP_FPM_POOL_DIR=/etc/php-fpm.d
-							PHP_FPM_SOCK_DIR=/run
-							if [ -f "/usr/lib/systemd/system/php-fpm.service" ]; then
-								PHP_FPM_RUN_SCRIPT=php-fpm
-							else
-								echo -e "${RED}Error: php-fpm unit not found.${NORMAL}"
-								exit 1;
-							fi
-						else
-							echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-							exit 1;
-						fi
-					else
-						echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-						exit 1;
-					fi
-				;;
+					_detect_php_fpm "php-fpm" "/etc/php-fpm.d" "/run" "php-fpm"
+					;;
 				*)
 					_unknown_oracle
-				;;
+					;;
 			esac
 		else
 			_unknown_os
 		fi
 		;;
-	CentOS|"CentOS Linux")
-		if [ -f "/etc/centos-release" ]; then
+	CentOS|"CentOS Linux"|"Rocky Linux")
+		CENTOS_VERSION=""
+		if [ -f "/etc/rocky-release" ]; then
+			CENTOS_VERSION=$(cat "/etc/rocky-release" | sed s/.*release\ // | sed s/\ .*//)
+			OS_DISTRIB="RedHat"
+			echo -e "${GREEN}Detect Rocky Linux version\t${OS_DISTRIB} ${CENTOS_VERSION} (${OS_INIT_SYSTEM})${NORMAL}"
+		elif [ -f "/etc/centos-release" ]; then
 			CENTOS_VERSION=$(cat "/etc/centos-release" | sed s/.*release\ // | sed s/\ .*//)
 			OS_DISTRIB="RedHat"
 			echo -e "${GREEN}Detect CentOS version\t\t${OS_DISTRIB} ${CENTOS_VERSION} (${OS_INIT_SYSTEM})${NORMAL}"
+		fi
+		if [ -n "${CENTOS_VERSION}" ]; then
 			case "${CENTOS_VERSION}" in
 				7.*|8.*)
-					echo -en "${GREEN}Detecting your php-fpm\t\t"
-					if command_exists php-fpm ; then
-						PHP_FPM_BIN=$(which php-fpm)
-						echo -e "Found php-fpm${NORMAL}"
-						if [ -d "/etc/php-fpm.d" ]; then
-							PHP_FPM_POOL_DIR=/etc/php-fpm.d
-							PHP_FPM_SOCK_DIR=/run
-							if [ -f "/usr/lib/systemd/system/php-fpm.service" ]; then
-								PHP_FPM_RUN_SCRIPT=php-fpm
-							else
-								echo -e "${RED}Error: php-fpm unit not found.${NORMAL}"
-								exit 1;
-							fi
-						else
-							echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-							exit 1;
-						fi
-					else
-						echo -e "${RED}Error: php-fpm not found.${NORMAL}"
-						exit 1;
-					fi
-				;;
+					_detect_php_fpm "php-fpm" "/etc/php-fpm.d" "/run" "php-fpm"
+					;;
 				*)
 					_unknown_centos
-				;;
+					;;
 			esac
 		else
 			_unknown_os
@@ -858,7 +775,7 @@ case "${DIST}" in
 		;;
 esac
 
-if command_exists nginx ; then
+if _command_exists nginx ; then
 	NGINX_BIN=$(which nginx)
 else
 	echo -e "${RED}Error: nginx not found.${NORMAL}"
@@ -882,11 +799,11 @@ fi
 echo -en "${GREEN}Detecting nginx owner\t\t"
 NGINX_OWNER=$(cat "${NGINX_DIR}/nginx.conf" | grep -E '^user' | awk -F' ' '{print $2}' | tr -d ';')
 if [ -n "${NGINX_OWNER}" ]; then
-	if user_exists ${NGINX_OWNER}; then
+	if _user_exists ${NGINX_OWNER}; then
 		NGINX_USER=${NGINX_OWNER}
 		echo -e "${NGINX_USER}${NORMAL}"
 	else
-		if user_exists ${NGINX_USER}; then
+		if _user_exists ${NGINX_USER}; then
 			echo -e "${NGINX_USER}${NORMAL}"
 		else
 			echo -e "${RED}Err${NORMAL}"
@@ -944,13 +861,11 @@ if [ -z "${SITEDIR}" ]; then
 	SITEDIR=${DEFAULT_SITE_DIR}/${SITENAME}
 fi
 
-USE_REDIRECT=$(echo "${NGINX_TEMPLATE}" | grep -c "redirect")
-
 if [ -z "${USERLOGINNAME}" ]; then
 	USERLOGINNAME=$(cat "${NGINX_DIR}/settings.conf" | grep NEXTWEBUSER | cut -d "=" -f 2)
 	if [ "${USERLOGINNAME}" = "" ]; then
 		echo -e "${RED}Error: In file '${NGINX_DIR}/settings.conf' not found parameter NEXTWEBUSER.${NORMAL}"
-		usage
+		_usage
 		exit 1;
 	fi
 fi
@@ -960,7 +875,7 @@ if [ -z "${GROUPNAME}" ]; then
 	GROUPNAME=$(cat "${NGINX_DIR}/settings.conf" | grep NEXTWEBGROUP | cut -d "=" -f 2)
 	if [ -z "${GROUPNAME}" ]; then
 		echo -e "${RED}Error: In file '${NGINX_DIR}/settings.conf' not found parameter NEXTWEBGROUP.${NORMAL}"
-		usage
+		_usage
 		exit 1;
 	fi
 fi
@@ -968,7 +883,7 @@ echo -e "${GREEN}Set new groupname\t\t${GROUPNAME}${NORMAL}"
 
 if [ -z "${SITENAME}" ]; then
 	echo -e "${RED}Error: You must enter a domain name.${NORMAL}"
-	usage
+	_usage
 	exit 1;
 fi
 
@@ -989,7 +904,7 @@ if [ -f "${NGINX_DIR}/settings.conf" ]; then
 	REDIRECTPORT=$(cat "${NGINX_DIR}/settings.conf" | grep REDIRECTPORT | cut -d "=" -f 2)
 	AUTO_DETECT_SERVERIP=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
 	if [ -n "${AUTO_DETECT_SERVERIP}" ]; then
-		if valid_ip ${AUTO_DETECT_SERVERIP}; then
+		if _valid_ip ${AUTO_DETECT_SERVERIP}; then
 			if [ "${SERVERIP}" != "${AUTO_DETECT_SERVERIP}" ]; then
 				SERVERIP=${AUTO_DETECT_SERVERIP}
 			fi
@@ -1011,14 +926,14 @@ if [ -n "${SITENAME}" ]; then
 		echo -e "${RED}Error: Site directory ${SITEDIR} alredy exist.${NORMAL}"
 		exit 1;
 	fi
-	create_linux_user_and_group "${USERLOGINNAME}" "${GROUPNAME}"
-	create_site_dir "${SITENAME}" "${SITEDIR}" "${USERLOGINNAME}" "${GROUPNAME}"
-	if [ ${USE_REDIRECT} -eq 0 ]; then
-		create_phpfpm_conf "${SITEDIR}" "${USERLOGINNAME}" "${GROUPNAME}"
+	_create_linux_user_and_group "${USERLOGINNAME}" "${GROUPNAME}"
+	_create_site_dir "${SITENAME}" "${SITEDIR}" "${USERLOGINNAME}" "${GROUPNAME}"
+	if [[ ${USE_REDIRECT} -eq 0 ]] && [[ ${USE_HTML} -eq 0 ]]; then
+		_create_phpfpm_conf "${SITEDIR}" "${USERLOGINNAME}" "${GROUPNAME}"
 	fi
-	create_nginx_vhost "${SITENAME}" "${SITEDIR}" "${USERLOGINNAME}"
-	create_logrotate "${SITEDIR}" "${USERLOGINNAME}"
+	_create_nginx_vhost "${SITENAME}" "${SITEDIR}" "${USERLOGINNAME}"
+	_create_logrotate "${SITEDIR}" "${USERLOGINNAME}"
 else
-	usage
+	_usage
 	exit 1;
 fi
