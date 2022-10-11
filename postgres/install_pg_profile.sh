@@ -86,6 +86,13 @@ else
 	exit 1
 fi
 
+if _command_exists gcc; then
+	GCC_BIN=$(which gcc)
+else
+	echo -e "${RED}ERROR: Command 'gcc' not found.${NC}"
+	exit 1
+fi
+
 if [ -f "${SCRIPT_DIR}/${SCRIPT_NAME%.*}.conf" ]; then
 	source "${SCRIPT_DIR}/${SCRIPT_NAME%.*}.conf"
 fi
