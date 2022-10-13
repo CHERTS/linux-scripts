@@ -341,7 +341,7 @@ if [ $? -eq 0 ]; then
 			echo -e "${GREEN}For view sample execute:${NC}"
 			echo -e "${CYAN}${PG_BIN_PATH}/psql -qX -U postgres -d pg_profile -c 'SELECT profile.show_samples()'${NC}"
 			echo -e "${GREEN}For create report execute:${NC}"
-			echo -e "${CYAN}${PG_BIN_PATH}/psql -qX -U postgres -d pg_profile -c  'SELECT profile.get_report(1, 11)' > report_1_11.html${NC}"
+			echo -e "${CYAN}${PG_BIN_PATH}/psql -qAtX -U postgres -d pg_profile -c  'SELECT profile.get_report(1, 11)' > report_1_11.html${NC}"
 			echo -e "${GREEN}Goodbye ;)${NC}"
 		else
 			echo -e "${RED}ERR${NC}"
