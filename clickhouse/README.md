@@ -1,0 +1,38 @@
+# A scripts to automate the Clickhouse working
+
+clickhouse-backup.sh - A script to automate the creating Clickhouse backup via clickhouse-backup
+
+Installing clickhouse-backup
+```
+wget https://github.com/AlexAkulov/clickhouse-backup/releases/download/v2.1.3/clickhouse-backup_2.1.3_amd64.deb
+dpkg -i clickhouse-backup_2.1.3_amd64.deb && rm -f clickhouse-backup_2.1.3_amd64.deb
+cp /etc/clickhouse-backup/config.yml.example /etc/clickhouse-backup/config.yml
+chmod 600 /etc/clickhouse-backup/config.yml
+```
+
+Edit clickhouse-backup settings
+```
+vim /etc/clickhouse-backup/config.yml
+```
+
+Setup clickhouse-backup.sh script 
+```
+mkdir /var/lib/clickhouse/scripts
+cp clickhouse-backup.sh /var/lib/clickhouse/scripts
+chmod a+x /var/lib/clickhouse/scripts/clickhouse-backup.sh
+```
+
+Edit script config (see avaliable settings in clickhouse-backup.sh)
+```
+vim /var/lib/clickhouse/scripts/clickhouse-backup.conf
+```
+
+Adding crontab task
+```
+0 1 * * * /var/lib/clickhouse/scripts/clickhouse-backup.sh >/dev/null 2>&1
+```
+
+See log file
+```
+tail -n 100 /var/log/clickhouse-server/clickhouse-backup.log
+```
