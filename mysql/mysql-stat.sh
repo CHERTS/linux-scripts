@@ -46,7 +46,7 @@
 #  -- Ubuntu 14.04.1 using /bin/bash
 #
 # Usage:
-#  Refer to the _usage() sub-routine, or invoke mysql-stat.sh
+#  Refer to the _show_help() sub-routine, or invoke mysql-stat.sh
 #  with the "-h" option.
 #
 # Example:
@@ -131,7 +131,7 @@ else
 	exit 1
 fi
 
-_usage() {
+_show_help() {
 	echo -e "\t--help -h\t\tthis menu"
 	echo -e "\t--user username\t\tspecify mysql username to use, the script will prompt for a password during runtime, unless you supply a password"
 	echo -e "\t--password \"yourpass\""
@@ -201,7 +201,7 @@ if [ -n "${MYSQL_PASSWD}" ]; then
 else
 	echo "Error: MySQL password for user '${MYSQL_USER}' is empty, please change password and create settings file '$HOME/.my.cnf'."
 	echo
-	_usage
+	_show_help
 	exit 1
 fi
 
