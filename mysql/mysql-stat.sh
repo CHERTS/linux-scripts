@@ -240,6 +240,8 @@ MEM_TOTAL_MAX=BASE_MEM + MEM_PER_CONN*MAX_CONN
 if (VAR["query_cache_size"]) {
 QUERY_CACHE_FREE=VAR["Qcache_free_memory"]*100/VAR["query_cache_size"]
 QUERY_CACHE_USAGE=((VAR["query_cache_size"]-VAR["Qcache_free_memory"])/VAR["query_cache_size"])*100
+}
+if (VAR["Qcache_hits"]) {
 QUERY_CACHE_HIT_RATE=((VAR["Qcache_hits"]/(VAR["Qcache_hits"]+VAR["Qcache_inserts"]+VAR["Qcache_not_cached"]))*100)
 }
 printf "+------------------------------------------+--------------------+\n"
