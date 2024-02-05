@@ -84,4 +84,4 @@ RESET MASTER;
 RESET SLAVE ALL;
 ```
 
-(с) 2020-2022 by Mikhail Grigorev <sleuthhound@gmail.com>
+(с) 2020-2024 by Mikhail Grigorev <sleuthhound@gmail.com>
