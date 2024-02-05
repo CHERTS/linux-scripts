@@ -29,7 +29,7 @@ XTRABACKUP_PREPARE_OPTS="--use-memory=100M"
 MARIABACKUP_PREPARE_OPTS="--use-memory=100M"
 # Xtrabackup info file
 XTRABACKUP_INFO_FILE="xtrabackup_info"
-# Xtrabackup binlog info file
+# Xtrabackup binlog info file (xtrabackup_binlog_info OR xtrabackup_binlog_pos_innodb)
 XTRABACKUP_BINLOG_INFO_FILE="xtrabackup_binlog_info"
 # Run replication
 RUN_REPLICATION=0
