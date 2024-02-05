@@ -60,9 +60,11 @@ MYSQL_CHANNEL_NAME=""
 # MySQL other change master options
 MYSQL_OTHER_CHANGE_MASTER_OPTS=""
 
+# Don't edit this config
 # trap ctrl-c and call ctrl_c()
 trap ctrl_c INT
 
+# Don't edit this config
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do
     DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
@@ -72,8 +74,14 @@ done
 SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 SCRIPT_NAME=$(basename "$0")
 
+# Don't edit this config
 SENDER_MAGIC_TAG="MGPING" # !!!DONT EDIT!!!
+
+# Log file (editable)
 LOG_FILE=${SCRIPT_DIR}/${SCRIPT_NAME%.*}.log
+
+# Don't edit this config
+DATE_START=$(date +"%s")
 
 _logging() {
 	local MSG=${1}
@@ -87,12 +95,26 @@ _logging() {
 	printf "%s | %s: %s\n" "$(date "+%d.%m.%Y %H:%M:%S")" "$$" "${MSG}" 1>>"${LOG_FILE}" 2>&1
 }
 
+# Calculate duration function
+_duration() {
+        local DATE_START=${1:-"$(date +'%s')"}
+        local FUNC_NAME=${2:-""}
+        local DATE_END=$(date +"%s")
+        local D_MSG=""
+        local DATE_DIFF=$((${DATE_END}-${DATE_START}))
+        if [ -n "${FUNC_NAME}" ]; then
+            local D_MSG=" of execute function '${FUNC_NAME}'"
+        fi
+        _logging "Duration${D_MSG}: $((${DATE_DIFF} / 3600 )) hours $(((${DATE_DIFF} % 3600) / 60)) minutes $((${DATE_DIFF} % 60)) seconds"
+}
+
 FAILURE=1
 SUCCESS=0
 
 _fail() {
 	_logging "$1"
-	_logging "End script '${SCRIPT_DIR}/${SCRIPT_NAME}'"
+ 	_duration "${DATE_START}"
+	_logging "End script '${SCRIPT_DIR}/${SCRIPT_NAME}'. Goodbye ;)"
 	exit ${FAILURE}
 }
 
@@ -575,6 +597,7 @@ _delete_mysql_data() {
 
 _run_full_restore() {
 	local MYSQL_FULL_BACKUP_DIR=$1
+ 	local DATE_START=$(date +"%s")
 	if [[ "${BACKUP_METHOD}" = "percona" ]]; then
 		_logging "Running xtrabackup prepare, please wait..."
 		if [ -n "${XTRABACKUP_PREPARE_OPTS}" ]; then
@@ -595,17 +618,23 @@ _run_full_restore() {
 			EXIT_CODE=$?
 		fi
 	fi
+	_duration "${DATE_START}" "${FUNCNAME[0]}"
 	if [ ${EXIT_CODE} -eq 0 ]; then
 		_logging "Done, prepare complete."
 	else
 		_fail "ERROR: Prepare not complete."
 	fi
 	if [ ${STOP_MYSQL_BEFORE} -eq 0 ]; then
+ 		local DATE_START=$(date +"%s")
 		_stop_mysql
+  		_duration "${DATE_START}" "${FUNCNAME[0]}"
 	fi
 	if [ ${DELETE_MYSQL_DATA_BEFORE} -eq 0 ]; then
+ 		local DATE_START=$(date +"%s")
 		_delete_mysql_data
+  		_duration "${DATE_START}" "${FUNCNAME[0]}"
 	fi
+ 	local DATE_START=$(date +"%s")
 	if [[ "${BACKUP_METHOD}" = "percona" ]]; then
 		_logging "Running xtrabackup move-back, please wait..."
 		xtrabackup --move-back --target-dir=${MYSQL_FULL_BACKUP_DIR} 1>>"${LOG_FILE}" 2>&1
@@ -616,6 +645,7 @@ _run_full_restore() {
 		mariabackup --move-back --target-dir=${MYSQL_FULL_BACKUP_DIR} 1>>"${LOG_FILE}" 2>&1
 		EXIT_CODE=$?
 	fi
+ 	_duration "${DATE_START}" "${FUNCNAME[0]}"
 	if [ ${EXIT_CODE} -eq 0 ]; then
 		_logging "Done, move-back complete."
 	else
@@ -779,4 +809,5 @@ if [ -f "${SOCAT_ERROR_LOG}" ]; then
        	rm -f "${SOCAT_ERROR_LOG}" >/dev/null 2>&1
 fi
 
-_logging "End script '${SCRIPT_DIR}/${SCRIPT_NAME}'"
+_duration "${DATE_START}"
+_logging "End script '${SCRIPT_DIR}/${SCRIPT_NAME}'. Goodbye ;)"
