@@ -5,7 +5,7 @@
 #
 # Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 # 
-# Current Version: 1.0.3
+# Current Version: 1.0.4
 #
 # License:
 #  This program is distributed in the hope that it will be useful,
@@ -27,6 +27,10 @@ DELETE_MYSQL_DATA_BEFORE=0
 XTRABACKUP_PREPARE_OPTS="--use-memory=100M"
 # Mariabackup prepare data options
 MARIABACKUP_PREPARE_OPTS="--use-memory=100M"
+# Xtrabackup info file
+XTRABACKUP_INFO_FILE="xtrabackup_info"
+# Xtrabackup binlog info file
+XTRABACKUP_BINLOG_INFO_FILE="xtrabackup_binlog_info"
 # Run replication
 RUN_REPLICATION=0
 # Default MySQL datadir
@@ -648,15 +652,26 @@ _run_replica() {
 	else
 		_fail "Error, slave data not reset."
 	fi
-	if [ -f "${MYSQL_DATA_DIR}/xtrabackup_info" ]; then
-		_logging "Set global gtid_purged..."
-		cat "${MYSQL_DATA_DIR}/xtrabackup_info" | grep binlog_pos | awk -F' ' '{print "set global gtid_purged="$12";"}' | ${MYSQL_BIN}
-	fi
 	MYSQL_REPLICA_OPTS=""
 	if [ ${MYSQL_USE_AUTO_POSITION} -eq 1 ]; then
-		MYSQL_REPLICA_OPTS=", MASTER_AUTO_POSITION=1"
+		if [ -f "${MYSQL_DATA_DIR}/${XTRABACKUP_INFO_FILE}" ]; then
+			_logging "Set global gtid_purged..."
+			cat "${MYSQL_DATA_DIR}/${XTRABACKUP_INFO_FILE}" | grep binlog_pos | awk -F' ' '{print "set global gtid_purged="$12";"}' | ${MYSQL_BIN}
+		fi
+  		MYSQL_REPLICA_OPTS=", MASTER_AUTO_POSITION=1"
 	else
-		MYSQL_REPLICA_OPTS=", MASTER_LOG_FILE='${MYSQL_MASTER_LOG_FILE}', MASTER_LOG_POS='${MYSQL_MASTER_LOG_POS}'"
+ 		if [ -z "${MYSQL_MASTER_LOG_FILE}"; ]; then
+ 			if [ -f "${MYSQL_DATA_DIR}/${XTRABACKUP_BINLOG_INFO_FILE}" ]; then
+    				_logging "Get master log file and master log position.."
+				MYSQL_MASTER_LOG_FILE=$(cat "${MYSQL_DATA_DIR}/${XTRABACKUP_BINLOG_INFO_FILE}" 2>/dev/null | awk {'print $1'} )
+				MYSQL_MASTER_LOG_POS=$(cat "${MYSQL_DATA_DIR}/${XTRABACKUP_BINLOG_INFO_FILE}" 2>/dev/null | awk {'print $2'} )
+    			else
+       				_logging "WARNING: File '${MYSQL_DATA_DIR}/${XTRABACKUP_BINLOG_INFO_FILE}' not found."
+    			fi
+    		fi
+      		if [ -n "${MYSQL_MASTER_LOG_FILE}"; ]; then
+			MYSQL_REPLICA_OPTS=", MASTER_LOG_FILE='${MYSQL_MASTER_LOG_FILE}', MASTER_LOG_POS=${MYSQL_MASTER_LOG_POS}"
+   		fi
 	fi
 	if [ -n "${MYSQL_OTHER_CHANGE_MASTER_OPTS}" ]; then
 		MYSQL_REPLICA_OPTS="${MYSQL_REPLICA_OPTS}, ${MYSQL_OTHER_CHANGE_MASTER_OPTS}"
@@ -710,7 +725,7 @@ if [ -n "${SOCAT_TEST}" ]; then
 			_logging "Started ${USE_STREAM_PROGRAM} on port ${LISTEN_PORT}, wait for ending mysql backup..."
 			sleep 5
 			${STREAM_PROGRAM} ${STREAM_PROGRAM_OPTS} | ${STREAM_BIN} -x -C "${MYSQL_FULL_BACKUP_DIR}"
-			if [ -f "${MYSQL_FULL_BACKUP_DIR}/xtrabackup_info" ]; then
+			if [ -f "${MYSQL_FULL_BACKUP_DIR}/${XTRABACKUP_INFO_FILE}" ]; then
 				_logging "All mysql backup recived and save to '${MYSQL_FULL_BACKUP_DIR}'"
 				if [ ${FULL_RESTORE_BACKUP} -eq 1 ]; then
 					_run_full_restore "${MYSQL_FULL_BACKUP_DIR}"
