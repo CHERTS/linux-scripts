@@ -210,7 +210,7 @@ _detect_linux_distrib() {
 		Ubuntu)
 			_logging "Detecting your Linux distrib: ${DIST} ${REV}"
 			case "${REV}" in
-				14.04|16.04|17.10|18.04|18.10|19.04|19.10|20.04|20.10)
+				14.04|16.04|17.10|18.04|18.10|19.04|19.10|20.04|20.10|22.04|23.04|23.10)
 					_logging "Found Ubuntu distrib: ${PSUEDONAME}"
 					;;
 				*)
@@ -221,7 +221,7 @@ _detect_linux_distrib() {
 		Debian)
 			_logging "Detecting your Linux distrib: ${DIST} ${REV}"
 			case "${REV}" in
-				8|9|10|11)
+				8|9|10|11|12)
 					_logging "Found Debian distrib: ${PSUEDONAME}"
 					;;
 				*)
@@ -232,7 +232,7 @@ _detect_linux_distrib() {
 		"Red Hat"*)
 			_logging "Detecting your Linux distrib: ${DIST} ${REV} (${PSUEDONAME})"
 			;;
-		CentOS)
+		"CentOS"*)
 			_logging "Detecting your Linux distrib: ${DIST} ${REV} (${PSUEDONAME})"
 			;;
 		*)
