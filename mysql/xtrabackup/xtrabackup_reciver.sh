@@ -665,8 +665,9 @@ _run_replica() {
  		if [ -z "${MYSQL_MASTER_LOG_FILE}" ]; then
  			if [ -f "${MYSQL_DATA_DIR}/${XTRABACKUP_BINLOG_INFO_FILE}" ]; then
     				_logging "Get master log file and master log position.."
-				MYSQL_MASTER_LOG_FILE=$(cat "${MYSQL_DATA_DIR}/${XTRABACKUP_BINLOG_INFO_FILE}" 2>/dev/null | awk {'print $1'} )
-				MYSQL_MASTER_LOG_POS=$(cat "${MYSQL_DATA_DIR}/${XTRABACKUP_BINLOG_INFO_FILE}" 2>/dev/null | awk {'print $2'} )
+				MYSQL_MASTER_LOG_FILE=$(cat "${MYSQL_DATA_DIR}/${XTRABACKUP_BINLOG_INFO_FILE}" 2>/dev/null | awk {'print $1'})
+				MYSQL_MASTER_LOG_POS=$(cat "${MYSQL_DATA_DIR}/${XTRABACKUP_BINLOG_INFO_FILE}" 2>/dev/null | awk {'print $2'})
+    				_logging "Found MASTER_LOG_FILE: '${MYSQL_MASTER_LOG_FILE}', MASTER_LOG_POS: ${MYSQL_MASTER_LOG_POS}"
     			else
        				_logging "WARNING: File '${MYSQL_DATA_DIR}/${XTRABACKUP_BINLOG_INFO_FILE}' not found."
     			fi
