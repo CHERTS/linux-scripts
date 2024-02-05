@@ -29,8 +29,8 @@ XTRABACKUP_PREPARE_OPTS="--use-memory=100M"
 MARIABACKUP_PREPARE_OPTS="--use-memory=100M"
 # Xtrabackup info file
 XTRABACKUP_INFO_FILE="xtrabackup_info"
-# Xtrabackup binlog info file (xtrabackup_binlog_info OR xtrabackup_binlog_pos_innodb)
-XTRABACKUP_BINLOG_INFO_FILE="xtrabackup_binlog_info"
+# Xtrabackup binlog info file list
+XTRABACKUP_BINLOG_INFO_FILE_LIST=("xtrabackup_binlog_pos_innodb" "xtrabackup_binlog_info")
 # Run replication
 RUN_REPLICATION=0
 # MySQL systemd unit name
@@ -693,14 +693,17 @@ _run_replica() {
   		MYSQL_REPLICA_OPTS=", MASTER_AUTO_POSITION=1"
 	else
  		if [ -z "${MYSQL_MASTER_LOG_FILE}" ]; then
- 			if [ -f "${MYSQL_DATA_DIR}/${XTRABACKUP_BINLOG_INFO_FILE}" ]; then
-    				_logging "Get master log file and master log position.."
-				MYSQL_MASTER_LOG_FILE=$(cat "${MYSQL_DATA_DIR}/${XTRABACKUP_BINLOG_INFO_FILE}" 2>/dev/null | awk {'print $1'})
-				MYSQL_MASTER_LOG_POS=$(cat "${MYSQL_DATA_DIR}/${XTRABACKUP_BINLOG_INFO_FILE}" 2>/dev/null | awk {'print $2'})
-    				_logging "Found MASTER_LOG_FILE: '${MYSQL_MASTER_LOG_FILE}', MASTER_LOG_POS: ${MYSQL_MASTER_LOG_POS}"
-    			else
-       				_logging "WARNING: File '${MYSQL_DATA_DIR}/${XTRABACKUP_BINLOG_INFO_FILE}' not found."
-    			fi
+   			for BINLOG_INFO_FILE in "${XTRABACKUP_BINLOG_INFO_FILE_LIST[@]}"; do
+ 				if [ -f "${MYSQL_DATA_DIR}/${BINLOG_INFO_FILE}" ]; then
+    					_logging "Get master log file and master log position..."
+					MYSQL_MASTER_LOG_FILE=$(cat "${MYSQL_DATA_DIR}/${BINLOG_INFO_FILE}" 2>/dev/null | awk {'print $1'})
+					MYSQL_MASTER_LOG_POS=$(cat "${MYSQL_DATA_DIR}/${BINLOG_INFO_FILE}" 2>/dev/null | awk {'print $2'})
+    					_logging "Found MASTER_LOG_FILE: '${MYSQL_MASTER_LOG_FILE}', MASTER_LOG_POS: ${MYSQL_MASTER_LOG_POS}"
+	 				break
+    				else
+       					_logging "WARNING: File '${MYSQL_DATA_DIR}/${BINLOG_INFO_FILE}' not found."
+    				fi
+			done
     		fi
       		if [ -n "${MYSQL_MASTER_LOG_FILE}" ]; then
 			MYSQL_REPLICA_OPTS=", MASTER_LOG_FILE='${MYSQL_MASTER_LOG_FILE}', MASTER_LOG_POS=${MYSQL_MASTER_LOG_POS}"
