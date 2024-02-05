@@ -33,6 +33,8 @@ XTRABACKUP_INFO_FILE="xtrabackup_info"
 XTRABACKUP_BINLOG_INFO_FILE="xtrabackup_binlog_info"
 # Run replication
 RUN_REPLICATION=0
+# MySQL systemd unit name
+MYSQL_SYSTEMD_UNIT_NAME="mysql"
 # Default MySQL datadir
 MYSQL_DATA_DIR=/var/lib/mysql
 # Default MySQL binary log dir
@@ -502,7 +504,7 @@ fi
 
 _stop_mysql() {
 	_logging "Stopping MySQL, please wait..."
-	systemctl stop mysql 1>>"${LOG_FILE}" 2>&1
+	systemctl stop ${MYSQL_SYSTEMD_UNIT_NAME} 1>>"${LOG_FILE}" 2>&1
 	if [ $? -eq 0 ]; then
 		_logging "Done, MySQL stopped."
 	else
@@ -512,7 +514,7 @@ _stop_mysql() {
 
 _start_mysql() {
 	_logging "Starting MySQL, please wait..."
-	systemctl start mysql 1>>"${LOG_FILE}" 2>&1
+	systemctl start ${MYSQL_SYSTEMD_UNIT_NAME} 1>>"${LOG_FILE}" 2>&1
 	if [ $? -eq 0 ]; then
 		_logging "Done, MySQL started."
 	else
