@@ -63,11 +63,6 @@ MYSQL_OTHER_CHANGE_MASTER_OPTS=""
 # trap ctrl-c and call ctrl_c()
 trap ctrl_c INT
 
-function ctrl_c() {
-	echo "** Trapped CTRL-C"
-	exit 1
-}
-
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do
     DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
@@ -487,7 +482,7 @@ if [[ "${BACKUP_METHOD}" = "maria" ]]; then
 fi
 
 if [ ! -d "${MYSQL_BACKUP_DIR}" ]; then
-	_fail "Error, main backup directory '${MYSQL_BACKUP_DIR}' not found, please create manual."
+	_fail "ERROR: Main backup directory '${MYSQL_BACKUP_DIR}' not found, please create manual."
 else
 	DATE_TIME=$(date "+%d%m%Y_%H%M%S")
 	MYSQL_FULL_BACKUP_DIR="${MYSQL_BACKUP_DIR}/${DATE_TIME}"
@@ -497,10 +492,15 @@ else
 		if [ $? -eq 0 ]; then
 			_logging "Done, temporary backup directory has created."
 		else
-			_fail "Error, temporary backup directory not created."
+			_fail "ERROR: Temporary backup directory not created."
 		fi
 	fi
 fi
+
+function ctrl_c() {
+	echo "** Trapped CTRL-C"
+ 	_fail "ERROR: Program terminated, please, remove manual directory '${MYSQL_FULL_BACKUP_DIR}'"
+}
 
 _stop_mysql() {
 	_logging "Stopping MySQL, please wait..."
@@ -508,7 +508,7 @@ _stop_mysql() {
 	if [ $? -eq 0 ]; then
 		_logging "Done, MySQL stopped."
 	else
-		_fail "Error, MySQL not stopped."
+		_fail "ERROR: MySQL not stopped."
 	fi
 }
 
@@ -518,7 +518,7 @@ _start_mysql() {
 	if [ $? -eq 0 ]; then
 		_logging "Done, MySQL started."
 	else
-		_fail "Error, MySQL not started."
+		_fail "ERROR: MySQL not started."
 	fi
 }
 
@@ -530,7 +530,7 @@ _delete_mysql_data() {
 			if [ $? -eq 0 ]; then
 				_logging "Done, MySQL binary log directory deleted."
 			else
-				_fail "Error, MySQL binary log directory not deleted."
+				_fail "ERROR: MySQL binary log directory not deleted."
 			fi
 		else
 			_logging "Warning, MySQL binary log directory not found."
@@ -541,7 +541,7 @@ _delete_mysql_data() {
 			if [ $? -eq 0 ]; then
 				_logging "Done, MySQL binary log directory has created."
 			else
-				_fail "Error, MySQL binary log directory not created."
+				_fail "ERROR: MySQL binary log directory not created."
 			fi
 			_logging "Set MySQL binary log directory owner..."
 			chown mysql:mysql "${MYSQL_BINLOG_DIR}" >/dev/null 2>&1
@@ -554,10 +554,10 @@ _delete_mysql_data() {
 		if [ $? -eq 0 ]; then
 			_logging "Done, MySQL data directory deleted."
 		else
-			_fail "Error, MySQL data directory not deleted."
+			_fail "ERROR: MySQL data directory not deleted."
 		fi
 	else
-		_fail "Error, MySQL data directory not found."
+		_fail "ERROR: MySQL data directory not found."
 	fi
 	if [ ! -d "${MYSQL_DATA_DIR}" ]; then
 		_logging "Creating MySQL data directory..."
@@ -565,7 +565,7 @@ _delete_mysql_data() {
 		if [ $? -eq 0 ]; then
 			_logging "Done, MySQL data directory has created."
 		else
-			_fail "Error, MySQL data directory not created."
+			_fail "ERROR: MySQL data directory not created."
 		fi
 		_logging "Set MySQL data directory owner..."
 		chown mysql:mysql "${MYSQL_DATA_DIR}" >/dev/null 2>&1
@@ -598,7 +598,7 @@ _run_full_restore() {
 	if [ ${EXIT_CODE} -eq 0 ]; then
 		_logging "Done, prepare complete."
 	else
-		_fail "Error, prepare not complete."
+		_fail "ERROR: Prepare not complete."
 	fi
 	if [ ${STOP_MYSQL_BEFORE} -eq 0 ]; then
 		_stop_mysql
@@ -619,7 +619,7 @@ _run_full_restore() {
 	if [ ${EXIT_CODE} -eq 0 ]; then
 		_logging "Done, move-back complete."
 	else
-		_fail "Error, move-back not complete."
+		_fail "ERROR: Move-back not complete."
 	fi
 	_logging "Set MySQL data directory owner..."
 	chown -R mysql:mysql "${MYSQL_DATA_DIR}" >/dev/null 2>&1
@@ -631,7 +631,7 @@ _run_full_restore() {
 	if [ $? -eq 0 ]; then
 		_logging "Done, backup directory deleted."
 	else
-		_fail "Error, backup directory not deleted."
+		_fail "ERROR: Backup directory not deleted."
 	fi
 }
 
@@ -644,7 +644,7 @@ _run_replica() {
 	if [ $? -eq 0 ]; then
 		_logging "Done, master data reset."
 	else
-		_fail "Error, master data not reset."
+		_fail "ERROR: Master data not reset."
 	fi
 	_logging "Reset slave..."
 	${MYSQL_BIN} -e "RESET SLAVE;" 1>>"${LOG_FILE}" 2>&1
@@ -652,7 +652,7 @@ _run_replica() {
 	if [ $? -eq 0 ]; then
 		_logging "Done, slave data reset."
 	else
-		_fail "Error, slave data not reset."
+		_fail "ERROR: Slave data not reset."
 	fi
 	MYSQL_REPLICA_OPTS=""
 	if [ ${MYSQL_USE_AUTO_POSITION} -eq 1 ]; then
@@ -687,7 +687,7 @@ _run_replica() {
 	if [ $? -eq 0 ]; then
 		_logging "Done, set change master ."
 	else
-		_fail "Error, change master not set."
+		_fail "ERROR: Change master not set."
 	fi
 	_logging "Set read only mode..."
 	${MYSQL_BIN} -e "SET GLOBAL read_only=1;" 1>>"${LOG_FILE}" 2>&1
@@ -695,7 +695,7 @@ _run_replica() {
 	if [ $? -eq 0 ]; then
 		_logging "Done, set read only mode."
 	else
-		_fail "Error, read only mode not set."
+		_fail "ERROR: Read only mode not set."
 	fi
 	_logging "Start slave..."
 	if [ -n "${MYSQL_CHANNEL_NAME}" ]; then
@@ -706,7 +706,7 @@ _run_replica() {
 	if [ $? -eq 0 ]; then
 		_logging "Done, slave started."
 	else
-		_fail "Error, slave not started."
+		_fail "ERROR: Slave not started."
 	fi
 }
 
