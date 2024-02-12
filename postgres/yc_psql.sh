@@ -148,10 +148,10 @@ _confirm() {
 _connect_last_pg() {
 	local PROFILE=${1:-""}
 	local CLUSTER=${2:-""}
-    local CLUSTERID=${3:-""}
-    local PORT=${4:-"${DEFAULT_PORT}"}
-    local USERNAME=${5:-"${DEFAULT_USERNAME}"}
-    local DATABASE=${6:-"${DEFAULT_DATABASE}"}
+	local CLUSTERID=${3:-""}
+	local PORT=${4:-"${DEFAULT_PORT}"}
+	local USERNAME=${5:-"${DEFAULT_USERNAME}"}
+	local DATABASE=${6:-"${DEFAULT_DATABASE}"}
 
 	local SERVICE_NAME="${CLUSTER//_/-}-pg"
 	local VAULT_SERVICE_PREFIX="${VAULT_PATH}/${PROFILE}/${SERVICE_NAME}"
@@ -167,33 +167,32 @@ _connect_last_pg() {
 	    export PGPASSWORD=${PG_PASSWD}
 	fi
 
-    if [ -n "${CLUSTERID}" ]; then
+	if [ -n "${CLUSTERID}" ]; then
 		echo "Connecting to Cluster ID: ${CLUSTERID}"
 		if [[ "${PSQL_BIN_NAME}" == "usql" ]]; then
 			${PSQL_BIN_PATH}/${PSQL_BIN_NAME} "postgres://${USERNAME}@c-${CLUSTERID}.${YC_HOST_SUFFIX}:${PORT}/${DATABASE}"
 		else
 			${PSQL_BIN_PATH}/${PSQL_BIN_NAME} -h "c-${CLUSTERID}.${YC_HOST_SUFFIX}" -p ${PORT} -U ${USERNAME} ${DATABASE}
 		fi
-        RET=$?
-    else
+		RET=$?
+	else
 		echo "Last connection info not found. Exit."
 		rm -f "${YC_LAST_CONN_FILE}" >/dev/null 2>&1
 		exit 1
-    fi
+	fi
 
-    if [ ${RET} -eq 0 ]; then
-        echo "Bay."
+	if [ ${RET} -eq 0 ]; then
+		echo "Bay."
 	else
 		echo "An error occurred while connecting with the last saved connection config."
 		_confirm "Would you really like to remove last connection config? [y/N]" && rm -f "${YC_LAST_CONN_FILE}" >/dev/null 2>&1
-    fi
+	fi
 
-    if [ ${RET} -ne 0 ];
-    then
-        echo
-        echo -n "Press <return> to continue..."
-        read dummy
-    fi
+	if [ ${RET} -ne 0 ]; then
+		echo
+		echo -n "Press <return> to continue..."
+		read dummy
+	fi
 }
 
 _connect_pg() {
@@ -210,8 +209,8 @@ _connect_pg() {
 
 	RET=$?
 
-    if [ ${RET} -eq 0 ]; then
-        echo "Write last connection config..."
+	if [ ${RET} -eq 0 ]; then
+		echo "Write last connection config..."
 		(cat<<-EOF
 		PG_PROFILE=${YC_PROFILE}
 		PG_CLUSTER=${YC_CLUSTER}
@@ -222,21 +221,20 @@ _connect_pg() {
 		EOF
 		)>"${YC_LAST_CONN_FILE}"
 		echo "Done. Bay."
-    fi
+	fi
 
-    if [ ${RET} -ne 0 ];
-    then
-        echo
-        echo -n "Press <return> to continue..."
-        read dummy
-    fi
+	if [ ${RET} -ne 0 ]; then
+		echo
+		echo -n "Press <return> to continue..."
+		read dummy
+	fi
 }
 
 # Check the command line
 if [ $# -ne 0 -a $# -ne 1 ]; 
 then
-    echo "Usage: $0 [wait]"
-    exit 127
+	echo "Usage: $0 [wait]"
+	exit 127
 fi
 
 if [ -f "${YC_LAST_CONN_FILE}" ]; then
@@ -264,8 +262,8 @@ fi
 echo "Select Yandex.Cloud CLI profile:"
 shopt -s extglob;   
 select PROFILE in "${YC_CLI_FULL_PROFILES[@]}"; do
-    case ${PROFILE} in
-        +([a-z\_]))
+	case ${PROFILE} in
+		+([a-z\_]))
 			${YC_BIN} config profile activate "${PROFILE}" 2>/dev/null
 			if [ $? -eq 0 ]; then
 				YC_PROFILE=${PROFILE}
@@ -274,20 +272,20 @@ select PROFILE in "${YC_CLI_FULL_PROFILES[@]}"; do
 				echo "ERROR: Profile '${PROFILE}' not ready to use. Exit"
 				exit 1
 			fi
-            ;;
-        "CONNECT")
+			;;
+		"CONNECT")
 			YC_PROFILE=""
-            CLUSTERID=""
-            break
-            ;;
-        "Quit")
-            echo "Exit"
-            exit 0
-            ;;
-        *)
-            echo "Not available"
-            ;;
-    esac
+			CLUSTERID=""
+			break
+			;;
+		"Quit")
+			echo "Exit"
+			exit 0
+			;;
+		*)
+			echo "Not available"
+			;;
+	esac
 done
 shopt -u extglob;
 
@@ -314,22 +312,22 @@ fi
 echo "Select cluster:"
 shopt -s extglob;   
 select CLUSTER in "${YC_PG_CLUSTERS[@]}" "Quit"; do
-    case ${CLUSTER} in
-        +([a-z\_]))
-            echo "Cluster '${CLUSTER}' selected"
+	case ${CLUSTER} in
+		+([a-z\_]))
+			echo "Cluster '${CLUSTER}' selected"
 			YC_CLUSTER=${CLUSTER}
 			echo "Getting cluster id and database list, please wait..."
 			CLUSTERID=$(${YC_BIN} managed-postgresql cluster list --profile "${YC_PROFILE}" --format json 2>/dev/null | jq '.[] | if .name=='\"${CLUSTER}\"' then .id else empty end' 2>/dev/null | tr -d \")
-            break
-        	;;
-		"Quit")
-            echo "Exit"
-            exit 0
+			break
 			;;
-        *)
-            echo "Not available"
-        	;;
-    esac
+		"Quit")
+			echo "Exit"
+			exit 0
+			;;
+		*)
+			echo "Not available"
+			;;
+	esac
 done
 shopt -u extglob;
 
@@ -338,26 +336,26 @@ YC_PG_DATABASES=($(${YC_BIN} managed-postgresql database list --profile "${YC_PR
 echo "Select database:"
 shopt -s extglob;   
 select DB in "${YC_PG_DATABASES[@]}" "Quit"; do
-    case ${DB} in
-        +([a-z\_]))
-            echo "Database '${DB}' selected"
-            DATABASE=${DB}
+	case ${DB} in
+		+([a-z\_]))
+			echo "Database '${DB}' selected"
+			DATABASE=${DB}
 			break
-        	;;
-        "Quit")
-            echo "Exit"
-            exit 0
-        	;;
-        *)
-            echo "Not available"
-        	;;
-    esac
+			;;
+		"Quit")
+			echo "Exit"
+			exit 0
+			;;
+		*)
+			echo "Not available"
+			;;
+	esac
 done
 shopt -u extglob;
 
 if [ -z "${DATABASE}" ];
 then
-    DATABASE="${DEFAULT_DATABASE}"
+	DATABASE="${DEFAULT_DATABASE}"
 fi
 
 echo -n "Port [${DEFAULT_PORT}]: "
@@ -365,7 +363,7 @@ read PORT
 
 if [ -z "${PORT}" ];
 then
-    PORT="${DEFAULT_PORT}"
+	PORT="${DEFAULT_PORT}"
 fi
 
 YC_PG_USERS=($(${YC_BIN} managed-postgresql user list --profile "${YC_PROFILE}" --cluster-id ${CLUSTERID} --format json 2>/dev/null | jq 'map(select(.login == true and .name != "postgres_exporter"))' | jq '.[].name' 2>/dev/null | tr -d \"))
@@ -392,7 +390,7 @@ shopt -u extglob;
 
 if [ -z "${USERNAME}" ];
 then
-    USERNAME="${DEFAULT_USERNAME}"
+	USERNAME="${DEFAULT_USERNAME}"
 fi
 
 echo
