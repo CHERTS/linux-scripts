@@ -5,9 +5,9 @@
 #
 # Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 #
-# Current Version: 1.0.7
+# Current Version: 1.0.8
 #
-# Support zabbix version 4.x and 5.x
+# Support zabbix version 4.x/5.x/6.x
 #
 # License:
 #  This program is distributed in the hope that it will be useful,
@@ -15,7 +15,7 @@
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-ZBX_VER="5.0.15"
+ZBX_VER="6.0.26"
 ZBX_WEB_DIR="/var/www/zabbix.mysite.ru"
 
 # Dont edit this lines
