@@ -13,8 +13,8 @@
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 
-# Latest agents (4.0/4.4/5.0/5.4/6.0)
-ZBX_VER=6.0
+# Latest agents (4.0/4.4/5.0/5.4/6.0/6.4)
+ZBX_VER=6.4
 # Zabbix pkg repo
 ZBX_URL=https://repo.zabbix.com/zabbix/${ZBX_VER}
 # Pre-compiled Zabbix agents
@@ -25,26 +25,28 @@ ENABLE_DEBUG=0
 
 case ${ZBX_VER} in
 	"4.0")
-		ZBX_STABLE_VER=4.0.26
+		ZBX_STABLE_VER=4.0.50
 		ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
 		ZBX_LINUX_MINOR_PKG_VER=1
-		# 4.0.14 -> openssl or non-openssl
+		# 4.0.50 -> openssl or non-openssl
 		ZBX_FULL_WINDOWS_VER=${ZBX_STABLE_VER}
 		ZBX_WINDOWS_OPENSSL_PKG=1
 		ZBX_WINDOWS_AMD64_PKG=1
-		# 4.0.7 -> 7_2 (openssl or non-openssl)
-		# 4.0.7 -> 6_1 (openssl)
-		# 4.0.1 -> 6_1 (non-openssl)
-		ZBX_AIX_VER=7.2
-		ZBX_FULL_AIX_VER=4.0.7
+		# 4.0.47 -> 7_3 (openssl or non-openssl)
+		# 4.0.47 -> 7_2 (openssl or non-openssl)
+		# 4.0.45 -> 7_1 (openssl or non-openssl)
+		ZBX_AIX_VER=7.3
+		ZBX_FULL_AIX_VER=4.0.47
 		ZBX_AIX_OPENSSL_PKG=1
-		# 4.0.14 -> openssl or non-openssl
-		ZBX_FREEBSD_VER=11.2
+		# 4.0.50 -> 13.1 (openssl or non-openssl)
+		# 4.0.44 -> 13.0 (openssl or non-openssl)
+		# 4.0.38 -> 11.2 (openssl or non-openssl)
+		ZBX_FREEBSD_VER=13.1
 		ZBX_FULL_FREEBSD_VER=${ZBX_STABLE_VER}
 		ZBX_FREEBSD_OPENSSL_PKG=1
-		# 4.0.14 -> openssl or non-openssl
+		# 4.0.44 -> 6.3 (openssl or non-openssl)
 		ZBX_OPENBSD_VER=6.3
-		ZBX_FULL_OPENBSD_VER=${ZBX_STABLE_VER}
+		ZBX_FULL_OPENBSD_VER=4.0.44
 		ZBX_OPENBSD_OPENSSL_PKG=1
 		;;
 	"4.4")
@@ -56,8 +58,8 @@ case ${ZBX_VER} in
 		ZBX_WINDOWS_OPENSSL_PKG=1
 		ZBX_WINDOWS_AMD64_PKG=1
 		# for AIX not build
-		ZBX_AIX_VER=7.2
-		ZBX_FULL_AIX_VER=4.2.1
+		ZBX_AIX_VER=""
+		ZBX_FULL_AIX_VER=""
 		ZBX_AIX_OPENSSL_PKG=1
 		# 4.4.1 -> openssl or non-openssl
 		ZBX_FREEBSD_VER=11.2
@@ -69,43 +71,47 @@ case ${ZBX_VER} in
 		ZBX_OPENBSD_OPENSSL_PKG=1
 		;;
         "5.0")
-                ZBX_STABLE_VER=5.0.15
+                ZBX_STABLE_VER=5.0.41
                 ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
                 ZBX_LINUX_MINOR_PKG_VER=1
-                # 5.0.5 -> openssl or non-openssl
+                # 5.0.41 -> openssl or non-openssl
                 ZBX_FULL_WINDOWS_VER=${ZBX_STABLE_VER}
                 ZBX_WINDOWS_OPENSSL_PKG=1
                 ZBX_WINDOWS_AMD64_PKG=1
-                # 5.0.14 -> openssl only
-                ZBX_AIX_VER=7.2
-                ZBX_FULL_AIX_VER=5.0.14
+		# 5.0.36 -> 7_3 (openssl or non-openssl)
+		# 5.0.40 -> 7_2 (openssl or non-openssl)
+		# 5.0.34 -> 7_1 (openssl or non-openssl)
+                ZBX_AIX_VER=7.3
+                ZBX_FULL_AIX_VER=5.0.36
                 ZBX_AIX_OPENSSL_PKG=1
-                # 5.0.15 -> openssl or non-openssl
-                ZBX_FREEBSD_VER=11.2
+		# 5.0.41 -> 13.1 (openssl or non-openssl)
+		# 5.0.31 -> 13.0 (openssl or non-openssl)
+		# 5.0.20 -> 11.2 (openssl or non-openssl)
+                ZBX_FREEBSD_VER=13.1
                 ZBX_FULL_FREEBSD_VER=${ZBX_STABLE_VER}
                 ZBX_FREEBSD_OPENSSL_PKG=1
-                # 5.0.0 -> openssl or non-openssl
+		# 5.0.31 -> 6.3 (openssl or non-openssl)
                 ZBX_OPENBSD_VER=6.3
-                ZBX_FULL_OPENBSD_VER=${ZBX_STABLE_VER}
+                ZBX_FULL_OPENBSD_VER=5.0.31
                 ZBX_OPENBSD_OPENSSL_PKG=1
                 ;;
         "5.4")
-                ZBX_STABLE_VER=5.4.4
+                ZBX_STABLE_VER=5.4.12
                 ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
                 ZBX_LINUX_MINOR_PKG_VER=1
-                # 5.4.4 -> openssl or non-openssl
+                # 5.4.12 -> openssl or non-openssl
                 ZBX_FULL_WINDOWS_VER=${ZBX_STABLE_VER}
                 ZBX_WINDOWS_OPENSSL_PKG=1
                 ZBX_WINDOWS_AMD64_PKG=1
-                # 5.4.3 -> openssl only
+                # 5.4.6 -> openssl only
                 ZBX_AIX_VER=7.2
-                ZBX_FULL_AIX_VER=5.4.3
+                ZBX_FULL_AIX_VER=5.4.6
                 ZBX_AIX_OPENSSL_PKG=1
-                # 5.4.4 -> openssl or non-openssl
-                ZBX_FREEBSD_VER=11.2
+                # 5.4.12 -> openssl or non-openssl
+                ZBX_FREEBSD_VER=13.0
                 ZBX_FULL_FREEBSD_VER=${ZBX_STABLE_VER}
                 ZBX_FREEBSD_OPENSSL_PKG=1
-                # 5.4.4 -> openssl or non-openssl
+                # 5.4.12 -> openssl or non-openssl
                 ZBX_OPENBSD_VER=6.3
                 ZBX_FULL_OPENBSD_VER=${ZBX_STABLE_VER}
                 ZBX_OPENBSD_OPENSSL_PKG=1
@@ -118,17 +124,43 @@ case ${ZBX_VER} in
                 ZBX_FULL_WINDOWS_VER=${ZBX_STABLE_VER}
                 ZBX_WINDOWS_OPENSSL_PKG=1
                 ZBX_WINDOWS_AMD64_PKG=1
-                # 6.0.20 -> openssl only
+		# 6.0.20 -> 7_3 (openssl or non-openssl)
+		# 6.0.24 -> 7_2 (openssl or non-openssl)
+		# 6.0.17 -> 7_1 (openssl or non-openssl)
                 ZBX_AIX_VER=7.3
                 ZBX_FULL_AIX_VER=6.0.20
                 ZBX_AIX_OPENSSL_PKG=1
-                # 6.0.26 -> openssl or non-openssl
+		# 6.0.26 -> 13.1 (openssl or non-openssl)
+		# 6.0.13 -> 13.0 (openssl or non-openssl)
                 ZBX_FREEBSD_VER=13.1
                 ZBX_FULL_FREEBSD_VER=${ZBX_STABLE_VER}
                 ZBX_FREEBSD_OPENSSL_PKG=1
-                # 6.0.26 -> openssl or non-openssl
+		# 6.0.13 -> 6.3 (openssl or non-openssl)
                 ZBX_OPENBSD_VER=6.3
                 ZBX_FULL_OPENBSD_VER=6.0.13
+                ZBX_OPENBSD_OPENSSL_PKG=1
+                ;;
+        "6.4")
+                ZBX_STABLE_VER=6.4.11
+                ZBX_LINUX_FULL_VER=${ZBX_STABLE_VER}
+                ZBX_LINUX_MINOR_PKG_VER=1
+                # 6.4.11 -> openssl or non-openssl
+                ZBX_FULL_WINDOWS_VER=${ZBX_STABLE_VER}
+                ZBX_WINDOWS_OPENSSL_PKG=1
+                ZBX_WINDOWS_AMD64_PKG=1
+		# 6.4.5 -> 7_3 (openssl or non-openssl)
+		# 6.4.9 -> 7_2 (openssl or non-openssl)
+		# 6.4.2 -> 7_1 (openssl or non-openssl)
+                ZBX_AIX_VER=7.3
+                ZBX_FULL_AIX_VER=6.4.5
+                ZBX_AIX_OPENSSL_PKG=1
+		# 6.4.11 -> 13.1 (openssl or non-openssl)
+                ZBX_FREEBSD_VER=13.1
+                ZBX_FULL_FREEBSD_VER=${ZBX_STABLE_VER}
+                ZBX_FREEBSD_OPENSSL_PKG=1
+                # ?.?.? -> openssl or non-openssl
+                ZBX_OPENBSD_VER=""
+                ZBX_FULL_OPENBSD_VER=""
                 ZBX_OPENBSD_OPENSSL_PKG=1
                 ;;
 	*)
@@ -141,12 +173,26 @@ _command_exists() {
 	type "$1" &> /dev/null
 }
 
-if _command_exists wget ; then
-	WGET_BIN=$(which wget)
+if _command_exists tr; then
+	TR_BIN=$(which tr)
 else
-	echo "ERROR: Command 'wget' not found."
+	echo "Command 'tr' not found."
 	exit 1
 fi
+
+# Checking the availability of necessary utilities
+COMMAND_EXIST_ARRAY=(DU SED AWK CUT RM CAT WC GREP DIRNAME LS MV FIND WGET CHOWN CP)
+for ((i=0; i<${#COMMAND_EXIST_ARRAY[@]}; i++)); do
+	__CMDVAR=${COMMAND_EXIST_ARRAY[$i]}
+	CMD_FIND=$(echo "${__CMDVAR}" | ${TR_BIN} '[:upper:]' '[:lower:]')
+	if _command_exists ${CMD_FIND} ; then
+		eval $__CMDVAR'_BIN'="'$(which ${CMD_FIND})'"
+		hash "${CMD_FIND}" >/dev/null 2>&1
+	else
+		echo "Command '${CMD_FIND}' not found."
+		exit 1
+	fi
+done
 
 _wget_zbx() {
 	local ZBX_PACKAGE_NAME=$1
@@ -173,9 +219,10 @@ _wget_zbx() {
 			exit 1
 			;;
 	esac
+	ZBX_MAJOR_VER=$(echo -n ${ZBX_VER} | awk -F'.' '{print $1}')
+	ZBX_MINOR_VER=$(echo -n ${ZBX_VER} | awk -F'.' '{print $2}')
 	case "${ZBX_PLATFORM_VENDOR}" in
 		rhel)
-			ZBX_MAJOR_VER=$(echo -n ${ZBX_VER} | awk -F'.' '{print $1}')
 			ZBX_SUBDIR=$(echo ${ZBX_PLATFORM_VER} | cut -d'l' -f2)
 			if [ ${ZBX_MAJOR_VER} -lt 6 ]; then
 				ZBX_PACKAGE_MINOR_NAME=${ZBX_PACKAGE_MINOR_VER}
@@ -191,8 +238,56 @@ _wget_zbx() {
 			ZBX_FULL_URL="${ZBX_URL}/${ZBX_PLATFORM_VENDOR}/${ZBX_SUBDIR}/${ZBX_X86_X64}"
 			;;
 		debian|ubuntu)
+			if [ ${ZBX_MAJOR_VER} -eq 4 ]; then
+				case "${ZBX_PLATFORM_VER}" in
+				16.04)
+					PKG_OS="xenial"
+					;;
+				18.04)
+					PKG_OS="bionic"
+					;;
+				20.04)
+					PKG_OS="focal"
+					;;
+				9)
+					PKG_OS="stretch"
+					;;
+				10)
+					PKG_OS="buster"
+					;;
+				*)
+					PKG_OS=${ZBX_PLATFORM_VER}
+					;;
+				esac
+			elif [ ${ZBX_MAJOR_VER} -eq 5 ] && [ ${ZBX_MINOR_VER} -eq 0 ]; then
+				case "${ZBX_PLATFORM_VER}" in
+				16.04)
+					PKG_OS="xenial"
+					;;
+				18.04)
+					PKG_OS="bionic"
+					;;
+				20.04)
+					PKG_OS="focal"
+					;;
+				22.04)
+					PKG_OS=${ZBX_PLATFORM_VENDOR}${ZBX_PLATFORM_VER}
+					;;
+				9)
+					PKG_OS="stretch"
+					;;
+				10|11)
+					PKG_OS=${ZBX_PLATFORM_VENDOR}${ZBX_PLATFORM_VER}
+					;;
+				*)
+					PKG_OS=${ZBX_PLATFORM_VER}
+					;;
+				esac
+			else
+				PKG_OS=${ZBX_PLATFORM_VENDOR}${ZBX_PLATFORM_VER}
+			fi
 			ZBX_SUBDIR="pool/main/z/zabbix"
-			ZBX_FULL_PKG_NAME="${ZBX_PACKAGE_NAME}_${ZBX_LINUX_FULL_VER}-${ZBX_PACKAGE_MINOR_VER}+${ZBX_PLATFORM_VENDOR}${ZBX_PLATFORM_VER}_${ZBX_X86_X64}.${ZBX_PKG_EXT}"
+			ZBX_FULL_PKG_NAME="${ZBX_PACKAGE_NAME}_${ZBX_LINUX_FULL_VER}-${ZBX_PACKAGE_MINOR_VER}+${PKG_OS}_${ZBX_X86_X64}.${ZBX_PKG_EXT}"
 			ZBX_FULL_URL="${ZBX_URL}/${ZBX_PLATFORM_VENDOR}/${ZBX_SUBDIR}"
 			;;
 		windows)
@@ -253,12 +348,17 @@ _wget_zbx() {
 	${WGET_BIN} "${ZBX_FULL_URL}/${ZBX_FULL_PKG_NAME}" -O "${DOWNLOAD_DIR}/${ZBX_FULL_PKG_NAME}" >/dev/null 2>&1
 	if [ $? -eq 0 ]; then
 		if [ -f "${DOWNLOAD_DIR}/${ZBX_FULL_PKG_NAME}" ]; then
-			echo "OK"
+			PKG_SIZE=$(${DU_BIN} -b "${DOWNLOAD_DIR}/${ZBX_FULL_PKG_NAME}" 2>/dev/null | ${AWK_BIN} '{print $1}')
+			if [ ${PKG_SIZE} -ne 0 ]; then
+				echo "OK"
+			else
+				echo "Error | Size_0"
+			fi
 		else
-			echo "Not found"
+			echo "Error | Not_found"
 		fi
 	else
-		echo "Error"
+		echo "Error | Not_download"
 	fi
 }
 
@@ -269,21 +369,25 @@ _wget_windows_ver() {
 	_wget_zbx "zabbix_agent" "${ZBX_FULL_WINDOWS_VER}" "windows" "" "i386" "${ZBX_WINDOWS_OPENSSL_PKG}"
 }
 
+ZBX_MAJOR_VER=$(echo -n ${ZBX_VER} | awk -F'.' '{print $1}')
+
 # Download Zabbix for Windows
 _wget_windows_ver
 
 # Download Zabbix for AIX
-_wget_zbx "zabbix_agent" "${ZBX_FULL_AIX_VER}" "aix" "${ZBX_AIX_VER}" "powerpc" "${ZBX_AIX_OPENSSL_PKG}"
+if [ -n "${ZBX_AIX_VER}" ]; then
+	_wget_zbx "zabbix_agent" "${ZBX_FULL_AIX_VER}" "aix" "${ZBX_AIX_VER}" "powerpc" "${ZBX_AIX_OPENSSL_PKG}"
+fi
 
 # Download Zabbix for OpenBSD
-_wget_zbx "zabbix_agent" "${ZBX_FULL_OPENBSD_VER}" "openbsd" "${ZBX_OPENBSD_VER}" "amd64" "${ZBX_OPENBSD_OPENSSL_PKG}"
-_wget_zbx "zabbix_agent" "${ZBX_FULL_OPENBSD_VER}" "openbsd" "${ZBX_OPENBSD_VER}" "i386" "${ZBX_OPENBSD_OPENSSL_PKG}"
+if [ -n "${ZBX_OPENBSD_VER}" ]; then
+	_wget_zbx "zabbix_agent" "${ZBX_FULL_OPENBSD_VER}" "openbsd" "${ZBX_OPENBSD_VER}" "amd64" "${ZBX_OPENBSD_OPENSSL_PKG}"
+	_wget_zbx "zabbix_agent" "${ZBX_FULL_OPENBSD_VER}" "openbsd" "${ZBX_OPENBSD_VER}" "i386" "${ZBX_OPENBSD_OPENSSL_PKG}"
+fi
 
 # Download Zabbix for FreeBSD
 _wget_zbx "zabbix_agent" "${ZBX_FULL_FREEBSD_VER}" "freebsd" "${ZBX_FREEBSD_VER}" "amd64" "${ZBX_FREEBSD_OPENSSL_PKG}"
 _wget_zbx "zabbix_agent" "${ZBX_FULL_FREEBSD_VER}" "freebsd" "${ZBX_FREEBSD_VER}" "i386" "${ZBX_FREEBSD_OPENSSL_PKG}"
-
-ZBX_MAJOR_VER=$(echo -n ${ZBX_VER} | awk -F'.' '{print $1}')
 
 if [ ${ZBX_MAJOR_VER} -lt 6 ]; then
 	# Download Zabbix for RedHat/OracleLinux/CentOS 5
@@ -293,20 +397,22 @@ if [ ${ZBX_MAJOR_VER} -lt 6 ]; then
 	_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el5" "i386"
 	_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el5" "x86_64"
 	_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el5" "i386"
-else
-	# Download Zabbix for RedHat/OracleLinux/CentOS 6
-	_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el6" "x86_64"
-	_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el6" "i386"
-	_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el6" "x86_64"
-	_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el6" "i386"
-	_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el6" "x86_64"
-	_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el6" "i386"
+fi
 
-	# Download Zabbix for RedHat/OracleLinux/CentOS 7
-	_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el7" "x86_64"
-	_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el7" "x86_64"
-	_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el7" "x86_64"
+# Download Zabbix for RedHat/OracleLinux/CentOS 6
+_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el6" "x86_64"
+_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el6" "i386"
+_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el6" "x86_64"
+_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el6" "i386"
+_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el6" "x86_64"
+_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el6" "i386"
 
+# Download Zabbix for RedHat/OracleLinux/CentOS 7
+_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el7" "x86_64"
+_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el7" "x86_64"
+_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el7" "x86_64"
+
+if [ ${ZBX_MAJOR_VER} -ge 6 ]; then
 	# Download Zabbix for RedHat/OracleLinux/CentOS 8
 	_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el8" "x86_64"
 	_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el8" "x86_64"
@@ -316,54 +422,60 @@ else
 	_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el9" "x86_64"
 	_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el9" "x86_64"
 	_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "rhel" "el9" "x86_64"
+fi
 
-	# Download Zabbix for Debian 9 (Stretch)
-	_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "9" "amd64"
-	_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "9" "i386"
-	_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "9" "amd64"
-	_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "9" "i386"
-	_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "9" "amd64"
-	_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "9" "i386"
+# Download Zabbix for Debian 9 (Stretch)
+_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "9" "amd64"
+_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "9" "i386"
+_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "9" "amd64"
+_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "9" "i386"
+_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "9" "amd64"
+_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "9" "i386"
 
-	# Download Zabbix for Debian 10 (Buster)
-	_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "10" "amd64"
-	_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "10" "i386"
-	_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "10" "amd64"
-	_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "10" "i386"
-	_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "10" "amd64"
-	_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "10" "i386"
+# Download Zabbix for Debian 10 (Buster)
+_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "10" "amd64"
+_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "10" "i386"
+_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "10" "amd64"
+_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "10" "i386"
+_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "10" "amd64"
+_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "10" "i386"
 
+if [ ${ZBX_MAJOR_VER} -ge 5 ]; then
 	# Download Zabbix for Debian 11 (Bullseye)
 	_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "11" "amd64"
 	_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "11" "amd64"
 	_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "11" "amd64"
+fi
 
+if [ ${ZBX_MAJOR_VER} -ge 6 ]; then
 	# Download Zabbix for Debian 12 (Bookworm)
 	_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "12" "amd64"
 	_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "12" "amd64"
 	_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "debian" "12" "amd64"
+fi
 
-	# Download Zabbix for Ubuntu 16.04 (Xenial)
-	_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "16.04" "amd64"
-	_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "16.04" "i386"
-	_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "16.04" "amd64"
-	_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "16.04" "i386"
-	_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "16.04" "amd64"
-	_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "16.04" "i386"
+# Download Zabbix for Ubuntu 16.04 (Xenial)
+_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "16.04" "amd64"
+_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "16.04" "i386"
+_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "16.04" "amd64"
+_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "16.04" "i386"
+_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "16.04" "amd64"
+_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "16.04" "i386"
 
-	# Download Zabbix for Ubuntu 18.04 (Bionic)
-	_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "18.04" "amd64"
-	_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "18.04" "i386"
-	_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "18.04" "amd64"
-	_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "18.04" "i386"
-	_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "18.04" "amd64"
-	_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "18.04" "i386"
+# Download Zabbix for Ubuntu 18.04 (Bionic)
+_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "18.04" "amd64"
+_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "18.04" "i386"
+_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "18.04" "amd64"
+_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "18.04" "i386"
+_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "18.04" "amd64"
+_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "18.04" "i386"
 
-	# Download Zabbix for Ubuntu 20.04 (Focal)
-	_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "20.04" "amd64"
-	_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "20.04" "amd64"
-	_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "20.04" "amd64"
+# Download Zabbix for Ubuntu 20.04 (Focal)
+_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "20.04" "amd64"
+_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "20.04" "amd64"
+_wget_zbx "zabbix-get" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "20.04" "amd64"
 
+if [ ${ZBX_MAJOR_VER} -ge 6 ]; then
 	# Download Zabbix for Ubuntu 22.04 (Jammy)
 	_wget_zbx "zabbix-agent" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "22.04" "amd64"
 	_wget_zbx "zabbix-sender" "${ZBX_LINUX_MINOR_PKG_VER}" "ubuntu" "22.04" "amd64"
