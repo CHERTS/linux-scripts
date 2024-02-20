@@ -73,26 +73,26 @@ BLUE='\e[1;34m'
 CYAN='\e[1;36m'
 NC='\e[0m'
 
-if _command_exists git; then
-	GIT_BIN=$(which git)
+if _command_exists tr; then
+	TR_BIN=$(which tr)
 else
-	echo -e "${RED}ERROR: Command 'git' not found.${NC}"
+	echo "Command 'tr' not found."
 	exit 1
 fi
 
-if _command_exists make; then
-	MAKE_BIN=$(which make)
-else
-	echo -e "${RED}ERROR: Command 'make' not found.${NC}"
-	exit 1
-fi
-
-if _command_exists gcc; then
-	GCC_BIN=$(which gcc)
-else
-	echo -e "${RED}ERROR: Command 'gcc' not found.${NC}"
-	exit 1
-fi
+# Checking the availability of necessary utilities
+COMMAND_EXIST_ARRAY=(GIT MAKE GCC)
+for ((i=0; i<${#COMMAND_EXIST_ARRAY[@]}; i++)); do
+	__CMDVAR=${COMMAND_EXIST_ARRAY[$i]}
+	CMD_FIND=$(echo "${__CMDVAR}" | ${TR_BIN} '[:upper:]' '[:lower:]')
+	if _command_exists ${CMD_FIND} ; then
+		eval $__CMDVAR'_BIN'="'$(which ${CMD_FIND})'"
+		hash "${CMD_FIND}" >/dev/null 2>&1
+	else
+		echo -e "${RED}ERROR: Command '${CMD_FIND}' not found.${NC}"
+		exit 1
+	fi
+done
 
 if [ -f "${SCRIPT_DIR}/${SCRIPT_NAME%.*}.conf" ]; then
 	source "${SCRIPT_DIR}/${SCRIPT_NAME%.*}.conf"
@@ -246,13 +246,13 @@ fi
 _delete_git() {
 	rm -rf "${SCRIPT_DIR}/pg_profile" >/dev/null 2>&1
 	rm -rf "${SCRIPT_DIR}/pg_stat_kcache" >/dev/null 2>&1
-    rm -rf "${SCRIPT_DIR}/pg_wait_sampling" >/dev/null 2>&1
+	rm -rf "${SCRIPT_DIR}/pg_wait_sampling" >/dev/null 2>&1
 }
 
 _git_clone() {
 	local REPO=$1
 	_delete_git
-    cd "${SCRIPT_DIR}" >/dev/null 2>&1
+	cd "${SCRIPT_DIR}" >/dev/null 2>&1
 	echo -en "${CYAN}Git clone '${REPO}'...${NC} "
 	if [ "${ENABLE_DEBUG}" -eq 1 ]; then
 		${GIT_BIN} clone "${REPO}"
@@ -270,42 +270,42 @@ _git_clone() {
 }
 
 _build_pg_ext() {
-    local GIT_REPO=$1
-    local GIT_TAG=$2
-    local EXT_NAME=$3
-    _git_clone "${GIT_REPO}"
-    if [ -d "${SCRIPT_DIR}/${EXT_NAME}" ]; then
-        cd "${SCRIPT_DIR}/${EXT_NAME}" >/dev/null 2>&1
-        echo -en "${CYAN}Git checkout ${EXT_NAME} module 'tags/${GIT_TAG}'...${NC} "
-        ${GIT_BIN} checkout tags/${GIT_TAG} >/dev/null 2>&1
-        if [ $? -eq 0 ]; then
-            echo -e "${GREEN}OK${NC}"
-            echo -en "${CYAN}Build ${EXT_NAME} module...${NC} "
-            if [ "${ENABLE_DEBUG}" -eq 1 ]; then
-                ${MAKE_BIN} USE_PGXS=1 PG_CONFIG=${PG_BIN_PATH}/pg_config install
-            else
-                ${MAKE_BIN} USE_PGXS=1 PG_CONFIG=${PG_BIN_PATH}/pg_config install >/dev/null 2>&1
-            fi
-            if [ $? -eq 0 ]; then
-                echo -e "${GREEN}OK${NC}"
-            else
-                echo -e "${RED}ERR${NC}"
-                cd "${SCRIPT_DIR}"
-                _delete_git
-                exit 1
-            fi
-            cd "${SCRIPT_DIR}"
-            _delete_git
-        else
-            echo -e "${RED}ERR${NC}"
-            echo -e "${RED}ERROR: Checkout repo '${GIT_REPO}', tags 'tags/${GIT_TAG}' not complete.${NC}"
-            exit 1
-        fi
-    else
-        echo -e "${RED}ERR${NC}"
-        echo -e "${RED}ERROR: Directory '${SCRIPT_DIR}/${EXT_NAME}' not found.${NC}"
-        exit 1
-    fi
+	local GIT_REPO=$1
+	local GIT_TAG=$2
+	local EXT_NAME=$3
+	_git_clone "${GIT_REPO}"
+	if [ -d "${SCRIPT_DIR}/${EXT_NAME}" ]; then
+		cd "${SCRIPT_DIR}/${EXT_NAME}" >/dev/null 2>&1
+		echo -en "${CYAN}Git checkout ${EXT_NAME} module 'tags/${GIT_TAG}'...${NC} "
+		${GIT_BIN} checkout tags/${GIT_TAG} >/dev/null 2>&1
+		if [ $? -eq 0 ]; then
+			echo -e "${GREEN}OK${NC}"
+			echo -en "${CYAN}Build ${EXT_NAME} module...${NC} "
+			if [ "${ENABLE_DEBUG}" -eq 1 ]; then
+				${MAKE_BIN} USE_PGXS=1 PG_CONFIG=${PG_BIN_PATH}/pg_config install
+			else
+				${MAKE_BIN} USE_PGXS=1 PG_CONFIG=${PG_BIN_PATH}/pg_config install >/dev/null 2>&1
+			fi
+			if [ $? -eq 0 ]; then
+				echo -e "${GREEN}OK${NC}"
+			else
+				echo -e "${RED}ERR${NC}"
+				cd "${SCRIPT_DIR}"
+				_delete_git
+				exit 1
+			fi
+			cd "${SCRIPT_DIR}"
+			_delete_git
+		else
+			echo -e "${RED}ERR${NC}"
+			echo -e "${RED}ERROR: Checkout repo '${GIT_REPO}', tags 'tags/${GIT_TAG}' not complete.${NC}"
+			exit 1
+		fi
+	else
+		echo -e "${RED}ERR${NC}"
+		echo -e "${RED}ERROR: Directory '${SCRIPT_DIR}/${EXT_NAME}' not found.${NC}"
+		exit 1
+	fi
 }
 
 cd "${SCRIPT_DIR}"
