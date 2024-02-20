@@ -5,7 +5,7 @@
 #
 # Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 # 
-# Current Version: 1.0.1
+# Current Version: 1.0.2
 #
 # License:
 #  This program is distributed in the hope that it will be useful,
@@ -24,8 +24,9 @@ SCRIPT_NAME=$(basename $0)
 
 # Settings
 ENABLE_DEBUG=0
-PG_STAT_KCACHE_GIT_VER=REL2_2_1
-PG_PROFILE_GIT_VER=4.1
+PG_STAT_KCACHE_GIT_VER=REL2_2_3
+PG_WAIT_SAMPLING_VER=v1.1.5
+PG_PROFILE_GIT_VER=4.4
 PG_CONGIG_PATH=""
 
 _command_exists() {
@@ -135,7 +136,7 @@ _detect_linux_distrib() {
 			OS_DISTRIB="Debian"
 			echo -en "${GREEN}${DIST} ${REV}"
 			case "${REV}" in
-			8|9|10|11)
+			8|9|10|11|12)
 				echo -e " (${PSUEDONAME})${NC}"
 				;;
 			*)
@@ -245,11 +246,13 @@ fi
 _delete_git() {
 	rm -rf "${SCRIPT_DIR}/pg_profile" >/dev/null 2>&1
 	rm -rf "${SCRIPT_DIR}/pg_stat_kcache" >/dev/null 2>&1
+    rm -rf "${SCRIPT_DIR}/pg_wait_sampling" >/dev/null 2>&1
 }
 
 _git_clone() {
 	local REPO=$1
 	_delete_git
+    cd "${SCRIPT_DIR}" >/dev/null 2>&1
 	echo -en "${CYAN}Git clone '${REPO}'...${NC} "
 	if [ "${ENABLE_DEBUG}" -eq 1 ]; then
 		${GIT_BIN} clone "${REPO}"
@@ -266,98 +269,88 @@ _git_clone() {
 	fi
 }
 
-cd "${SCRIPT_DIR}"
-_git_clone "https://github.com/powa-team/pg_stat_kcache.git"
-if [ -d "${SCRIPT_DIR}/pg_stat_kcache" ]; then
-	cd "${SCRIPT_DIR}/pg_stat_kcache" >/dev/null 2>&1
-	echo -en "${CYAN}Git checkout pg_stat_kcache module 'tags/${PG_STAT_KCACHE_GIT_VER}'...${NC} "
-	${GIT_BIN} checkout tags/${PG_STAT_KCACHE_GIT_VER} >/dev/null 2>&1
-fi
-if [ $? -eq 0 ]; then
-	if [ -d "${SCRIPT_DIR}/pg_stat_kcache" ]; then
-		echo -e "${GREEN}OK${NC}"
-		echo -en "${CYAN}Build pg_stat_kcache module...${NC} "
-		cd "${SCRIPT_DIR}/pg_stat_kcache"
-		if [ "${ENABLE_DEBUG}" -eq 1 ]; then
-			${MAKE_BIN} USE_PGXS=1 PG_CONFIG=${PG_BIN_PATH}/pg_config install
-		else
-			${MAKE_BIN} USE_PGXS=1 PG_CONFIG=${PG_BIN_PATH}/pg_config install >/dev/null 2>&1
-		fi
-		if [ $? -eq 0 ]; then
-			echo -e "${GREEN}OK${NC}"
-		else
-			echo -e "${RED}ERR${NC}"
-			cd "${SCRIPT_DIR}"
-			_delete_git
-			exit 1
-		fi
-		cd "${SCRIPT_DIR}"
-		_delete_git
-	else
-		echo -e "${RED}ERR${NC}"
-		echo -e "${RED}ERROR: Directory '${SCRIPT_DIR}/pg_stat_kcache' not found.${NC}"
-		exit 1
-	fi
-else
-	echo -e "${RED}ERR${NC}"
-	echo -e "${RED}ERROR: Checkout repo 'https://github.com/powa-team/pg_stat_kcache', tags 'tags/${PG_STAT_KCACHE_GIT_VER}' not complete.${NC}"
-	exit 1
-fi
+_build_pg_ext() {
+    local GIT_REPO=$1
+    local GIT_TAG=$2
+    local EXT_NAME=$3
+    _git_clone "${GIT_REPO}"
+    if [ -d "${SCRIPT_DIR}/${EXT_NAME}" ]; then
+        cd "${SCRIPT_DIR}/${EXT_NAME}" >/dev/null 2>&1
+        echo -en "${CYAN}Git checkout ${EXT_NAME} module 'tags/${GIT_TAG}'...${NC} "
+        ${GIT_BIN} checkout tags/${GIT_TAG} >/dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}OK${NC}"
+            echo -en "${CYAN}Build ${EXT_NAME} module...${NC} "
+            if [ "${ENABLE_DEBUG}" -eq 1 ]; then
+                ${MAKE_BIN} USE_PGXS=1 PG_CONFIG=${PG_BIN_PATH}/pg_config install
+            else
+                ${MAKE_BIN} USE_PGXS=1 PG_CONFIG=${PG_BIN_PATH}/pg_config install >/dev/null 2>&1
+            fi
+            if [ $? -eq 0 ]; then
+                echo -e "${GREEN}OK${NC}"
+            else
+                echo -e "${RED}ERR${NC}"
+                cd "${SCRIPT_DIR}"
+                _delete_git
+                exit 1
+            fi
+            cd "${SCRIPT_DIR}"
+            _delete_git
+        else
+            echo -e "${RED}ERR${NC}"
+            echo -e "${RED}ERROR: Checkout repo '${GIT_REPO}', tags 'tags/${GIT_TAG}' not complete.${NC}"
+            exit 1
+        fi
+    else
+        echo -e "${RED}ERR${NC}"
+        echo -e "${RED}ERROR: Directory '${SCRIPT_DIR}/${EXT_NAME}' not found.${NC}"
+        exit 1
+    fi
+}
 
 cd "${SCRIPT_DIR}"
-_git_clone "https://github.com/zubkov-andrei/pg_profile"
-if [ -d "${SCRIPT_DIR}/pg_profile" ]; then
-	cd "${SCRIPT_DIR}/pg_profile" >/dev/null 2>&1
-	echo -en "${CYAN}Git checkout pg_profile module 'tags/${PG_PROFILE_GIT_VER}'...${NC} "
-	${GIT_BIN} checkout tags/${PG_PROFILE_GIT_VER} >/dev/null 2>&1
-fi
-if [ $? -eq 0 ]; then
-	if [ -d "${SCRIPT_DIR}/pg_profile" ]; then
-		echo -e "${GREEN}OK${NC}"
-		echo -en "${CYAN}Build pg_profile module...${NC} "
-		cd "${SCRIPT_DIR}/pg_profile"
-		if [ "${ENABLE_DEBUG}" -eq 1 ]; then
-			${MAKE_BIN} USE_PGXS=1 PG_CONFIG=${PG_BIN_PATH}/pg_config install
-		else
-			${MAKE_BIN} USE_PGXS=1 PG_CONFIG=${PG_BIN_PATH}/pg_config install >/dev/null 2>&1
-		fi
-		if [ $? -eq 0 ]; then
-			echo -e "${GREEN}OK${NC}"
-			echo -e "${GREEN}Please, add module pg_stat_kcache in shared_preload_libraries in postgresql.conf file after pg_stat_statements and restart you PostgreSQL.${NC}"
-			echo -e "${GREEN}After restart PostgreSQL execute command for enabling pg_profile module:${NC}"
-			echo -e "${CYAN}psql -U postgres -d postgres -c 'ALTER SYSTEM SET track_activities = ON;'${NC}"
-			echo -e "${CYAN}psql -U postgres -d postgres -c 'ALTER SYSTEM SET track_counts = ON;'${NC}"
-			echo -e "${CYAN}psql -U postgres -d postgres -c 'ALTER SYSTEM SET track_io_timing = ON;'${NC}"
-			echo -e "${CYAN}psql -U postgres -d postgres -c 'ALTER SYSTEM SET track_functions = \"all\";'${NC}"
-			echo -e "${CYAN}psql -U postgres -d postgres -c 'SELECT pg_reload_conf();'${NC}"
-			echo -e "${CYAN}psql -U postgres -d postgres -c 'CREATE DATABASE pg_profile;'${NC}"
-			echo -e "${CYAN}psql -U postgres -d pg_profile -c 'CREATE SCHEMA profile;'${NC}"
-			echo -e "${CYAN}psql -U postgres -d pg_profile -c 'CREATE EXTENSION dblink SCHEMA profile;'${NC}"
-			echo -e "${CYAN}psql -U postgres -d pg_profile -c 'CREATE EXTENSION pg_stat_statements SCHEMA profile;'${NC}"
-			echo -e "${CYAN}psql -U postgres -d pg_profile -c 'CREATE EXTENSION pg_stat_kcache SCHEMA profile;'${NC}"
-			echo -e "${CYAN}psql -U postgres -d pg_profile -c 'CREATE EXTENSION pg_profile SCHEMA profile;'${NC}"
-			echo -e "${GREEN}After enabling pg_profile module add in your crontab:${NC}"
-			echo -e "${CYAN}*/30 * * * * ${PG_BIN_PATH}/psql -qAtX -U postgres -d pg_profile -c 'SELECT profile.take_sample()' > /dev/null 2>&1${NC}"
-			echo -e "${GREEN}For view sample execute:${NC}"
-			echo -e "${CYAN}${PG_BIN_PATH}/psql -qX -U postgres -d pg_profile -c 'SELECT profile.show_samples()'${NC}"
-			echo -e "${GREEN}For create report execute:${NC}"
-			echo -e "${CYAN}${PG_BIN_PATH}/psql -qAtX -U postgres -d pg_profile -c  'SELECT profile.get_report(1, 11)' > report_1_11.html${NC}"
-			echo -e "${GREEN}Goodbye ;)${NC}"
-		else
-			echo -e "${RED}ERR${NC}"
-			cd "${SCRIPT_DIR}"
-			_delete_git
-			exit 1
-		fi
-		cd "${SCRIPT_DIR}"
-		_delete_git
-	else
-		echo -e "${RED}ERR${NC}"
-		echo -e "${RED}ERROR: Directory '${SCRIPT_DIR}/pg_profile' not found.${NC}"
-		exit 1
-	fi
-else
-	echo -e "${RED}ERR${NC}"
-	echo -e "${RED}ERROR: Checkout repo 'https://github.com/zubkov-andrei/pg_profile', 'tags/${PG_PROFILE_GIT_VER}' not complete.${NC}"
-	exit 1
-fi
+_build_pg_ext "https://github.com/powa-team/pg_stat_kcache.git" "${PG_STAT_KCACHE_GIT_VER}" "pg_stat_kcache"
+_build_pg_ext "https://github.com/postgrespro/pg_wait_sampling.git" "${PG_WAIT_SAMPLING_VER}" "pg_wait_sampling"
+_build_pg_ext "https://github.com/zubkov-andrei/pg_profile" "${PG_PROFILE_GIT_VER}" "pg_profile"
+
+echo 
+echo -e "${GREEN}Please read the official documentation for creating a service user, assigning access rights, and other steps: https://github.com/zubkov-andrei/pg_profile/blob/4.3/doc/pg_profile.md${NC}"
+echo
+echo -e "${GREEN}Steps from the official documentation:${NC}"
+echo -e "${GREEN}1) Add module 'pg_stat_kcache' and 'pg_wait_sampling' in shared_preload_libraries in postgresql.conf file after pg_stat_statements and restart you PostgreSQL.${NC}"
+echo -e "${GREEN}2) After restart PostgreSQL execute command for enabling pg_profile module:${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'ALTER SYSTEM SET track_activities = ON;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'ALTER SYSTEM SET track_counts = ON;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'ALTER SYSTEM SET track_io_timing = ON;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'ALTER SYSTEM SET track_wal_io_timing = ON;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'ALTER SYSTEM SET track_functions = \"all\";'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'SELECT pg_reload_conf();'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'CREATE SCHEMA dblink;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'CREATE EXTENSION dblink SCHEMA dblink;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c \"CREATE USER profile_usr WITH PASSWORD 'profile_pwd';\"${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'GRANT USAGE ON SCHEMA dblink TO profile_usr;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'CREATE SCHEMA profile AUTHORIZATION profile_usr;'${NC}"
+echo -e "${CYAN}PGPASSWORD=profile_pwd psql -h 127.0.0.1 -U profile_usr -d postgres -c 'CREATE EXTENSION pg_profile SCHEMA profile;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'CREATE SCHEMA pgss;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'CREATE SCHEMA pgsk;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'CREATE SCHEMA pgws;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'CREATE EXTENSION pg_stat_statements SCHEMA pgss;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'CREATE EXTENSION pg_stat_kcache SCHEMA pgsk;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'CREATE EXTENSION pg_wait_sampling SCHEMA pgws;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c \"CREATE USER profile_collector WITH PASSWORD 'collector_pwd';\"${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'GRANT pg_read_all_stats TO profile_collector;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'GRANT USAGE ON SCHEMA pgss TO profile_collector;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'GRANT USAGE ON SCHEMA pgsk TO profile_collector;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'GRANT USAGE ON SCHEMA pgws TO profile_collector;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'GRANT EXECUTE ON FUNCTION pgsk.pg_stat_kcache_reset TO profile_collector;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'GRANT EXECUTE ON FUNCTION pgss.pg_stat_statements_reset TO profile_collector;'${NC}"
+echo -e "${CYAN}psql -U postgres -d postgres -c 'GRANT EXECUTE ON FUNCTION pgws.pg_wait_sampling_reset_profile TO profile_collector;'${NC}"
+echo -e "${CYAN}PGPASSWORD=profile_pwd psql -h 127.0.0.1 -U profile_usr -d postgres -c \"SELECT profile.set_server_connstr('local','dbname=postgres port=5432 host=localhost user=profile_collector password=collector_pwd');\"${NC}"
+echo -e "${GREEN}3) After enabling pg_profile module add in your crontab:${NC}"
+echo -e "${CYAN}*/30 * * * * PGPASSWORD=profile_pwd ${PG_BIN_PATH}/psql -qAtX -h 127.0.0.1 -U profile_usr -d postgres -c 'SELECT profile.take_sample()' > /dev/null 2>&1${NC}"
+echo -e "${GREEN}4) For view sample execute:${NC}"
+echo -e "${CYAN}PGPASSWORD=profile_pwd ${PG_BIN_PATH}/psql -qX -h 127.0.0.1 -U profile_usr -d postgres -c 'SELECT profile.show_samples()'${NC}"
+echo -e "${GREEN}5) For create report execute:${NC}"
+echo -e "${CYAN}PGPASSWORD=profile_pwd ${PG_BIN_PATH}/psql -qAtX -h 127.0.0.1 -U profile_usr -d postgres -c  'SELECT profile.get_report(1, 11)' > report_1_11.html${NC}"
+echo -e "${GREEN}Goodbye ;)${NC}"
+
