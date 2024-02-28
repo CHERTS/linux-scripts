@@ -169,7 +169,7 @@ case "${DIST}" in
 	Ubuntu)
 		echo -n "${DIST} ${REV}"
 		case "${REV}" in
-		14.04|16.04|17.10|18.04)
+		14.04|16.04|18.04|20.04|22.04)
 			echo " (${PSUEDONAME})"
 			;;
 		*)
@@ -180,7 +180,7 @@ case "${DIST}" in
 	Debian)
 		echo -n "${DIST} ${REV}"
 		case "${REV}" in
-		8|9)
+		8|9|10|11|12)
 			echo " (${PSUEDONAME})"
 			;;
 		*)
