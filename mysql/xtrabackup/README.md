@@ -53,7 +53,7 @@ mkdir /var/lib/mysql_backup
 
 На MASTER запускаем скрипт-передатчик (в screen):
 ```
-./xtrabackup_sender.sh -m percona -a mysql-db01.mysite.ru
+./xtrabackup_sender.sh -m percona -a mysql-slave-db01.mysite.ru
 ```
 
 Опция -m percona указывает использовать percona xtrabackup
