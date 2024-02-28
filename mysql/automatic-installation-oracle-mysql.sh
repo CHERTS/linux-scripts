@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #
-# Program: Automatic installation (removing) Oracle MySQL <automatic_installation_oracle_mysql.sh>
+# Program: Automatic installation (removing) Oracle MySQL 5.7 <automatic_installation_oracle_mysql.sh>
 #
 # Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 #
@@ -49,7 +49,7 @@
 VERSION="1.1"
 
 echo ""
-echo "Automatic installation (removing) Oracle MySQL v$VERSION"
+echo "Automatic installation (removing) Oracle MySQL v5.7 (script v${VERSION})"
 echo "Written by Mikhail Grigorev (sleuthhound@gmail.com, http://blog.programs74.ru)"
 echo ""
 
