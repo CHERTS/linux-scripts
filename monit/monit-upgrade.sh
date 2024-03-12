@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 
 #
-# Program: Monit upgrade <monit-upgrade>
+# Program: Monit upgrade <monit-upgrade.sh>
 #
 # Author: Mikhail Grigorev < sleuthhound at gmail dot com >
 # 
-# Current Version: 1.3
+# Current Version: 1.4
 #
 # Revision History:
+#
+#  Version 1.4
+#    Added start/stop monit via systemd
+#    Added support all Debian-like OS
 #
 #  Version 1.3
 #    Fixed Content-Length
@@ -32,7 +36,7 @@
 set -e
 
 # Set manual monit version
-#monit_latest_ver="5.24.0"
+#monit_latest_ver="5.33.0"
 
 # Set manual monit platform (linux-x64 or linux-x86)
 #monit_platform=linux-x64
@@ -63,9 +67,7 @@ function linux_stop_monit () {
            if [ -f /etc/init.d/monit ]; then
                /etc/init.d/monit stop >/dev/null 2>&1
 	   else
-	       echo "Error"
-               echo "ERROR: File /etc/init.d/monit not found."
-	       exit 1;
+	       systemctl stop monit >/dev/null 2>&1
 	   fi
 	   ;;
        *)  echo "Kill current monit... "
@@ -77,7 +79,7 @@ function linux_stop_monit () {
 	   ;;
        1)  echo "Error"
 	   echo "ERROR: monit is not stopped."
-	   exit 1;
+	   exit 1
     esac
 }
 
@@ -88,7 +90,7 @@ function freebsd_stop_monit () {
     else
 	echo "Error"
         echo "ERROR: File /usr/local/etc/rc.d/monit not found"
-        exit 1;
+        exit 1
     fi
     echo "Done"
 }
@@ -98,9 +100,7 @@ function linux_start_monit () {
     if [ -f /etc/init.d/monit ]; then
         /etc/init.d/monit start >/dev/null 2>&1
     else
-	echo "Error"
-        echo "ERROR: File /etc/init.d/monit not found"
-        exit 1;
+	systemctl start monit >/dev/null 2>&1
     fi
     case "$(pidof monit | wc -w)" in
 	0)  echo "Error"
@@ -118,7 +118,7 @@ function freebsd_start_monit () {
     else
 	echo "Error"
         echo "ERROR: File /usr/local/etc/rc.d/monit not found"
-        exit 1;
+        exit 1
     fi
     echo "Done"
 }
@@ -146,46 +146,38 @@ fi
 
 ls_bin=$(which ls)
 
-if ! command_exists monit ; then
+if ! command_exists monit; then
 	echo "ERROR: Monit not installed!"
-	if [ -f /etc/debian_version ]; then
-		DEBIAN_VERSION=$(sed 's/\..*//' /etc/debian_version)
-		if [ ${DEBIAN_VERSION} == '9' ]; then
-			echo "NOTICE: Please, run: apt-get install monit"
-		elif [ ${DEBIAN_VERSION} == '8' ]; then
-			echo "NOTICE: Please, run: apt-get install monit"
-		elif [ ${DEBIAN_VERSION} == '7' ]; then
+ 	if [ "${os}" = "Linux" ]; then
+		if [ -f /etc/debian_version ]; then
 			echo "NOTICE: Please, run: apt-get install monit"
 		else
-			echo "ERROR: Unknown Debian version"
-			exit 1;
+			echo "ERROR: Unknown Linux version"
+			exit 1
 		fi
-	else
-		echo "ERROR: Unknown Linux version"
-		exit 1;
-	fi
-	exit 1;
+  	fi
+	exit 1
 else
 	monit_bin=$(which monit)
 fi
 
-if ! command_exists curl ; then
+if ! command_exists curl; then
 	echo "ERROR: curl not installed!"
 	exit 1;
 else
 	curl_bin=$(which curl)
 fi
 
-if ! command_exists sed ; then
+if ! command_exists sed; then
 	echo "ERROR: sed not installed!"
 	exit 1;
 else
 	sed_bin=$(which sed)
 fi
 
-if ! command_exists awk ; then
+if ! command_exists awk; then
 	echo "ERROR: awk not installed!"
-	exit 1;
+	exit 1
 else
 	awk_bin=$(which awk)
 fi
@@ -214,7 +206,7 @@ fi
 debug_log "DEBUG: Monit platform: ${monit_platform}"
 
 if [ -z "${monit_latest_ver}" ]; then
-	monit_latest_ver=$(${curl_bin} -s https://mmonit.com/monit/changes/ | grep "Version" | grep -o 'id=".*"' | awk -F'"' '{print $2}' | head -n1)
+	monit_latest_ver=$(${curl_bin} -s https://mmonit.com/monit/changes/ 2>/dev/null | grep "Version" | grep -o 'id=".*"' | awk -F'"' '{print $2}' | head -n1)
 fi
 
 current_monit_ver=$(${monit_bin} -V | ${sed_bin} -n 1p | ${sed_bin} 's/[[:alpha:]|(|[:space:]]//g' | ${awk_bin} -F- '{print $1}')
@@ -226,25 +218,25 @@ debug_log "DEBUG: Monit URL: ${monit_url}"
 
 if [ "${current_monit_ver}" == "${monit_latest_ver}" ]; then
 	echo "You are using the latest Monit version (v${current_monit_ver})"
-	exit 0;
+	exit 0
 fi
 
-if ! command_exists wget ; then
+if ! command_exists wget; then
 	echo "ERROR: wget not installed!"
-	exit 1;
+	exit 1
 else
-	wget_bin=`which wget`
+	wget_bin=$(which wget)
 fi
 
-if ! command_exists tar ; then
+if ! command_exists tar; then
 	echo "ERROR: tar not installed!"
-	exit 1;
+	exit 1
 else
-	tar_bin=`which tar`
+	tar_bin=$(which tar)
 fi
 
 if [ -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" ]; then
-	rm -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz"
+	rm -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" >/dev/null 2>&1
 fi
 
 if [ ! -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" ]; then
@@ -252,7 +244,7 @@ if [ ! -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" 
     debug_log "DEBUG: Check monit in official web site... Return HTTP Code: ${monit_arch_status_code}"
     if [ "${monit_arch_status_code}" -ne "200" ]; then
 	    echo "ERROR: Monit of version ${monit_latest_ver} not found in official web site https://mmonit.com"
-	    exit 1;
+	    exit 1
     fi
     monit_arch_size=$(${curl_bin} -sI ${monit_url} | grep -i "Content-Length" | awk '{print $2}' | tr -d '\n' | tr -d '\r')
     debug_log "DEBUG: Check monit in official web site... Return file size: ${monit_arch_size}"
@@ -264,7 +256,7 @@ if [ ! -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" 
 	    debug_log "DEBUG: Check monit archive ${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz on local disk... Size: ${monit_arch_size_on_disk}"
     else
 	    echo "Error"
-	    exit 1;
+	    exit 1
     fi
     echo -n "Checking archive size... "
     if [ "${monit_arch_size_on_disk}" -eq "${monit_arch_size}" ]; then
@@ -272,13 +264,13 @@ if [ ! -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" 
     else
 	    echo "Error"
 	    echo "ERROR: The size of the archive from the official site does not match the size of the archive on the disk."
-	    exit 1;
+	    exit 1
     fi
 fi
 
 if [ -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" ]; then
     if [ -d "${monit_tmp_dir}/monit-${monit_latest_ver}" ]; then
-        rm -rf "${monit_tmp_dir}/monit-${monit_latest_ver}"
+        rm -rf "${monit_tmp_dir}/monit-${monit_latest_ver}" >/dev/null 2>&1
     fi
     debug_log "DEBUG: Unpacking archive ${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz..."
     echo -n "Unpacking archive... "
@@ -287,18 +279,18 @@ if [ -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" ];
        echo "Done"
     else
        echo "Error"
-       exit 1;
+       exit 1
     fi
     if [ "${os}" = "Linux" ]; then
        linux_stop_monit
     elif [ "${os}" = "FreeBSD" ]; then
        freebsd_stop_monit
     else
-       exit 1;
+       exit 1
     fi
     echo -n "Delete older version monit... "
     if [ -f ${monit_bin} ]; then
-            rm -f ${monit_bin}
+            rm -f ${monit_bin} >/dev/null 2>&1
     fi
     if [ ! -f ${monit_bin} ]; then
 	    echo "Done"
@@ -308,11 +300,11 @@ if [ -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" ];
     echo -n "Copy the new version of monit... "
     cp "${monit_tmp_dir}/monit-${monit_latest_ver}/bin/monit" ${monit_bin}
     if [ "${os}" = "Linux" ]; then
-       chown -R root:root ${monit_bin}
+       chown -R root:root ${monit_bin} >/dev/null 2>&1
     elif [ "${os}" = "FreeBSD" ]; then
-       chown -R root:wheel ${monit_bin}
+       chown -R root:wheel ${monit_bin} >/dev/null 2>&1
     else
-       chown -R root ${monit_bin}
+       chown -R root ${monit_bin} >/dev/null 2>&1
     fi
     chmod a+x ${monit_bin}
     echo "Done"
@@ -328,12 +320,12 @@ if [ -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" ];
     elif [ "${os}" = "FreeBSD" ]; then
        freebsd_start_monit
     else
-       exit 1;
+       exit 1
     fi
     if [ -d "${monit_tmp_dir}/monit-${monit_latest_ver}" ]; then
-        rm -rf "${monit_tmp_dir}/monit-${monit_latest_ver}"
+        rm -rf "${monit_tmp_dir}/monit-${monit_latest_ver}" >/dev/null 2>&1
     fi
     if [ -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" ]; then
-	rm "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz"
+	rm -f "${monit_tmp_dir}/monit-${monit_latest_ver}-${monit_platform}.tar.gz" >/dev/null 2>&1
     fi
 fi
