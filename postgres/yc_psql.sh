@@ -1,13 +1,16 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #
 # Program: YancexCloud wrapper for psql <yc_psql.sh>
 #
 # Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 #
-# Current Version: 1.2
+# Current Version: 1.3
 #
 # Revision History:
+#
+#  Version 1.3
+#    Added getting password from Vault using multipath
 #
 #  Version 1.2
 #    Added getting password from Vault
@@ -48,24 +51,26 @@ PSQL_BIN_NAME=psql
 YC_LAST_CONN_FILE="$HOME/.yc_psql_last_conn"
 # Host template: c-$CLUSTERID.$YC_HOST_SUFFIX
 YC_HOST_SUFFIX="rw.mdb.yandexcloud.net"
-# Vault path
-VAULT_PATH="mycompany/yandexcloud"
+# Array of Vault path
+VAULT_PATH_ARRAY=("mycompany/apps/yandexcloud" "mycompany/infra/yandexcloud")
+# Exclude user from list
+PG_USER_EXCLUDE="pgsql_exporter"
 
 # Don't edit this config
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do
-    DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-    SOURCE="$(readlink "$SOURCE")"
-    [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+	DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+	SOURCE="$(readlink "$SOURCE")"
+	[[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
 done
-SCRIPT_DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
 SCRIPT_NAME=$(basename "$0")
 RET=1
-VERSION="1.2"
+VERSION="1.3"
 
 # Check command exist function
 _command_exists() {
-	type "$1" &> /dev/null
+	type "$1" &>/dev/null
 }
 
 # Detect psql
@@ -78,7 +83,7 @@ fi
 
 # Detect YandexCloud CLI
 if _command_exists yc; then
-    YC_BIN=$(which yc)
+	YC_BIN=$(which yc)
 else
 	echo "ERROR: YandexCloud CLI binary not found."
 	exit 1
@@ -93,7 +98,7 @@ else
 fi
 
 echo
-echo "Simple wrapper for connecting to PostgreSQL in YandexCloud via ${PSQL_BIN_NAME} v${VERSION}"                                                                                                  
+echo "Simple wrapper for connecting to PostgreSQL in YandexCloud via ${PSQL_BIN_NAME} v${VERSION}"
 echo
 
 if [ ! -f "${PSQL_BIN_PATH}/${PSQL_BIN_NAME}" ]; then
@@ -115,34 +120,53 @@ fi
 _confirm_simple() {
 	read -r -p "${1:-Are you sure? [y/N]} " RESPONSE
 	case "${RESPONSE}" in
-		[yY][eE][sS]|[yY]) 
-			true
-			;;
-		*)
-			false
-			;;
+	[yY][eE][sS] | [yY])
+		true
+		;;
+	*)
+		false
+		;;
 	esac
 }
 
 # Confirm dialog
 _confirm() {
-    local RET=true
-    while $RET; do
-        read -r -p "${1:-Are you sure? [y/N]} " RESPONSE
-        case "${RESPONSE}" in
-            [yY][eE][sS]|[yY])
-                RET=true
-                break
-                ;;
-            [nN][oO]|[nN])
-                RET=false
-                ;;
-            *)
-                echo "Invalid response"
-                ;;
-        esac
-    done
-    $RET
+	local RET=true
+	while $RET; do
+		read -r -p "${1:-Are you sure? [y/N]} " RESPONSE
+		case "${RESPONSE}" in
+		[yY][eE][sS] | [yY])
+			RET=true
+			break
+			;;
+		[nN][oO] | [nN])
+			RET=false
+			;;
+		*)
+			echo "Invalid response"
+			;;
+		esac
+	done
+	$RET
+}
+
+_get_password_from_vault() {
+	local YC_PG_USERNAME=${1:-"${DEFAULT_USERNAME}"}
+	local YC_PG_CLUSTER=${2:-"${DEFAULT_USERNAME}"}
+	local VAULT_SERVICE_PREFIX=${3:-"/secret"}
+
+	if [[ "${YC_PG_USERNAME}" == "${YC_PG_CLUSTER}" ]]; then
+		echo "Getting PostgreSQL password from Vault path '${VAULT_SERVICE_PREFIX}/password'..."
+		PG_PASSWD=$(vault kv get -field=password "${VAULT_SERVICE_PREFIX}" 2>/dev/null)
+	else
+		echo "Getting PostgreSQL password from Vault path '${VAULT_SERVICE_PREFIX}/password_${YC_PG_USERNAME}'..."
+		PG_PASSWD=$(vault kv get -field=password_${YC_PG_USERNAME} "${VAULT_SERVICE_PREFIX}" 2>/dev/null)
+	fi
+
+	if [ -n "${PG_PASSWD}" ]; then
+		echo "Password found in Vault."
+		export PGPASSWORD=${PG_PASSWD}
+	fi
 }
 
 _connect_last_pg() {
@@ -152,20 +176,9 @@ _connect_last_pg() {
 	local PORT=${4:-"${DEFAULT_PORT}"}
 	local USERNAME=${5:-"${DEFAULT_USERNAME}"}
 	local DATABASE=${6:-"${DEFAULT_DATABASE}"}
+	local PG_VAULT_PATH=${7:-"/secret"}
 
-	local SERVICE_NAME="${CLUSTER//_/-}-pg"
-	local VAULT_SERVICE_PREFIX="${VAULT_PATH}/${PROFILE}/${SERVICE_NAME}"
-	echo "Getting PostgreSQL password from Vault path '${VAULT_SERVICE_PREFIX}'..."
-	if [[ "${USERNAME}" == "${CLUSTER}" ]]; then
-	    local PG_PASSWD=$(vault kv get -field=password "${VAULT_SERVICE_PREFIX}" 2>/dev/null)
-	else
-    	local PG_PASSWD=$(vault kv get -field=password_${USERNAME} "${VAULT_SERVICE_PREFIX}" 2>/dev/null)
-	fi
-
-	if [ -n "${PG_PASSWD}" ]; then
-    	echo "Password found in Vault."
-	    export PGPASSWORD=${PG_PASSWD}
-	fi
+	_get_password_from_vault "${USERNAME}" "${CLUSTER//-/_}" "${PG_VAULT_PATH}"
 
 	if [ -n "${CLUSTERID}" ]; then
 		echo "Connecting to Cluster ID: ${CLUSTERID}"
@@ -200,6 +213,7 @@ _connect_pg() {
 	PORT=${2:-"${DEFAULT_PORT}"}
 	USERNAME=${3:-"${DEFAULT_USERNAME}"}
 	DATABASE=${4:-"${DEFAULT_DATABASE}"}
+	VAULTPATH=${5:-""}
 
 	if [[ "${PSQL_BIN_NAME}" == "usql" ]]; then
 		${PSQL_BIN_PATH}/${PSQL_BIN_NAME} "postgres://${USERNAME}@c-${CLUSTERID}.${YC_HOST_SUFFIX}:${PORT}/${DATABASE}"
@@ -211,15 +225,17 @@ _connect_pg() {
 
 	if [ ${RET} -eq 0 ]; then
 		echo "Write last connection config..."
-		(cat<<-EOF
-		PG_PROFILE=${YC_PROFILE}
-		PG_CLUSTER=${YC_CLUSTER}
-		PG_CLUSTERID=${CLUSTERID}
-		PG_PORT=${PORT}
-		PG_USERNAME=${USERNAME}
-		PG_DATABASE=${DATABASE}
-		EOF
-		)>"${YC_LAST_CONN_FILE}"
+		(
+			cat <<-EOF
+				PG_PROFILE=${YC_PROFILE}
+				PG_CLUSTER=${YC_CLUSTER}
+				PG_CLUSTERID=${CLUSTERID}
+				PG_PORT=${PORT}
+				PG_USERNAME=${USERNAME}
+				PG_DATABASE=${DATABASE}
+				PG_VAULT_PATH=${VAULTPATH}
+			EOF
+		) >"${YC_LAST_CONN_FILE}"
 		echo "Done. Bay."
 	fi
 
@@ -231,8 +247,7 @@ _connect_pg() {
 }
 
 # Check the command line
-if [ $# -ne 0 -a $# -ne 1 ]; 
-then
+if [ $# -ne 0 -a $# -ne 1 ]; then
 	echo "Usage: $0 [wait]"
 	exit 127
 fi
@@ -254,50 +269,49 @@ fi
 YC_CLI_PROFILES=($(${YC_BIN} config profile list 2>/dev/null | tr -d " ACTIVE"))
 
 if [ -f "${YC_LAST_CONN_FILE}" ]; then
-    YC_CLI_FULL_PROFILES=(${YC_CLI_PROFILES[@]} "CONNECT" "Quit")
+	YC_CLI_FULL_PROFILES=(${YC_CLI_PROFILES[@]} "CONNECT" "Quit")
 else
-    YC_CLI_FULL_PROFILES=(${YC_CLI_PROFILES[@]} "Quit")
+	YC_CLI_FULL_PROFILES=(${YC_CLI_PROFILES[@]} "Quit")
 fi
 
 echo "Select Yandex.Cloud CLI profile:"
-shopt -s extglob;   
+shopt -s extglob
 select PROFILE in "${YC_CLI_FULL_PROFILES[@]}"; do
 	case ${PROFILE} in
-		+([a-z\_]))
-			${YC_BIN} config profile activate "${PROFILE}" 2>/dev/null
-			if [ $? -eq 0 ]; then
-				YC_PROFILE=${PROFILE}
-				break
-			else
-				echo "ERROR: Profile '${PROFILE}' not ready to use. Exit"
-				exit 1
-			fi
-			;;
-		"CONNECT")
-			YC_PROFILE=""
-			CLUSTERID=""
+	+([a-z\_]))
+		${YC_BIN} config profile activate "${PROFILE}" 2>/dev/null
+		if [ $? -eq 0 ]; then
+			YC_PROFILE=${PROFILE}
 			break
-			;;
-		"Quit")
-			echo "Exit"
-			exit 0
-			;;
-		*)
-			echo "Not available"
-			;;
+		else
+			echo "ERROR: Profile '${PROFILE}' not ready to use. Exit"
+			exit 1
+		fi
+		;;
+	"CONNECT")
+		YC_PROFILE=""
+		CLUSTERID=""
+		break
+		;;
+	"Quit")
+		echo "Exit"
+		exit 0
+		;;
+	*)
+		echo "Not available"
+		;;
 	esac
 done
-shopt -u extglob;
+shopt -u extglob
 
-if [ -z "${YC_PROFILE}" ];
-then
-    if [ -f "${YC_LAST_CONN_FILE}" ]; then
-        source "${YC_LAST_CONN_FILE}"
-        _connect_last_pg "${PG_PROFILE}" "${PG_CLUSTER}" "${PG_CLUSTERID}" "${PG_PORT}" "${PG_USERNAME}" "${PG_DATABASE}"
-        exit ${RET}
-    else
+if [ -z "${YC_PROFILE}" ]; then
+	if [ -f "${YC_LAST_CONN_FILE}" ]; then
+		source "${YC_LAST_CONN_FILE}"
+		_connect_last_pg "${PG_PROFILE}" "${PG_CLUSTER}" "${PG_CLUSTERID}" "${PG_PORT}" "${PG_USERNAME}" "${PG_DATABASE}" "${PG_VAULT_PATH}"
+		exit ${RET}
+	else
 		YC_PROFILE="default"
-    fi
+	fi
 fi
 
 echo "Getting cluster list, please wait..."
@@ -310,105 +324,100 @@ if [ ${#YC_PG_CLUSTERS[@]} -eq 0 ]; then
 fi
 
 echo "Select cluster:"
-shopt -s extglob;   
+shopt -s extglob
 select CLUSTER in "${YC_PG_CLUSTERS[@]}" "Quit"; do
 	case ${CLUSTER} in
-		+([a-z\_]))
-			echo "Cluster '${CLUSTER}' selected"
-			YC_CLUSTER=${CLUSTER}
-			echo "Getting cluster id and database list, please wait..."
-			CLUSTERID=$(${YC_BIN} managed-postgresql cluster list --profile "${YC_PROFILE}" --format json 2>/dev/null | jq '.[] | if .name=='\"${CLUSTER}\"' then .id else empty end' 2>/dev/null | tr -d \")
-			break
-			;;
-		"Quit")
-			echo "Exit"
-			exit 0
-			;;
-		*)
-			echo "Not available"
-			;;
+	+([a-z0-9\_]))
+		echo "Cluster '${CLUSTER}' selected"
+		YC_CLUSTER=${CLUSTER}
+		echo "Getting cluster id and database list, please wait..."
+		CLUSTERID=$(${YC_BIN} managed-postgresql cluster list --profile "${YC_PROFILE}" --format json 2>/dev/null | jq '.[] | if .name=='\"${CLUSTER}\"' then .id else empty end' 2>/dev/null | tr -d \")
+		break
+		;;
+	"Quit")
+		echo "Exit"
+		exit 0
+		;;
+	*)
+		echo "Not available"
+		;;
 	esac
 done
-shopt -u extglob;
+shopt -u extglob
 
 YC_PG_DATABASES=($(${YC_BIN} managed-postgresql database list --profile "${YC_PROFILE}" --cluster-id ${CLUSTERID} --format json 2>/dev/null | jq '.[].name' 2>/dev/null | tr -d \"))
 
 echo "Select database:"
-shopt -s extglob;   
+shopt -s extglob
 select DB in "${YC_PG_DATABASES[@]}" "Quit"; do
 	case ${DB} in
-		+([a-z\_]))
-			echo "Database '${DB}' selected"
-			DATABASE=${DB}
-			break
-			;;
-		"Quit")
-			echo "Exit"
-			exit 0
-			;;
-		*)
-			echo "Not available"
-			;;
+	+([a-z\_]))
+		echo "Database '${DB}' selected"
+		DATABASE=${DB}
+		break
+		;;
+	"Quit")
+		echo "Exit"
+		exit 0
+		;;
+	*)
+		echo "Not available"
+		;;
 	esac
 done
-shopt -u extglob;
+shopt -u extglob
 
-if [ -z "${DATABASE}" ];
-then
+if [ -z "${DATABASE}" ]; then
 	DATABASE="${DEFAULT_DATABASE}"
 fi
 
 echo -n "Port [${DEFAULT_PORT}]: "
 read PORT
 
-if [ -z "${PORT}" ];
-then
+if [ -z "${PORT}" ]; then
 	PORT="${DEFAULT_PORT}"
 fi
 
-YC_PG_USERS=($(${YC_BIN} managed-postgresql user list --profile "${YC_PROFILE}" --cluster-id ${CLUSTERID} --format json 2>/dev/null | jq 'map(select(.login == true and .name != "postgres_exporter"))' | jq '.[].name' 2>/dev/null | tr -d \"))
+YC_PG_USERS=($(${YC_BIN} managed-postgresql user list --profile "${YC_PROFILE}" --cluster-id ${CLUSTERID} --format json 2>/dev/null | jq 'map(select(.login == true and .name != "${PG_USER_EXCLUDE}"))' | jq '.[].name' 2>/dev/null | tr -d \"))
 
 echo "Select user:"
-shopt -s extglob;   
+shopt -s extglob
 select USER in "${YC_PG_USERS[@]}" "Quit"; do
 	case ${USER} in
-		+([a-z\_]))
-			echo "User '${USER}' selected"
-			USERNAME=${USER}
-			break
-			;;
-		"Quit")
-			echo "Exit"
-			exit 0
-			;;
-		*)
-			echo "Not available"
+	+([a-z\_]))
+		echo "User '${USER}' selected"
+		USERNAME=${USER}
+		break
+		;;
+	"Quit")
+		echo "Exit"
+		exit 0
+		;;
+	*)
+		echo "Not available"
 		;;
 	esac
 done
-shopt -u extglob;
+shopt -u extglob
 
-if [ -z "${USERNAME}" ];
-then
+if [ -z "${USERNAME}" ]; then
 	USERNAME="${DEFAULT_USERNAME}"
 fi
 
 echo
 
-SERVICE_NAME="${YC_CLUSTER//_/-}-pg"
-VAULT_SERVICE_PREFIX="${VAULT_PATH}/${YC_PROFILE}/${SERVICE_NAME}"
-echo "Getting PostgreSQL password from Vault path '${VAULT_SERVICE_PREFIX}'..."
-if [[ "${USERNAME}" == "${YC_CLUSTER}" ]]; then
-	PG_PASSWD=$(vault kv get -field=password "${VAULT_SERVICE_PREFIX}" 2>/dev/null)
-else
-	PG_PASSWD=$(vault kv get -field=password_${USERNAME} "${VAULT_SERVICE_PREFIX}" 2>/dev/null)
-fi
-
-if [ -n "${PG_PASSWD}" ]; then
-	echo "Password found in Vault."
-	export PGPASSWORD=${PG_PASSWD}
-fi
-
-_connect_pg "${CLUSTERID}" "${PORT}" "${USERNAME}" "${DATABASE}"
+for VAULT_PATH in ${VAULT_PATH_ARRAY[@]}; do
+	VAULT_FULL_PATH_ARRAY=("${VAULT_PATH}/${YC_PROFILE}/compute/${YC_CLUSTER//_/-}-pg" "${VAULT_PATH}/${YC_PROFILE}/${YC_CLUSTER}/managed_postgres")
+	for VAULT_FULL_PATH in ${VAULT_FULL_PATH_ARRAY[@]}; do
+		_get_password_from_vault "${USERNAME}" "${YC_CLUSTER//-/_}" "${VAULT_FULL_PATH}"
+		if [ -n "${PGPASSWORD}" ]; then
+			break
+		fi
+	done
+	if [ -n "${PGPASSWORD}" ]; then
+		break
+	fi
+done
+_connect_pg "${CLUSTERID}" "${PORT}" "${USERNAME}" "${DATABASE}" "${VAULT_FULL_PATH}"
 
 exit ${RET}
