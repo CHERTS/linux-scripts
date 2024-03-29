@@ -4,8 +4,9 @@ clickhouse-backup.sh - A script to automate the creating Clickhouse backup via c
 
 Installing clickhouse-backup
 ```
-wget https://github.com/AlexAkulov/clickhouse-backup/releases/download/v2.1.3/clickhouse-backup_2.1.3_amd64.deb
-dpkg -i clickhouse-backup_2.1.3_amd64.deb && rm -f clickhouse-backup_2.1.3_amd64.deb
+CLB_VER=2.4.35
+wget https://github.com/AlexAkulov/clickhouse-backup/releases/download/v${CLB_VER}/clickhouse-backup_${CLB_VER}_amd64.deb
+dpkg -i clickhouse-backup_${CLB_VER}_amd64.deb && rm -f clickhouse-backup_${CLB_VER}_amd64.deb
 cp /etc/clickhouse-backup/config.yml.example /etc/clickhouse-backup/config.yml
 chmod 600 /etc/clickhouse-backup/config.yml
 ```
