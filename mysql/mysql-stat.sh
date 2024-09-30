@@ -5,9 +5,12 @@
 #
 # Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 # 
-# Current Version: 1.5
+# Current Version: 1.6
 #
 # Revision History:
+#
+#  Version 1.6
+#    Added support run mysql client in Docker (option --use-docker)
 #
 #  Version 1.5
 #    Fixed base memory calculate
@@ -96,7 +99,7 @@
 #  +------------------------------------------+--------------------+
 #
 
-VERSION="1.5"
+VERSION="1.6"
 
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do
@@ -124,20 +127,16 @@ _command_exists() {
 	type "$1" &> /dev/null
 }
 
-if _command_exists "mysql"; then
-	MYSQL_BIN=$(which mysql)
-else
-	echo "ERROR: Command 'mysql' not found."
-	exit 1
-fi
-
 _show_help() {
 	echo -e "\t--help -h\t\tthis menu"
 	echo -e "\t--user username\t\tspecify mysql username to use, the script will prompt for a password during runtime, unless you supply a password"
 	echo -e "\t--password \"yourpass\""
 	echo -e "\t--host hostname\t\tspecify mysql hostname to use, be it local (default) or remote"
 	echo -e "\t--port port\t\tspecify mysql port number to use, be it 3306 (default)"
+	echo -e "\t--use-docker\t\tspecify docker container name including mysql client (non default)"
 }
+
+MYSQL_IN_DOCKER=""
 
 # Parse arguments
 while [[ $1 == -* ]]; do
@@ -146,10 +145,30 @@ while [[ $1 == -* ]]; do
                 --password)     MYSQL_PASSWD="$2"; shift 2;;
                 --host)         MYSQL_HOST="$2"; shift 2;;
                 --port)         MYSQL_PORT="$2"; shift 2;;
+		--use-docker)	MYSQL_IN_DOCKER=$2; shift 2;;
                 --help|-h)      _show_help; exit 0;;
                 --*)            shift; break;;
         esac
 done
+
+if [[ -z "${MYSQL_IN_DOCKER}" ]]; then
+	if _command_exists "mysql"; then
+        	MYSQL_BIN=$(which mysql)
+	else
+        	echo "ERROR: Command 'mysql' not found."
+	        exit 1
+	fi
+else
+	if _command_exists "docker"; then
+		MYSQL_BIN="/usr/bin/docker compose exec -T ${MYSQL_IN_DOCKER} mysql"
+	else
+		echo "ERROR: Command 'docker' not found."
+		exit 1
+	fi
+	if [[ -z "${MYSQL_BIN}" ]]; then
+		MYSQL_BIN="/usr/bin/docker compose exec -T percona mysql"
+	fi
+fi
 
 if [[ ! "${LOG_FILE}" ]]; then
 	LOG_FILE="${SCRIPT_DIR}/mysql_stat.log"
