@@ -5,7 +5,7 @@
 #
 # Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 # 
-# Current Version: 1.0.0
+# Current Version: 1.0.1
 #
 # License:
 #  This program is distributed in the hope that it will be useful,
@@ -20,7 +20,7 @@ PT_USER=root
 PT_DB=mydb
 PT_TBL=mytable
 PT_ALTER="ADD COLUMN mycol INT NOT NULL DEFAULT 0"
-PT_OPTS="--no-drop-old-table --ask-pass --critical-load='Threads_running=500' --max-load='Threads_running=100'"
+PT_OPTS="--recursion-method=none --no-drop-old-table --ask-pass --critical-load='Threads_running=200' --max-load='Threads_running=100' --check-interval=1 --max-lag=2s --progress=time,2"
 
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do
@@ -116,6 +116,7 @@ _logging "MASTER: ${PT_MASTER_HOST}"
 _logging "SLAVE: ${PT_SLAVE_HOST}"
 _logging "PORT: ${PT_PORT}"
 _logging "DB: ${PT_DB}"
+_logging "USER: ${PT_USER}"
 _logging "TABLE: ${PT_TBL}"
 _logging "ALTER: ${PT_ALTER}"
 _logging "PAUSE_FILE: ${PT_P_FILE}"
@@ -123,8 +124,8 @@ _logging "PT_OPTS: ${PT_OPTS}"
 
 read -n 1 -s -r -p "Press any key to run pt-osc or press Ctrl+C to abort" && echo
 
-${PT_BIN} ${PT_OPTS} --recursion-method=none --check-slave-lag=h=${PT_SLAVE_HOST},P=${PT_PORT},D=${PT_DB},t=${PT_TBL} \
---user=${PT_USER} --alter="${PT_ALTER}" --check-interval=1 --max-lag=2s --progress=time,2 \
+${PT_BIN} ${PT_OPTS} --check-slave-lag=h=${PT_SLAVE_HOST},P=${PT_PORT},D=${PT_DB},t=${PT_TBL} \
+--user=${PT_USER} --alter="${PT_ALTER}" \
 --execute h=${PT_MASTER_HOST},P=${PT_PORT},D=${PT_DB},t=${PT_TBL} --pause-file ${PT_P_FILE}
 
 _logging "All done."
