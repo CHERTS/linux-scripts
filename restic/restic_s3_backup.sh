@@ -179,3 +179,5 @@ ${RESTIC_BIN} stats -r s3:${S3_HOST}/${S3_BUCKET} -p "${SCRIPT_DIR}/${S3_BUCKET}
 
 _logging "All done."
 _duration "${DATE_START}"
+
+_logging "End script '${SCRIPT_DIR}/${SCRIPT_NAME}'. Goodbye ;)"
