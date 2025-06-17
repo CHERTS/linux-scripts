@@ -5,7 +5,7 @@
 #
 # Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 # 
-# Current Version: 1.0.4
+# Current Version: 1.0.5
 #
 # License:
 #  This program is distributed in the hope that it will be useful,
@@ -13,9 +13,9 @@
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 #
 # Tested platforms:
-#  - Debian 10,11 using /bin/bash
-#  - RedHat 7,8,9 using /bin/bash
-#  - Ubuntu 18.04,20.04,22.04 using /bin/bash
+#  - Debian 10,11,12 using /bin/bash
+#  - RedHat 7,8,9,10 using /bin/bash
+#  - Ubuntu 18.04,20.04,22.04,24.04 using /bin/bash
 #
 # Run (scenario 1):
 # export ZABBIX_AGENT_SERVER="zabbix.myserver.org"
@@ -146,6 +146,34 @@ else
     exit 1
 fi
 
+if _command_exists "whoami"; then
+	WHOAMI_BIN=$(which whoami)
+else
+    echo "ERROR: Command 'whoami' not found."
+    exit 1
+fi
+
+if _command_exists "uname"; then
+	UNAME_BIN=$(which uname)
+else
+    echo "ERROR: Command 'uname' not found."
+    exit 1
+fi
+
+if _command_exists "sed"; then
+	SED_BIN=$(which sed)
+else
+    echo "ERROR: Command 'sed' not found."
+    exit 1
+fi
+
+if _command_exists "awk"; then
+	AWK_BIN=$(which awk)
+else
+    echo "ERROR: Command 'awk' not found."
+    exit 1
+fi
+
 if [ -f "${RT_CONF_FILE}" ]; then
 	_logging "Read config file..."
 	source "${RT_CONF_FILE}" 1>>"${LOG_FILE}" 2>&1
@@ -229,7 +257,7 @@ _detect_linux_distrib() {
 	case "${DIST}" in
 		Ubuntu)
 			case "${REV}" in
-			14.04|16.04|17.10|18.04|20.04|22.04)
+			18.04|20.04|22.04|24.04)
 				_logging "Found ${DIST} ${REV} (${PSUEDONAME})"
 				;;
 			*)
@@ -257,8 +285,8 @@ _detect_linux_distrib() {
 	esac
 }
 
-OS=$(uname -s)
-OS_ARCH=$(uname -m)
+OS=$(${UNAME_BIN} -s)
+OS_ARCH=$(${UNAME_BIN} -m)
 _logging "Detecting your OS..."
 case "${OS}" in
 	Linux*)
@@ -270,31 +298,31 @@ case "${OS}" in
 		REV="Unknown"
 		if [ -f "/etc/redhat-release" ]; then
 			DISTROBASEDON="RedHat"
-			DIST=$(cat /etc/redhat-release | sed s/\ release.*//)
-			PSUEDONAME=$(cat /etc/redhat-release | sed s/.*\(// | sed s/\)//)
-			REV=$(cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//)
-			EL=$(echo "${REV}" | awk -F'.' '{print $1}')
+			DIST=$(cat /etc/redhat-release | ${SED_BIN} s/\ release.*//)
+			PSUEDONAME=$(cat /etc/redhat-release | ${SED_BIN} s/.*\(// | ${SED_BIN} s/\)//)
+			REV=$(cat /etc/redhat-release | ${SED_BIN} s/.*release\ // | ${SED_BIN} s/\ .*//)
+			EL=$(echo "${REV}" | ${AWK_BIN} -F'.' '{print $1}')
 		elif [ -f "/etc/SuSE-release" ]; then
 			DISTROBASEDON="SUSE"
 			DIST="SuSE"
-			PSUEDONAME=$(cat /etc/SuSE-release | tr "\n" ' '| sed s/VERSION.*//)
-			REV=$(cat /etc/SuSE-release | tr "\n" ' ' | sed s/.*=\ //)
+			PSUEDONAME=$(cat /etc/SuSE-release | tr "\n" ' '| ${SED_BIN} s/VERSION.*//)
+			REV=$(cat /etc/SuSE-release | tr "\n" ' ' | ${SED_BIN} s/.*=\ //)
 		elif [ -f "/etc/mandrake-release" ]; then
 			DISTROBASEDON="Mandrake"
 			DIST="Mandrake"
-			PSUEDONAME=$(cat /etc/mandrake-release | sed s/.*\(// | sed s/\)//)
-			REV=$(cat /etc/mandrake-release | sed s/.*release\ // | sed s/\ .*//)
+			PSUEDONAME=$(cat /etc/mandrake-release | ${SED_BIN} s/.*\(// | ${SED_BIN} s/\)//)
+			REV=$(cat /etc/mandrake-release | ${SED_BIN} s/.*release\ // | ${SED_BIN} s/\ .*//)
 		elif [ -f "/etc/debian_version" ]; then
 			if [ -f "/etc/lsb-release" ]; then
 				DISTROBASEDON="Debian"
-				DIST=$(cat /etc/lsb-release | grep '^DISTRIB_ID' | awk -F=  '{ print $2 }')
-				PSUEDONAME=$(cat /etc/lsb-release | grep '^DISTRIB_CODENAME' | awk -F=  '{ print $2 }')
-				REV=$(cat /etc/lsb-release | grep '^DISTRIB_RELEASE' | awk -F=  '{ print $2 }')
+				DIST=$(cat /etc/lsb-release | grep '^DISTRIB_ID' | ${AWK_BIN} -F=  '{ print $2 }')
+				PSUEDONAME=$(cat /etc/lsb-release | grep '^DISTRIB_CODENAME' | ${AWK_BIN} -F=  '{ print $2 }')
+				REV=$(cat /etc/lsb-release | grep '^DISTRIB_RELEASE' | ${AWK_BIN} -F=  '{ print $2 }')
 			elif [ -f "/etc/os-release" ]; then
 				DISTROBASEDON="Debian"
-				DIST=$(cat /etc/os-release | grep '^NAME' | awk -F=  '{ print $2 }' | grep -oP '(?<=\")(\w+)(?=\ )')
-				PSUEDONAME=$(cat /etc/os-release | grep '^VERSION=' | awk -F= '{ print $2 }' | grep -oP '(?<=\()(\w+)(?=\))')
-				REV=$(sed 's/\..*//' /etc/debian_version)
+				DIST=$(cat /etc/os-release | grep '^NAME' | ${AWK_BIN} -F=  '{ print $2 }' | grep -oP '(?<=\")(\w+)(?=\ )')
+				PSUEDONAME=$(cat /etc/os-release | grep '^VERSION=' | ${AWK_BIN} -F= '{ print $2 }' | grep -oP '(?<=\()(\w+)(?=\))')
+				REV=$(${SED_BIN} 's/\..*//' /etc/debian_version)
 			fi
 		fi
 		_detect_linux_distrib "${DIST}" "${REV}" "${PSUEDONAME}"
@@ -306,7 +334,7 @@ case "${OS}" in
 esac
 
 _logging "Checking your privileges... "
-CURRENT_USER=$(whoami)
+CURRENT_USER=$(${WHOAMI_BIN})
 if [[ "${CURRENT_USER}" = "root" ]]; then
 	_logging "Your privileges is OK"
 else
@@ -450,25 +478,25 @@ if [ ${AGENT2_INSTALLED} -eq 1 ]; then
 				systemctl stop zabbix-agent2 1>>"${LOG_FILE}" 2>&1
 			fi
 			_logging "Settings up zabbix-agent2 (ActiveServer=${ZBX_AGENT_SERVER})..."
-			sed -i "s@Server=127.0.0.1@Server=${ZBX_AGENT_SERVER}@g" "${ZBX_AGENT_CONFIG_FILE}"
-			sed -i "s@ServerActive=127.0.0.1@ServerActive=${ZBX_AGENT_SERVER}@g" "${ZBX_AGENT_CONFIG_FILE}"
-			sed -i "s@Hostname=Zabbix server@Hostname=${ZBX_LOCAL_HOST}@g" "${ZBX_AGENT_CONFIG_FILE}"
+			${SED_BIN} -i "s@Server=127.0.0.1@Server=${ZBX_AGENT_SERVER}@g" "${ZBX_AGENT_CONFIG_FILE}"
+			${SED_BIN} -i "s@ServerActive=127.0.0.1@ServerActive=${ZBX_AGENT_SERVER}@g" "${ZBX_AGENT_CONFIG_FILE}"
+			${SED_BIN} -i "s@Hostname=Zabbix server@Hostname=${ZBX_LOCAL_HOST}@g" "${ZBX_AGENT_CONFIG_FILE}"
 			_logging "Settings up zabbix-agent2 (Hostmeta=${ZBX_AGENT_HOSTMETA})..."
-			sed -i "s@# HostMetadata=@HostMetadata=${ZBX_AGENT_HOSTMETA}@g" "${ZBX_AGENT_CONFIG_FILE}"
+			${SED_BIN} -i "s@# HostMetadata=@HostMetadata=${ZBX_AGENT_HOSTMETA}@g" "${ZBX_AGENT_CONFIG_FILE}"
 			ZBX_PORT_USE=0
 			ZBX_PORT_USE=$(${NETSTAT_BIN} -ltupn | grep -c 10050)
 			if [ ${ZBX_PORT_USE} -gt 0 ];  then
 				_logging "Settings up zabbix-agent2 (ListenPort=${ZBX_AGENT_LISTENPORT})..."
-				sed -i "s@# ListenPort=10050@ListenPort=${ZBX_AGENT_LISTENPORT}@g" "${ZBX_AGENT_CONFIG_FILE}"
+				${SED_BIN} -i "s@# ListenPort=10050@ListenPort=${ZBX_AGENT_LISTENPORT}@g" "${ZBX_AGENT_CONFIG_FILE}"
 			else
 				_logging "Settings up zabbix-agent2 (ListenPort=10050)..."
 			fi
 			if [ -n "${ZBX_AGENT_PSK_KEY}" ]; then
 				_logging "Settings up zabbix-agent2 encryption settings (TLSPSKIdentity=${ZBX_AGENT_PSK_NAME})..."
-				sed -i "s@# TLSConnect=unencrypted@TLSConnect=psk@g" "${ZBX_AGENT_CONFIG_FILE}"
-				sed -i "s@# TLSAccept=unencrypted@TLSAccept=psk@g" "${ZBX_AGENT_CONFIG_FILE}"
-				sed -i "s@# TLSPSKIdentity=@TLSPSKIdentity=${ZBX_AGENT_PSK_NAME}@g" "${ZBX_AGENT_CONFIG_FILE}"
-				sed -i "s@# TLSPSKFile=@TLSPSKFile=/etc/zabbix/${ZBX_AGENT_PSK_NAME}.key@g" "${ZBX_AGENT_CONFIG_FILE}"
+				${SED_BIN} -i "s@# TLSConnect=unencrypted@TLSConnect=psk@g" "${ZBX_AGENT_CONFIG_FILE}"
+				${SED_BIN} -i "s@# TLSAccept=unencrypted@TLSAccept=psk@g" "${ZBX_AGENT_CONFIG_FILE}"
+				${SED_BIN} -i "s@# TLSPSKIdentity=@TLSPSKIdentity=${ZBX_AGENT_PSK_NAME}@g" "${ZBX_AGENT_CONFIG_FILE}"
+				${SED_BIN} -i "s@# TLSPSKFile=@TLSPSKFile=/etc/zabbix/${ZBX_AGENT_PSK_NAME}.key@g" "${ZBX_AGENT_CONFIG_FILE}"
 				echo "${ZBX_AGENT_PSK_KEY}" > "/etc/zabbix/${ZBX_AGENT_PSK_NAME}.key"
 				chmod 640 "/etc/zabbix/${ZBX_AGENT_PSK_NAME}.key" >/dev/null 2>&1
 				chown zabbix:zabbix "/etc/zabbix/${ZBX_AGENT_PSK_NAME}.key" >/dev/null 2>&1
