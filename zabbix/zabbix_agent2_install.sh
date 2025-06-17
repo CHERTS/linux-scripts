@@ -21,7 +21,7 @@
 # export ZABBIX_AGENT_SERVER="zabbix.myserver.org"
 # export ZABBIX_AGENT_HOSTMETA="Linux"
 # export ZABBIX_AGENT_PSK_NAME="mypsk"
-# export ZABBIX_AGENT_PSK_KEY=="Manual_Generated_PSK_Key"
+# export ZABBIX_AGENT_PSK_KEY="Manual_Generated_PSK_Key"
 # Download and run script
 # wget https://raw.githubusercontent.com/CHERTS/linux-scripts/master/zabbix/zabbix_agent2_install.sh -O ~/zabbix_agent2_install.sh && bash ~/zabbix_agent2_install.sh
 #
