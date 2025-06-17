@@ -21,6 +21,8 @@
 # export ZABBIX_AGENT_SERVER="zabbix.myserver.org"
 # export ZABBIX_AGENT_HOSTMETA="Linux"
 # export ZABBIX_AGENT_PSK_NAME="mypsk"
+# export ZBX_AGENT_PSK_KEY_GENERATE=0
+# export ZBX_AGENT_PSK_KEY_DEFAULT="Manual_Generated_PSK_Key"
 # Download and run script
 # wget https://raw.githubusercontent.com/CHERTS/linux-scripts/master/zabbix/zabbix_agent2_install.sh -O ~/zabbix_agent2_install.sh && bash ~/zabbix_agent2_install.sh
 #
@@ -203,7 +205,11 @@ else
 	ZBX_AGENT_PSK_NAME=${ZABBIX_AGENT_PSK_NAME}
 fi
 
+_logging "Starting script '${SCRIPT_DIR}/${SCRIPT_NAME}'"
+
+_logging "Preparing configurations..."
 if [ ${ZBX_AGENT_PSK_KEY_GENERATE} -eq 1 ]; then
+	_logging "Generate new PSK key..."
 	ZBX_AGENT_PSK_KEY=$(${OPENSSL_BIN} rand -hex 32 2>/dev/null)
 else
 	if [ -z "${ZABBIX_AGENT_PSK_KEY}" ]; then
@@ -212,8 +218,6 @@ else
 		ZBX_AGENT_PSK_KEY=${ZABBIX_AGENT_PSK_KEY}
 	fi
 fi
-
-_logging "Starting script '${SCRIPT_DIR}/${SCRIPT_NAME}'"
 
 _logging "Current script configuration:"
 _logging "LOG_FILE: ${LOG_FILE}"
