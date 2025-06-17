@@ -219,7 +219,7 @@ else
 	fi
 fi
 
-_logging "Current script configuration:"
+_logging "Current configurations:"
 _logging "LOG_FILE: ${LOG_FILE}"
 _logging "RT_CONF_FILE: ${RT_CONF_FILE}"
 _logging "Prepared Zabbix-agent 2 settings:"
