@@ -5,7 +5,7 @@
 #
 # Author: Mikhail Grigorev <sleuthhound at gmail dot com>
 # 
-# Current Version: 1.0.3
+# Current Version: 1.0.4
 #
 # License:
 #  This program is distributed in the hope that it will be useful,
@@ -24,9 +24,9 @@ SCRIPT_NAME=$(basename $0)
 
 # Settings
 ENABLE_DEBUG=0
-PG_STAT_KCACHE_GIT_VER=REL2_3_0
+PG_STAT_KCACHE_GIT_VER=REL2_3_1
 PG_WAIT_SAMPLING_VER=v1.1.8
-PG_PROFILE_GIT_VER=4.9
+PG_PROFILE_GIT_VER=4.10
 PG_CONGIG_PATH=""
 
 _command_exists() {
