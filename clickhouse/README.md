@@ -2,6 +2,8 @@
 
 clickhouse-backup.sh - A script to automate the creating Clickhouse backup via clickhouse-backup
 
+[See latest release version](https://github.com/Altinity/clickhouse-backup/releases/latest)
+
 Installing clickhouse-backup (debian package)
 ```
 CLB_VER=2.6.35
